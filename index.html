@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <!-- Site metadata: generated from site.config.json -->
+    <title>EMBERLINE — Endless Pixel Arcade Game</title>
+    <meta name="description" content="Run, jump, dash and fight through an endless pixel city. Collect coins, unlock gear and upgrade your courier in EMBERLINE, an offline arcade runner." />
+    <meta name="application-name" content="EMBERLINE" />
+    <meta name="theme-color" content="#101514" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="canonical" href="https://emberline.sinakheiri.dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EMBERLINE" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="EMBERLINE — Endless Pixel Arcade Game" />
+    <meta property="og:description" content="Run, jump, dash and fight through an endless pixel city. Collect coins, unlock gear and upgrade your courier in EMBERLINE, an offline arcade runner." />
+    <meta property="og:url" content="https://emberline.sinakheiri.dev/" />
+    <meta property="og:image" content="https://emberline.sinakheiri.dev/assets/og-image.png" />
+    <meta property="og:image:secure_url" content="https://emberline.sinakheiri.dev/assets/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="EMBERLINE: Keep the signal alive. A pixel courier runs through a moonlit city collecting glowing coins." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="EMBERLINE — Endless Pixel Arcade Game" />
+    <meta name="twitter:description" content="Run, jump, dash and fight through an endless pixel city. Collect coins, unlock gear and upgrade your courier in EMBERLINE, an offline arcade runner." />
+    <meta name="twitter:image" content="https://emberline.sinakheiri.dev/assets/og-image.png" />
+    <meta name="twitter:image:alt" content="EMBERLINE: Keep the signal alive. A pixel courier runs through a moonlit city collecting glowing coins." />
+    <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
+    <meta name="apple-mobile-web-app-title" content="EMBERLINE" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="site.webmanifest" />
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "EMBERLINE",
+  "description": "Run, jump, dash and fight through an endless pixel city. Collect coins, unlock gear and upgrade your courier in EMBERLINE, an offline arcade runner.",
+  "url": "https://emberline.sinakheiri.dev/",
+  "image": "https://emberline.sinakheiri.dev/assets/og-image.png",
+  "genre": [
+    "Arcade",
+    "Endless runner"
+  ],
+  "gamePlatform": "Web browser",
+  "operatingSystem": "Any",
+  "playMode": "https://schema.org/SinglePlayer",
+  "inLanguage": "en",
+  "isAccessibleForFree": true
+}
+    </script>
+    <!-- End site metadata -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="shell">
+      <header class="masthead">
+        <a class="brand" href="#" aria-label="Emberline home"
+          ><span class="brand-mark">E</span> EMBERLINE<span class="edition">
+            / ENDLESS ARCADE</span
+          ></a
+        >
+        <div class="system">
+          <span class="wallet" title="Spendable earned coins"
+            >COINS <strong id="coin-total">0000</strong></span
+          >
+          <span class="led"></span> OFFLINE READY <span class="version">V.05</span>
+        </div>
+      </header>
+      <section class="instrument" aria-label="Run statistics">
+        <div class="readout">
+          <span class="label">SIGNAL / SCORE</span><strong id="score">000000</strong>
+        </div>
+        <div class="readout best">
+          <span class="label">PERSONAL BEST</span><strong id="best">000000</strong>
+        </div>
+        <div class="sector">
+          <span class="label" id="sector">SECTOR 01</span><span id="zone">THE OUTSKIRTS</span>
+        </div>
+        <div class="speed-readout">
+          <span class="label" id="pace">CRUISE</span><strong id="velocity">98 PX/S</strong>
+        </div>
+        <div class="toolbar">
+          <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP / SETUP</button>
+          <button id="sound" title="Toggle sound (M)" aria-pressed="true">SOUND ON</button
+          ><button id="pause" title="Pause (P)">Ⅱ PAUSE</button
+          ><button id="fullscreen" title="Toggle fullscreen (F)">⛶ FULLSCREEN</button>
+        </div>
+      </section>
+      <section id="stage" aria-label="Emberline arcade game">
+        <canvas
+          id="game"
+          width="480"
+          height="240"
+          tabindex="-1"
+          aria-label="Pixel courier runner. Jump over ground hazards and dash through enemies."
+        ></canvas>
+        <div class="scanlines" aria-hidden="true"></div>
+        <div id="overlay" class="overlay">
+          <div class="eyebrow" id="eyebrow"><span></span> ONE COURIER. NO FINISH LINE.</div>
+          <h1 id="heading">KEEP THE<br /><em>SIGNAL ALIVE.</em></h1>
+          <p id="description">
+            The city went dark. You kept running.<br />Carry the last ember as far as you can.
+          </p>
+          <div class="menu-actions">
+            <button id="start" class="primary">START RUN <span>↗</span></button
+            ><button id="menu-setup" class="secondary">SHOP &amp; UPGRADES</button>
+          </div>
+          <div id="prompt">or press <kbd>ENTER</kbd></div>
+        </div>
+        <div id="announce" aria-live="polite"></div>
+        <div class="stage-bottom">
+          <span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
+          ><span id="dash-state">DASH READY <i></i></span>
+        </div>
+      </section>
+      <footer>
+        <div class="instructions">
+          <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
+          ><span><kbd>SHIFT</kbd> DASH</span><span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span
+          ><span><kbd>P</kbd> PAUSE</span><span><kbd>F</kbd> FULLSCREEN</span>
+        </div>
+        <button id="attack" class="attack-button" disabled>X / PUNCH</button>
+      </footer>
+      <div class="subfooter">
+        <span>Dash to surge forward. Break bright-seam obstacles. Jump armored hazards.</span
+        ><label><input id="effects" type="checkbox" checked /> PARTICLE FX</label>
+      </div>
+      <div class="touch-controls">
+        <button id="touch-jump">JUMP / DOUBLE JUMP</button><button id="touch-dash">DASH</button
+        ><button id="touch-attack">PUNCH</button>
+      </div>
+
+      <dialog id="setup-dialog" aria-labelledby="setup-heading">
+        <header class="setup-header">
+          <div>
+            <span class="label">COURIER OUTFITTER / 05</span>
+            <h2 id="setup-heading">SHOP &amp; UPGRADES</h2>
+          </div>
+          <button id="setup-close" class="close-button" aria-label="Close setup">✕</button>
+        </header>
+        <div class="setup-body">
+          <aside class="profile-preview">
+            <span class="label" id="profile-status">YOUR EQUIPPED COURIER</span>
+            <canvas
+              id="loadout-preview"
+              width="160"
+              height="110"
+              aria-label="Animated preview of selected character, cape, jetpack and weapon"
+            ></canvas>
+            <h3 id="profile-name">Ember fox</h3>
+            <p id="profile-gear"></p>
+            <dl>
+              <dt>WEAPON</dt>
+              <dd id="profile-weapon"></dd>
+              <dt>DIFFICULTY</dt>
+              <dd id="profile-difficulty"></dd>
+            </dl>
+            <div class="shop-wallet">
+              <span class="label">YOUR COINS</span><strong id="shop-balance">0</strong
+              ><small>Earn on preset difficulties.<br />Custom runs earn no coins.</small>
+            </div>
+            <p id="shop-message" role="status" aria-live="polite"></p>
+          </aside>
+          <section class="setup-options">
+            <nav id="loadout-tabs" role="tablist" aria-label="Setup category"></nav>
+            <div id="loadout-panel" role="tabpanel" tabindex="0"></div>
+          </section>
+        </div>
+        <footer class="setup-footer">
+          <span>Purchases and gear autosave.<br />Upgrades &amp; difficulty apply next run.</span
+          ><button id="setup-ready" class="primary">READY <span>↗</span></button>
+        </footer>
+      </dialog>
+    </main>
+    <script src="src/config.js"></script>
+    <script src="src/upgrades.js"></script>
+    <script src="src/loadout.js"></script>
+    <script src="src/random.js"></script>
+    <script src="src/content.js"></script>
+    <script src="src/difficulty.js"></script>
+    <script src="src/generator.js"></script>
+    <script src="src/combat.js"></script>
+    <script src="src/engine.js"></script>
+    <script src="src/audio.js"></script>
+    <script src="src/particles.js"></script>
+    <script src="src/pixel.js"></script>
+    <script src="src/backgrounds.js"></script>
+    <script src="src/cloth.js"></script>
+    <script src="src/sprites.js"></script>
+    <script src="src/renderer.js"></script>
+    <script src="src/storage.js"></script>
+    <script src="src/economy.js"></script>
+    <script src="src/ui.js"></script>
+    <script src="src/input.js"></script>
+    <script src="src/popups.js"></script>
+    <script src="src/upgrade-panel.js"></script>
+    <script src="src/wardrobe.js"></script>
+    <script src="src/app.js"></script>
+    <script src="src/main.js"></script>
+    <script src="src/pwa.js"></script>
+  </body>
+</html>

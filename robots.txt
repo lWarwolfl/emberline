@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://emberline.sinakheiri.dev/sitemap.xml

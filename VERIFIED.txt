@@ -1,0 +1,67 @@
+EMBERLINE v5 — 28 October 2026
+
+62 Node regression tests passed. All 25 editable source modules passed syntax checks.
+All four Microsoft Edge browser integration suites passed without JS exceptions.
+
+Progression:
+- Dash, jump height and attack damage begin at L0 and cap at L5.
+- Normal costs are exactly 100, 200, 300, 400 and 500 coins per track.
+- Triple Jump costs 5,000 coins once and caps at L1.
+- Stale clicks, insufficient funds and maxed upgrades cannot debit the wallet.
+- Wallet/ownership/levels persist together. Old paid gear and coins migrate intact.
+- Active run stats stay fixed; purchased upgrades apply on the next run.
+
+Balance checks:
+Basic dash is shorter/weaker with a longer recharge. Each enemy receives at most
+one impact per dash. Jump begins as a basic double jump. Damage scales from x1 to
+x2, with capped levels and differentiated weapon/enemy durability. Level-zero
+representative encounters remain avoidable in the bounded timing search.
+Custom runs still earn zero currency; preset rewards remain 1/2/3 per pickup.
+
+Browser upgrade checks buy all levels, verify caps/prices/exact wallet debits,
+reload purchases, execute three real jump inputs and upgraded projectile combat.
+Shop, gear, fullscreen, regular gameplay, saves and mobile tests also pass.
+
+UI verification:
+Hermes Claude Design Configure surface. Upgrades use a full-width list focused on
+level, current/next benefit and price. Detail text is collapsed by default and
+its disclosure interaction is tested. Purchase focus/scroll are preserved.
+Desktop and mobile screenshots inspected; no horizontal dialog overflow.
+
+No installation, build, account or network is required to play.
+
+Metadata update — v5.1
+Canonical/social domain configured as https://emberline.sinakheiri.dev/.
+Added SVG/ICO/PNG favicons, Apple icon, app/maskable icons, 1200x630 social image,
+1080x1080 square preview, title/description/OG/X metadata, VideoGame JSON-LD,
+manifest, robots and sitemap. All assets are local. No deployment was performed.
+66 Node tests passed, including metadata uniqueness, image dimensions, manifest
+references and structured data checks. The regular browser integration suite
+passed with additional title/canonical checks and real icon/preview image decoding.
+Preview images inspected visually. Metadata generator is idempotent.
+
+Reset Progress update — v5.2
+Added L > Settings > Reset Progress with a second Reset & Restart confirmation.
+Coins, bought gear, upgrade levels, best score and equipped settings reset.
+Sound/particle preferences and unrelated browser data are preserved.
+69 Node tests passed, including scoped reset, partial failure rollback and blocked
+storage. All source syntax checks passed. Reset and gear browser suites passed.
+The reset suite verifies cancel, Escape, mobile layout, confirmed restart,
+zero/default saved progress after reload and no legacy coin resurrection.
+Reset confirmation screenshot inspected visually.
+
+Mobile shell + PWA — v5.3
+Added a full-height, safe-area-aware mobile shell: edge-to-edge 4:3 stage, compact
+score/best/pace readout, one toolbar row, slim hint/particle row, three 64px thumb
+controls, and a full-screen setup sheet. Landscape keeps the complete 2:1 playfield
+centred with a single-row HUD. Desktop layout is unchanged.
+Added sw.js (precaches the page, stylesheet, manifest, icons and every src script)
+and src/pwa.js (HTTP/HTTPS registration only; file:// stays silent). iOS
+standalone metas are generated from site.config.json.
+Verification: 72 Node tests passed (3 new PWA precache/registration checks), all
+source and sw.js syntax checks passed, and all five Edge browser suites passed
+without JS exceptions. Offline reload was verified in Edge against a local HTTP
+server with the network disabled: the service worker controlled the page, cached
+41 assets, and the game booted to the menu offline. Portrait 390x844, landscape
+844x390, the setup sheet and the offline screen were inspected; no horizontal
+overflow. No deployment was performed.
