@@ -1,11 +1,11 @@
 /* Reuses the actual pixel renderer. Requires optional Playwright, no game dependency. */
-const fs = require("node:fs");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { chromium } from "./browser";
 
 // Designed poster art, drawn from the brand palette. No game renderer involved.
-function previewArt(square) {
+function previewArt(square: boolean) {
   const biomes = [
     ["#192b27", "#c0a96e"],
     ["#302323", "#ffb461"],
@@ -159,7 +159,7 @@ async function main() {
           await img.decode();
           const canvas = document.createElement("canvas");
           canvas.width = canvas.height = size;
-          const ctx = canvas.getContext("2d");
+          const ctx = canvas.getContext("2d")!;
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(img, 0, 0, size, size);
           return canvas.toDataURL("image/png").split(",")[1];
@@ -196,7 +196,7 @@ async function main() {
       await img.decode();
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 512;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#101514";
       ctx.fillRect(0, 0, 512, 512);
       ctx.imageSmoothingEnabled = false;
@@ -208,7 +208,7 @@ async function main() {
     for (const [filename, width, height] of [
       ["og-image.png", 1200, 630],
       ["preview-square.png", 1080, 1080],
-    ]) {
+    ] as const) {
       await page.setViewportSize({ width, height });
       await page.setContent(previewArt(width === height), { waitUntil: "load" });
       await page.evaluate(() => document.fonts.ready);

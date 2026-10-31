@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": ["scripts/**/*.ts", "tests/**/*.ts", "src/**/*.ts"],
+  "exclude": ["src/service-worker.ts"]
+}

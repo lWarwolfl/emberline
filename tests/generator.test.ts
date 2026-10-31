@@ -1,14 +1,15 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Content = require("../.build/content.js");
-const Config = require("../.build/config.js");
-const Generator = require("../.build/generator.js");
-const Engine = require("../.build/engine.js");
-const Random = require("../.build/random.js");
-const { run } = require("./helpers.cjs");
+import type { Seed, WorldObject } from "../src/types";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Content from "../src/content";
+import Config from "../src/config";
+import Generator from "../src/generator";
+import Engine from "../src/engine";
+import Random from "../src/random";
+import { run } from "./helpers";
 
 test("same seed reproduces the route; different seeds produce different routes", () => {
-  function route(seed) {
+  function route(seed: Seed) {
     const state = run(seed);
     state.sector = 10;
     return Array.from({ length: 30 }, () => {
@@ -24,9 +25,9 @@ test("same seed reproduces the route; different seeds produce different routes",
 
 test("shuffle bag covers all items and avoids immediate repeats across refills", () => {
   const rng = Random.create(8),
-    bag = [],
+    bag: string[] = [],
     items = ["a", "b", "c", "d"];
-  let previous;
+  let previous: string | undefined;
   for (let cycle = 0; cycle < 30; cycle++) {
     const seen = new Set();
     for (let i = 0; i < items.length; i++) {
@@ -95,6 +96,7 @@ test("early runs do not spawn locked content", () => {
       const definition = [...Content.obstacles, ...Content.enemies].find(
         (item) => item.id === object.variant,
       );
+      assert(definition);
       assert(definition.unlock <= state.sector);
     }
     state.objects = [];
@@ -104,10 +106,19 @@ test("early runs do not spawn locked content", () => {
 test("enemies have distinct, bounded movement behaviors", () => {
   const positions = [];
   for (const definition of Content.enemies) {
-    const object = { ...definition, kind: "enemy", x: 400, y: 150, baseY: 150, age: 0, phase: 0 };
+    const object: WorldObject = {
+      ...definition,
+      variant: definition.id,
+      kind: "enemy",
+      x: 400,
+      y: 150,
+      baseY: 150,
+      age: 0,
+      phase: 0,
+    };
     for (let i = 0; i < 100; i++) {
       Generator.move(object, 100, 0.01);
-      assert(Math.abs(object.y - object.baseY) <= definition.amplitude + 0.001);
+      assert(Math.abs(object.y - object.baseY!) <= definition.amplitude + 0.001);
     }
     positions.push(object.x);
   }

@@ -9,8 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "rootDir": "src",
-    "outDir": ".build",
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "noEmit": true,
+    "types": []
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/service-worker.ts"]

@@ -1,9 +1,10 @@
+import site from "../site.config.json";
 /* Optional integration suite. Requires Playwright and an installed Edge/Chrome. */
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
+import { chromium } from "./browser";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 async function main() {
   const root = path.resolve(__dirname, "..");
@@ -18,7 +19,7 @@ async function main() {
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    const errors = [];
+    const errors: string[] = [];
     page.on("pageerror", (error) => {
       errors.push(error.message);
       console.error("Browser error:", error.message);
@@ -40,7 +41,7 @@ async function main() {
     const url = pathToFileURL(path.join(root, "index.html"));
     url.search = "?seed=browser-check&dev=1";
     await page.goto(url.href);
-    const site = require("../site.config.json");
+
     assert.equal(await page.title(), site.title);
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute("href"), site.url);
     const decoded = await page.evaluate(async () => {
@@ -56,7 +57,7 @@ async function main() {
         const image = new Image();
         image.src = asset;
         await image.decode();
-        results.push([asset, image.naturalWidth, image.naturalHeight]);
+        results.push([asset, image.naturalWidth, image.naturalHeight] as const);
       }
       return results;
     });
@@ -158,7 +159,7 @@ async function main() {
         state.objects.push(
           ...Content.enemies.map((definition, index) => ({
             ...definition,
-            kind: "enemy",
+            kind: "enemy" as const,
             variant: definition.id,
             x: 160 + index * 70,
             y: 115,

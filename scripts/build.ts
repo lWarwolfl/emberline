@@ -1,12 +1,11 @@
-const { execFileSync } = require("node:child_process");
-const path = require("node:path");
-const fs = require("node:fs");
-const esbuild = require("esbuild");
-const prettier = require("prettier");
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import fs from "node:fs";
+import esbuild from "esbuild";
+import prettier from "prettier";
 const root = path.resolve(__dirname, "..");
 
 async function main() {
-  fs.rmSync(path.join(root, ".build"), { recursive: true, force: true });
   execFileSync(process.execPath, [require.resolve("typescript/bin/tsc")], {
     cwd: root,
     stdio: "inherit",
@@ -19,7 +18,7 @@ async function main() {
   for (const [entry, output] of [
     ["src/main.ts", "dist/game.js"],
     ["src/service-worker.ts", "sw.js"],
-  ]) {
+  ] as const) {
     const result = await esbuild.build({
       absWorkingDir: root,
       entryPoints: [entry],
@@ -38,7 +37,7 @@ async function main() {
     fs.mkdirSync(path.dirname(path.join(root, output)), { recursive: true });
     fs.writeFileSync(path.join(root, output), content);
   }
-  console.log("Built type-checked browser, service worker and Node test modules.");
+  console.log("Built type-checked browser and service worker.");
 }
 main().catch((error) => {
   console.error(error);

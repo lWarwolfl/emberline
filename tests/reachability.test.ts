@@ -1,17 +1,18 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Engine = require("../.build/engine.js");
-const Generator = require("../.build/generator.js");
-const Content = require("../.build/content.js");
-const Config = require("../.build/config.js");
-const { run } = require("./helpers.cjs");
+import type { GameState } from "../src/types";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Engine from "../src/engine";
+import Generator from "../src/generator";
+import Content from "../src/content";
+import Config from "../src/config";
+import { run } from "./helpers";
 
 // Explore a bounded set of jump/dash timings. This catches representative
 // impossible combinations without pretending to prove every procedural run.
-function hasSafeRoute(initial) {
+function hasSafeRoute(initial: GameState) {
   let frontier = [initial];
   for (let frame = 0; frame < 180; frame++) {
-    const candidates = new Map();
+    const candidates = new Map<string, GameState>();
     for (const previous of frontier) {
       const actions = ["wait"];
       if (previous.player.jumps < previous.stats.maxJumps) actions.push("jump");

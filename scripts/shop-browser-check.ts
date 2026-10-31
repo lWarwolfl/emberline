@@ -1,7 +1,7 @@
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const assert = require("node:assert/strict");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
+import { chromium } from "./browser";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 async function main() {
   const root = path.resolve(__dirname, "..");
@@ -14,7 +14,7 @@ async function main() {
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    const errors = [];
+    const errors: string[] = [];
     await page.addInitScript(() => {
       if (!localStorage.getItem("test.shop-funded")) {
         localStorage.setItem("emberline.coins", "235");
@@ -34,7 +34,7 @@ async function main() {
         const state = EmberlineDebug.app.state;
         state.next = Infinity;
         Object.assign(state.player, { x: 82, y: 178, vy: 0, jumps: 0 });
-        state.objects = [{ kind: "ember", x: 85, y: 181, w: 5, h: 6 }];
+        state.objects = [{ kind: "ember", variant: "", x: 85, y: 181, w: 5, h: 6 }];
       });
       await page.waitForTimeout(70);
     };
@@ -77,7 +77,7 @@ async function main() {
       ["standard", 2n],
       ["hard", 3n],
       ["custom", 0n],
-    ]) {
+    ] as const) {
       await page.reload();
       await page.click("#menu-setup");
       await page.click("#tab-difficulty");
@@ -113,8 +113,8 @@ async function main() {
     assert.equal(
       await page.evaluate(
         () =>
-          document.getElementById("setup-dialog").scrollWidth >
-          document.getElementById("setup-dialog").clientWidth,
+          document.getElementById("setup-dialog")!.scrollWidth >
+          document.getElementById("setup-dialog")!.clientWidth,
       ),
       false,
     );

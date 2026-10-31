@@ -1,6 +1,6 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Storage = require("../.build/storage.js");
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Storage from "../src/storage";
 
 function fixture(fail = false) {
   const values = new Map([
@@ -13,7 +13,7 @@ function fixture(fail = false) {
     ["other-app", "keep"],
   ]);
   let count = 0;
-  const storage = {
+  const storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> = {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
     removeItem(key) {

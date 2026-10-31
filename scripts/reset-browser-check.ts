@@ -1,7 +1,7 @@
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const assert = require("node:assert/strict");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
+import { chromium } from "./browser";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 async function main() {
   const root = path.resolve(__dirname, "..");
@@ -14,7 +14,7 @@ async function main() {
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 950 } });
-    const errors = [];
+    const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.addInitScript(() => {
       if (localStorage.getItem("test.reset-fixture")) return;
@@ -59,8 +59,8 @@ async function main() {
     assert.equal(
       await page.evaluate(
         () =>
-          document.getElementById("setup-dialog").scrollWidth >
-          document.getElementById("setup-dialog").clientWidth,
+          document.getElementById("setup-dialog")!.scrollWidth >
+          document.getElementById("setup-dialog")!.clientWidth,
       ),
       false,
     );

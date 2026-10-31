@@ -1,10 +1,12 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Content = require("../.build/content.js");
-const Config = require("../.build/config.js");
-const Difficulty = require("../.build/difficulty.js");
-const Engine = require("../.build/engine.js");
-const { run, advance } = require("./helpers.cjs");
+import Random from "../src/random";
+import Generator from "../src/generator";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Content from "../src/content";
+import Config from "../src/config";
+import Difficulty from "../src/difficulty";
+import Engine from "../src/engine";
+import { run, advance } from "./helpers";
 
 test("base difficulty rises indefinitely and speed phases include recovery", () => {
   assert(Difficulty.baseSpeed(360) > Difficulty.baseSpeed(180));
@@ -59,8 +61,8 @@ test("sector and pace events are emitted at transitions", () => {
 test("background and pace RNG cannot change the seeded encounter stream", () => {
   const first = run(44),
     second = run(44);
-  for (let i = 0; i < 50; i++) require("../.build/random.js").next(first.sceneryRng);
-  require("../.build/generator.js").spawn(first);
-  require("../.build/generator.js").spawn(second);
+  for (let i = 0; i < 50; i++) Random.next(first.sceneryRng);
+  Generator.spawn(first);
+  Generator.spawn(second);
   assert.deepEqual(first.objects, second.objects);
 });

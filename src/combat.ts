@@ -3,7 +3,7 @@ import Config from "./config";
 import Loadout from "./loadout";
 
 const armor: Partial<Record<string, number>> = { crate: 1, barrier: 1, stack: 2.6 };
-function durability(object: WorldObject) {
+function durability(object: Pick<WorldObject, "kind" | "variant">) {
   if (object.kind === "enemy")
     return (
       ({ drone: 1.2, crawler: 2.4, jelly: 1.5, bat: 1 } as Record<string, number>)[

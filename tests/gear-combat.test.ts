@@ -1,16 +1,17 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Engine = require("../.build/engine.js");
-const Combat = require("../.build/combat.js");
-const Config = require("../.build/config.js");
-const Loadout = require("../.build/loadout.js");
-const Cloth = require("../.build/cloth.js");
-const Difficulty = require("../.build/difficulty.js");
-const Storage = require("../.build/storage.js");
-const Popups = require("../.build/popups.js");
-const { run, advance } = require("./helpers.cjs");
+import type { WorldObject } from "../src/types";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Engine from "../src/engine";
+import Combat from "../src/combat";
+import Config from "../src/config";
+import Loadout from "../src/loadout";
+import Cloth from "../src/cloth";
+import Difficulty from "../src/difficulty";
+import Storage from "../src/storage";
+import Popups from "../src/popups";
+import { run, advance } from "./helpers";
 
-function target(variant = "crate", x = 115) {
+function target(variant = "crate", x = 115): WorldObject {
   return { kind: "hazard", variant, x, y: 182, w: 13, h: 14 };
 }
 
@@ -35,6 +36,7 @@ test("punch breaks a nearby crate once and awards its local score event", () => 
   assert.equal(state.objects.length, 0);
   assert(state.score >= 100n);
   const event = state.events.find((event) => event.type === "smash");
+  assert(event);
   assert.equal(event.points, 100);
   assert.equal(event.label, "BREAK");
 });
@@ -102,9 +104,10 @@ test("a stacked crate resists two basic hits and breaks on the third", () => {
 
 test("coin events contain the actual combo award and difficulty reward", () => {
   const state = run();
-  state.objects = [{ kind: "ember", x: 84, y: 181, w: 5, h: 6 }];
+  state.objects = [{ kind: "ember", variant: "", x: 84, y: 181, w: 5, h: 6 }];
   Engine.update(state, 0.001);
   const event = state.events.find((event) => event.type === "pickup");
+  assert(event);
   assert.equal(event.coins, 2);
   assert.equal(event.points, 55);
   Engine.update(state, 0.001);
@@ -150,25 +153,29 @@ test("invalid saved equipment and custom difficulty values are sanitized", () =>
 });
 
 test("lifetime coins and loadout round trip even past safe integer limits", () => {
-  const values = new Map();
+  const values = new Map<string, string>();
   const saves = Storage.create({
-    getItem: (key) => values.get(key),
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
     setItem: (key, value) => values.set(key, value),
   });
   saves.write("coins", 9007199254740993n);
   saves.write("loadout", JSON.stringify({ character: "hare", weapon: "scatter" }));
   assert.equal(saves.coins(), 9007199254740993n);
-  assert.equal(saves.loadout().weapon, "scatter");
+  assert.equal(Loadout.sanitize(saves.loadout()).weapon, "scatter");
   assert.equal(Storage.create(null).coins(), 0n);
   assert.deepEqual(Storage.create(null).loadout(), {});
 });
 
 test("action popups preserve award amounts, expire, and have a bounded count", () => {
   const popups = Popups.create();
-  popups.add({ x: 90, y: 100, points: 55, coins: 1, label: "COIN" });
+  popups.add({ type: "test", x: 90, y: 100, points: 55, coins: 1, label: "COIN" });
   assert.equal(popups.items[0].text, "+55");
   assert.equal(popups.items[0].detail, "+1 COIN");
-  for (let i = 0; i < 100; i++) popups.add({ x: i, y: 100, points: 100, label: "BREAK" });
+  for (let i = 0; i < 100; i++)
+    popups.add({ type: "test", x: i, y: 100, points: 100, label: "BREAK" });
   assert.equal(popups.items.length, 32);
   popups.update(1, 100);
   assert.equal(popups.items.length, 0);

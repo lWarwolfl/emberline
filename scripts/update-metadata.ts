@@ -1,19 +1,19 @@
-const prettier = require("prettier");
+import fs from "node:fs";
+import path from "node:path";
+import prettier from "prettier";
 async function main() {
   /* Edit site.config.json, then run npm run metadata. No network calls. */
-  const fs = require("node:fs");
-  const path = require("node:path");
   const root = path.resolve(__dirname, "..");
   const config = JSON.parse(fs.readFileSync(path.join(root, "site.config.json"), "utf8"));
   const url = new URL(config.url);
   if (!/^https?:$/.test(url.protocol)) throw new Error("Public URL must use HTTP or HTTPS");
   const image = new URL(config.socialImage, url).href;
-  const escape = (value) =>
+  const escape = (value: unknown) =>
     String(value).replace(
       /[&"<>]/g,
-      (char) => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[char],
+      (char) => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[char]!,
     );
-  const meta = (key, value, property = false) =>
+  const meta = (key: string, value: unknown, property = false) =>
     `    <meta ${property ? "property" : "name"}="${key}" content="${escape(value)}" />`;
   const json = JSON.stringify(
     {

@@ -528,14 +528,14 @@
         function upgrade(id, expectedLevel) {
           const track = import_upgrades2.default.definition(id);
           if (!track) return { ok: false, reason: "unknown" };
-          if (levels[id] >= track.maxLevel) return { ok: false, reason: "maxed" };
-          if (expectedLevel !== levels[id]) return { ok: false, reason: "stale" };
+          if (levels[track.id] >= track.maxLevel) return { ok: false, reason: "maxed" };
+          if (expectedLevel !== levels[track.id]) return { ok: false, reason: "stale" };
           const cost = import_upgrades2.default.cost(id, levels);
           if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
           balance -= BigInt(cost);
-          levels[id]++;
+          levels[track.id]++;
           save();
-          return { ok: true, reason: "upgraded", level: levels[id] };
+          return { ok: true, reason: "upgraded", level: levels[track.id] };
         }
         function credit(value) {
           const coins = amount(value);

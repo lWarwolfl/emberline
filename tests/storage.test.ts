@@ -1,12 +1,14 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Storage = require("../.build/storage.js");
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Storage from "../src/storage";
 test("restricted and corrupt browser storage do not crash the game", () => {
   const blocked = Storage.create(null);
   assert.equal(blocked.best(), 0n);
   assert.equal(blocked.muted(), false);
   assert.doesNotThrow(() => blocked.write("best", 50n));
   const corrupt = Storage.create({
+    setItem() {},
+    removeItem() {},
     getItem() {
       return "not a score";
     },
@@ -14,9 +16,12 @@ test("restricted and corrupt browser storage do not crash the game", () => {
   assert.equal(corrupt.best(), 0n);
 });
 test("best score and preferences persist under the existing storage keys", () => {
-  const values = new Map();
+  const values = new Map<string, string>();
   const storage = Storage.create({
-    getItem: (key) => values.get(key),
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
     setItem: (key, value) => values.set(key, value),
   });
   storage.write("best", 9007199254740993n);

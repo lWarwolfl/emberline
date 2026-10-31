@@ -1,8 +1,8 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Engine = require("../.build/engine.js");
-const Config = require("../.build/config.js");
-const { run, advance } = require("./helpers.cjs");
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Engine from "../src/engine";
+import Config from "../src/config";
+import { run, advance } from "./helpers";
 
 test("double jump is limited, and landing resets it", () => {
   const state = run();
@@ -78,7 +78,7 @@ test("a dash impacts enemies once; only weak enemies break at base damage", () =
   }
   const state = run();
   Engine.dash(state);
-  state.objects = [{ kind: "hazard", x: 83, y: 182, w: 13, h: 14 }];
+  state.objects = [{ kind: "hazard", variant: "", x: 83, y: 182, w: 13, h: 14 }];
   Engine.update(state, 0.001);
   assert.equal(state.hits, 1);
 });
@@ -86,7 +86,7 @@ test("a dash impacts enemies once; only weak enemies break at base damage", () =
 test("coins reward score and shorten dash recharge", () => {
   const state = run();
   Engine.dash(state);
-  state.objects = [{ kind: "ember", x: 84, y: 181, w: 5, h: 6 }];
+  state.objects = [{ kind: "ember", variant: "", x: 84, y: 181, w: 5, h: 6 }];
   Engine.update(state, 0.001);
   assert.equal(state.embers, 2);
   assert.equal(state.pickups, 1);
@@ -95,7 +95,7 @@ test("coins reward score and shorten dash recharge", () => {
 });
 
 test("paused and dead states do not advance", () => {
-  for (const mode of ["paused", "dead", "menu"]) {
+  for (const mode of ["paused", "dead", "menu"] as const) {
     const state = run();
     state.mode = mode;
     Engine.update(state, 0.1);
@@ -115,7 +115,7 @@ test("score stays exact past Number.MAX_SAFE_INTEGER", () => {
 test("swept collisions catch objects crossing the courier at extreme speed", () => {
   const state = run();
   state.speed = 20000;
-  state.objects = [{ kind: "hazard", x: 130, y: 182, w: 13, h: 14 }];
+  state.objects = [{ kind: "hazard", variant: "", x: 130, y: 182, w: 13, h: 14 }];
   Engine.update(state, 1 / 120);
   assert.equal(state.hits, 1);
 });

@@ -1,14 +1,17 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Economy = require("../.build/economy.js");
-const Storage = require("../.build/storage.js");
-const Engine = require("../.build/engine.js");
-const Popups = require("../.build/popups.js");
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Economy from "../src/economy";
+import Storage from "../src/storage";
+import Engine from "../src/engine";
+import Popups from "../src/popups";
 
 function fixture(balance = 0n) {
   const values = new Map([["emberline.coins", String(balance)]]);
   const saves = Storage.create({
-    getItem: (key) => values.get(key),
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
     setItem: (key, value) => values.set(key, value),
   });
   return { values, saves, shop: Economy.create(saves) };
@@ -39,7 +42,10 @@ test("a purchase debits exact price and permanently grants the category-qualifie
   assert.equal(shop.buy("weapon", "pulse").reason, "purchased");
   assert.equal(shop.balance, 100n);
   assert(shop.owns("weapon", "pulse"));
-  const snapshot = JSON.parse(values.get("emberline.economy"));
+  const snapshot = JSON.parse(values.get("emberline.economy")!) as {
+    balance: string;
+    owned: string[];
+  };
   assert.equal(snapshot.balance, "100");
   assert(snapshot.owned.includes("weapon:pulse"));
   assert(Economy.create(saves).owns("weapon", "pulse"));
@@ -107,9 +113,10 @@ test("every difficulty awards its fixed coins per pickup, custom awards zero", (
     });
     state.mode = "playing";
     state.next = Infinity;
-    state.objects = [{ kind: "ember", x: 84, y: 181, w: 5, h: 6 }];
+    state.objects = [{ kind: "ember", variant: "", x: 84, y: 181, w: 5, h: 6 }];
     Engine.update(state, 0.001);
     const event = state.events.find((item) => item.type === "pickup");
+    assert(event);
     assert.equal(event.coins, reward);
     assert.equal(state.embers, reward);
     assert.equal(state.pickups, 1);
@@ -125,17 +132,17 @@ test("changing pending difficulty cannot upgrade an active custom run's earnings
   state.mode = "playing";
   state.next = Infinity;
   state.loadout.difficulty = "hard";
-  state.objects = [{ kind: "ember", x: 84, y: 181, w: 5, h: 6 }];
+  state.objects = [{ kind: "ember", variant: "", x: 84, y: 181, w: 5, h: 6 }];
   Engine.update(state, 0.001);
   assert.equal(state.embers, 0);
-  assert.equal(state.events.find((event) => event.type === "pickup").coins, 0);
+  assert.equal(state.events.find((event) => event.type === "pickup")!.coins, 0);
 });
 
 test("popups display scaled coin awards and score-only practice feedback", () => {
   const popups = Popups.create();
-  popups.add({ points: 55, coins: 3, x: 80, y: 100, label: "COIN" });
+  popups.add({ type: "test", points: 55, coins: 3, x: 80, y: 100, label: "COIN" });
   assert.equal(popups.items[0].detail, "+3 COINS");
-  popups.add({ points: 55, coins: 0, x: 80, y: 100, label: "NO COINS" });
+  popups.add({ type: "test", points: 55, coins: 0, x: 80, y: 100, label: "NO COINS" });
   assert.equal(popups.items[1].text, "+55");
   assert.equal(popups.items[1].detail, "NO COINS");
 });

@@ -1,4 +1,4 @@
-import type { GearGroup, SaveStore, UpgradeId } from "./types";
+import type { GearGroup, SaveStore } from "./types";
 import Loadout from "./loadout";
 import Upgrades from "./upgrades";
 
@@ -67,17 +67,17 @@ function create(saves: SaveStore) {
     save();
     return { ok: true, reason: "purchased" };
   }
-  function upgrade(id: UpgradeId, expectedLevel: number) {
+  function upgrade(id: string, expectedLevel: number) {
     const track = Upgrades.definition(id);
     if (!track) return { ok: false, reason: "unknown" };
-    if (levels[id] >= track.maxLevel) return { ok: false, reason: "maxed" };
-    if (expectedLevel !== levels[id]) return { ok: false, reason: "stale" };
+    if (levels[track.id] >= track.maxLevel) return { ok: false, reason: "maxed" };
+    if (expectedLevel !== levels[track.id]) return { ok: false, reason: "stale" };
     const cost = Upgrades.cost(id, levels)!;
     if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
     balance -= BigInt(cost);
-    levels[id]++;
+    levels[track.id]++;
     save();
-    return { ok: true, reason: "upgraded", level: levels[id] };
+    return { ok: true, reason: "upgraded", level: levels[track.id] };
   }
   function credit(value: unknown) {
     const coins = amount(value);

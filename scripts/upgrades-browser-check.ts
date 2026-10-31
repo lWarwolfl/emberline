@@ -1,7 +1,7 @@
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const assert = require("node:assert/strict");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
+import { chromium } from "./browser";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 async function main() {
   const root = path.resolve(__dirname, "..");
@@ -14,7 +14,7 @@ async function main() {
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    const errors = [];
+    const errors: string[] = [];
     page.on("pageerror", (error) => {
       errors.push(error.message);
       console.error(error.message);
@@ -47,7 +47,9 @@ async function main() {
     assert.equal(await page.locator(".profile-preview").isVisible(), false);
     assert.equal(await page.locator(".upgrade-product").count(), 4);
     assert.equal(
-      await page.locator("#upgrade-row-jump details").evaluate((node) => node.open),
+      await page
+        .locator("#upgrade-row-jump details")
+        .evaluate((node) => (node as HTMLDetailsElement).open),
       false,
     );
     assert.equal(await page.locator("#upgrade-row-jump details p").first().isVisible(), false);
@@ -91,15 +93,23 @@ async function main() {
     assert.equal(
       await page.evaluate(
         () =>
-          document.getElementById("setup-dialog").scrollWidth >
-          document.getElementById("setup-dialog").clientWidth,
+          document.getElementById("setup-dialog")!.scrollWidth >
+          document.getElementById("setup-dialog")!.clientWidth,
       ),
       false,
     );
     await page.click("#setup-ready");
     await page.click("#pause");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.maxJumps), 2);
+    const persisted = await page.evaluate(
+      () => JSON.parse(localStorage.getItem("emberline.economy")!) as { balance: string },
+    );
+    assert.equal(persisted.balance, expected.toString());
     await page.reload();
+    await page.waitForFunction(
+      (balance) => window.EmberlineDebug?.app.coins.toString() === balance,
+      expected.toString(),
+    );
     assert.equal(
       await page.evaluate(() => EmberlineDebug.app.coins.toString()),
       expected.toString(),

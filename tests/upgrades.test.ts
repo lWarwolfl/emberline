@@ -1,23 +1,27 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const Upgrades = require("../.build/upgrades.js");
-const Economy = require("../.build/economy.js");
-const Storage = require("../.build/storage.js");
-const Engine = require("../.build/engine.js");
-const Combat = require("../.build/combat.js");
+import type { WorldObject } from "../src/types";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import Upgrades from "../src/upgrades";
+import Economy from "../src/economy";
+import Storage from "../src/storage";
+import Engine from "../src/engine";
+import Combat from "../src/combat";
 
-function fixture(coins = 20000n, prior) {
+function fixture(coins = 20000n, prior?: unknown) {
   const values = new Map([["emberline.coins", String(coins)]]);
   if (prior) values.set("emberline.economy", JSON.stringify(prior));
   const saves = Storage.create({
-    getItem: (key) => values.get(key),
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => {
+      values.delete(key);
+    },
     setItem: (key, value) => values.set(key, value),
   });
   return { saves, values, shop: Economy.create(saves) };
 }
 
 test("each normal track costs 100, 200, 300, 400, 500 and stops at L5", () => {
-  for (const id of ["dash", "jump", "damage"]) {
+  for (const id of ["dash", "jump", "damage"] as const) {
     const { shop } = fixture(1500n);
     for (let level = 0; level < 5; level++) {
       assert.equal(Upgrades.cost(id, shop.levels), (level + 1) * 100);
@@ -73,7 +77,7 @@ test("upgrade debit and level persist in the same saved snapshot", () => {
   const { shop, saves, values } = fixture(300n);
   shop.upgrade("jump", 0);
   shop.upgrade("jump", 1);
-  const saved = JSON.parse(values.get("emberline.economy"));
+  const saved = JSON.parse(values.get("emberline.economy")!);
   assert.equal(saved.version, 2);
   assert.equal(saved.balance, "0");
   assert.equal(saved.upgrades.jump, 2);
@@ -138,7 +142,7 @@ test("damage upgrades affect actual punches and projectile damage", () => {
   const state = Engine.create(1, {}, { damage: 1 });
   state.mode = "playing";
   state.next = Infinity;
-  const drone = {
+  const drone: WorldObject = {
     kind: "enemy",
     variant: "drone",
     x: 115,
@@ -166,7 +170,7 @@ test("a basic dash cannot deal repeated frame-by-frame damage to a strong enemy"
   const state = Engine.create(1);
   state.mode = "playing";
   state.next = Infinity;
-  const enemy = {
+  const enemy: WorldObject = {
     kind: "enemy",
     variant: "crawler",
     x: 84,

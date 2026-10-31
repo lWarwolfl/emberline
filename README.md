@@ -155,8 +155,8 @@ the version 4 shop controls which items you own.
 ## Edit the game
 
 Install development dependencies with `npm ci`, edit the TypeScript in `src/`,
-then run `npm run build` and refresh. The build checks strict types, compiles Node
-modules for tests into ignored `.build/`, and bundles `dist/game.js` and `sw.js`.
+then run `npm run build` and refresh. The build checks strict types and bundles `dist/game.js` and `sw.js`.
+Tests run directly from typed source through the tsx loader.
 The browser bundle is a classic script, so `file://` launching still works.
 Commit the generated `dist/game.js` and `sw.js` with any source changes.
 
@@ -197,11 +197,11 @@ src/
   dom.ts                  Required, typed DOM element lookup
   service-worker.ts       Offline precache source
 tests/                    Node regression and generation tests
-scripts/build.cjs         TypeScript checks and deterministic browser/worker build
-scripts/browser-check.cjs Optional Edge/Chromium integration checks
-scripts/gear-browser-check.cjs Gear, difficulty, coins and combat integration checks
-scripts/shop-browser-check.cjs Purchases, insufficient funds and difficulty reward integration
-scripts/upgrades-browser-check.cjs Level caps, purchases, persistence and actual Triple Jump
+scripts/build.ts         TypeScript checks and deterministic browser/worker build
+scripts/browser-check.ts Optional Edge/Chromium integration checks
+scripts/gear-browser-check.ts Gear, difficulty, coins and combat integration checks
+scripts/shop-browser-check.ts Purchases, insufficient funds and difficulty reward integration
+scripts/upgrades-browser-check.ts Level caps, purchases, persistence and actual Triple Jump
 docs/DEVELOPMENT.md        Recipes for extending content and tuning the game
 ```
 
@@ -244,7 +244,7 @@ skips registration on `file://`.
 
 ## Development checks
 
-With Node 22.13 or newer installed:
+With Node 24 installed:
 
 ```sh
 npm ci
@@ -277,3 +277,16 @@ Speed rises without a fixed ceiling; score uses `BigInt` and has no numeric cap.
 Spacing scales with speed and future acceleration, and collisions use small
 simulation steps plus swept horizontal checks. This is a casual endless game,
 not a formally proven solvable platformer at arbitrarily large run durations.
+
+## Static deployment
+
+`npm run build:site` builds the game and creates a clean `public/` directory
+containing the HTML, stylesheet, compiled game and worker, manifest, icons and
+other public assets. `vercel.json` selects that command and output directory.
+Development sources, tests and dependencies are excluded. Node is pinned to 24.x
+so local checks, CI and Vercel use the same major version.
+
+The deployment tests verify every script and worker-cache asset exists in the
+package and stale output is removed. The PWA browser suite serves `public/` and
+verifies an actual offline reload. The other browser suites still open the
+committed root `index.html` through `file://` to preserve double-click playback.

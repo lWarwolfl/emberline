@@ -1,13 +1,14 @@
+import type { AddressInfo } from "node:net";
 /* Verify the compiled bundle and worker together, including a real offline reload. */
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
-const assert = require("node:assert/strict");
-const fs = require("node:fs/promises");
-const http = require("node:http");
-const path = require("node:path");
+import { chromium } from "./browser";
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import http from "node:http";
+import path from "node:path";
 
 async function main() {
-  const root = path.resolve(__dirname, "..");
-  const types = {
+  const root = path.resolve(__dirname, "../public");
+  const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
     ".css": "text/css",
@@ -17,7 +18,7 @@ async function main() {
     ".ico": "image/x-icon",
   };
   const server = http.createServer(async (request, response) => {
-    const relative = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+    const relative = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     const filename = path.resolve(root, "." + (relative === "/" ? "/index.html" : relative));
     if (!filename.startsWith(root + path.sep)) {
       response.writeHead(403).end();
@@ -34,7 +35,7 @@ async function main() {
       response.writeHead(404).end();
     }
   });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   let browser;
   try {
     browser = await chromium.launch({
@@ -46,9 +47,11 @@ async function main() {
     });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
-    const errors = [];
+    const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:${server.address().port}/?seed=pwa-check&dev=1`);
+    await page.goto(
+      `http://127.0.0.1:${(server.address() as AddressInfo).port}/?seed=pwa-check&dev=1`,
+    );
     await page.waitForFunction(async () =>
       Boolean((await navigator.serviceWorker.getRegistration())?.active),
     );
@@ -56,7 +59,7 @@ async function main() {
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     const cacheFiles = await page.evaluate(async () => {
       const names = await caches.keys();
-      const cache = await caches.open(names.find((name) => name.startsWith("emberline-")));
+      const cache = await caches.open(names.find((name) => name.startsWith("emberline-"))!);
       return (await cache.keys()).map((request) => new URL(request.url).pathname);
     });
     assert(cacheFiles.includes("/dist/game.js"), "Compiled game must be precached");
@@ -84,7 +87,7 @@ async function main() {
     );
   } finally {
     if (browser) await browser.close();
-    await new Promise((resolve, reject) =>
+    await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     );
   }

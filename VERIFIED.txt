@@ -78,3 +78,13 @@ Fullscreen and reset tests wait for their asynchronous transitions before assert
 The committed dist/game.js and sw.js preserve double-click/file:// launching.
 Build output is reproducible; metadata generation keeps HTML/JSON formatted.
 GitHub Actions runs the same checks and verifies generated files are current.
+
+Deployment fix and complete TypeScript migration — 31 October 2026
+Vercel built successfully but failed with STATIC_BUILD_NO_OUT_DIR because it
+expected public/. Added vercel.json and build:site to package the playable static
+files in a clean public/ folder, with Node pinned to 24.x.
+Migrated all regression tests, six browser suites and development/build scripts
+to strict TypeScript with typed imports. tsconfig.tools.json checks them all;
+node --import tsx executes them without a separate generated test tree.
+74 regression tests pass, including deployment asset completeness and stale-file
+cleanup. The PWA browser suite now serves the exact public deployment package.
