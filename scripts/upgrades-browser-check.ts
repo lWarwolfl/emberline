@@ -19,9 +19,11 @@ async function main() {
       errors.push(error.message);
       console.error(error.message);
     });
-    await page.addInitScript(() => {
-      if (localStorage.getItem("test.progression")) return;
-      localStorage.setItem("test.progression", "yes");
+    const url = pathToFileURL(path.join(root, "index.html"));
+    url.search = "?dev=1&seed=upgrade-check";
+    await page.goto(url.href);
+    // Seed once in the loaded origin; a navigation hook can overwrite a migrated save.
+    await page.evaluate(() => {
       localStorage.setItem(
         "emberline.economy",
         JSON.stringify({ version: 1, balance: "20000", owned: ["character:hare", "weapon:pulse"] }),
@@ -31,9 +33,7 @@ async function main() {
         JSON.stringify({ character: "hare", weapon: "pulse" }),
       );
     });
-    const url = pathToFileURL(path.join(root, "index.html"));
-    url.search = "?dev=1&seed=upgrade-check";
-    await page.goto(url.href);
+    await page.reload();
     assert.equal(await page.evaluate(() => EmberlineDebug.app.coins.toString()), "20000");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.loadout.weapon), "pulse");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.levels.jump), 0);
@@ -106,10 +106,11 @@ async function main() {
     );
     assert.equal(persisted.balance, expected.toString());
     await page.reload();
-    await page.waitForFunction(
-      (balance) => window.EmberlineDebug?.app.coins.toString() === balance,
-      expected.toString(),
-    );
+    const reloaded = await page.evaluate(() => ({
+      balance: EmberlineDebug.app.coins.toString(),
+      saved: JSON.parse(localStorage.getItem("emberline.economy")!),
+    }));
+    assert.equal(reloaded.balance, expected.toString(), JSON.stringify(reloaded));
     assert.equal(
       await page.evaluate(() => EmberlineDebug.app.coins.toString()),
       expected.toString(),
