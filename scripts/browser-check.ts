@@ -92,6 +92,18 @@ async function main() {
     await page.waitForFunction(() => Boolean(document.fullscreenElement));
     assert(await page.evaluate(() => Boolean(document.fullscreenElement)));
     await page.screenshot({ path: path.join(output, "fullscreen.png") });
+    await page.click("#setup");
+    await page.click("#tab-weapon");
+    const footerInsets = await page.locator(".setup-footer").evaluate((node) => {
+      const footer = node.getBoundingClientRect();
+      const description = node.querySelector("span")!.getBoundingClientRect();
+      const button = node.querySelector("button")!.getBoundingClientRect();
+      return { left: description.left - footer.left, right: footer.right - button.right };
+    });
+    assert(footerInsets.left >= 16 && footerInsets.right >= 16, JSON.stringify(footerInsets));
+    await page.screenshot({ path: path.join(output, "fullscreen-shop.png") });
+    await page.click("#setup-ready");
+    await page.click("#pause");
     await page.click("#fullscreen");
     await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), false);

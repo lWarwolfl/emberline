@@ -380,7 +380,8 @@ function create(
   }
   return {
     open() {
-      sync();
+      if (active === "upgrades") showUpgrades();
+      else sync();
       if (!dialog.open) dialog.showModal();
     },
     get isOpen() {

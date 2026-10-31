@@ -356,7 +356,7 @@ footer {
 #shell:fullscreen .instrument {
   padding: 12px 0;
 }
-#shell:fullscreen footer {
+#shell:fullscreen > footer {
   padding: 12px 0;
 }
 @media (max-width: 850px) {
