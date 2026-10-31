@@ -9,7 +9,10 @@ async function main() {
   const output = path.join(root, "test-results");
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || "msedge",
+    channel: process.env.BROWSER_EXECUTABLE_PATH
+      ? undefined
+      : process.env.BROWSER_CHANNEL || "chromium",
+    executablePath: process.env.BROWSER_EXECUTABLE_PATH,
     headless: true,
   });
   try {

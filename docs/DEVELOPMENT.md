@@ -5,9 +5,11 @@
 `main` creates `App`. App reads Input actions, updates Engine, consumes its event
 queue, updates UI/Audio/Particles, then asks Renderer to draw. Engine depends only
 on Config, Random, Difficulty and Generator; it has no DOM, storage or audio access.
-The pure modules export CommonJS when running in Node and join the `Emberline`
-namespace when loaded by browser scripts. No build step or installed runtime
-dependency is required by the game.
+The source is strict TypeScript with typed module imports. `npm run build`
+compiles CommonJS test modules into `.build/` and bundles the browser entry point
+into `dist/game.js`. The entry point exposes the existing `Emberline` namespace
+and optional `EmberlineDebug` API. Players use committed build output and need no
+installed runtime dependencies.
 
 State belongs to the engine. Renderer never changes it. Engine events are
 consumed once by App with `state.events.splice(0)`. Cosmetic randomness must stay
@@ -16,7 +18,7 @@ streams, so adding a firefly cannot change the next hazard.
 
 ## Tune speed and difficulty
 
-Edit `src/config.js`:
+Edit `src/config.ts`:
 
 - `speed.start`: initial logical pixels per second.
 - `speed.growth`: strength of logarithmic long-term acceleration.
@@ -25,7 +27,7 @@ Edit `src/config.js`:
 - `sectorSeconds`: when environments change and new content unlocks.
 - `generation.minimumGapSeconds`: lower limit on recovery between chunks.
 
-Edit pace multipliers and names in `src/content.js`. `difficulty.js` chooses
+Edit pace multipliers and names in `src/content.ts`. `difficulty.ts` chooses
 phases from a shuffled bag and gradually approaches the selected target speed.
 The safety-speed calculation uses the largest configured pace multiplier, and
 includes the fastest enemy's relative motion in its spacing budget.
@@ -33,9 +35,9 @@ Changes to a pace never teleport or instantly speed up an obstacle.
 
 ## Add an obstacle
 
-1. Add a definition to `Content.obstacles` in `src/content.js`. Give it a unique
+1. Add a definition to `Content.obstacles` in `src/content.ts`. Give it a unique
    `id`, `w`, `h`, first eligible `unlock` sector and relative `weight`.
-2. Add a same-named draw function to the `hazards` registry in `src/sprites.js`.
+2. Add a same-named draw function to the `hazards` registry in `src/sprites.ts`.
    The supplied object has `x`, `y`, `w`, `h`. Keep damaging art inside its box.
 3. Test it with `npm test` and preview it in developer mode.
 
@@ -61,7 +63,7 @@ Avoid sudden position changes or hidden attacks without a readable warning.
 ## Add a coin pattern
 
 Add its ID to `Content.coinPatterns`, then add a `coinPath` switch case in
-`src/generator.js`. Points are calculated across a chunk's width. Vertical
+`src/generator.ts`. Points are calculated across a chunk's width. Vertical
 positions are clamped to the intended double-jump reward band. Each trail is
 filtered against the full vertical motion envelope of hazards and enemies;
 if fewer than two safe coins remain, a ground reward trail is placed afterward.
@@ -127,19 +129,29 @@ The optional browser suite checks actual scripts loaded from `file://`, controls
 sound-node generation, effects, mode changes, saves, all five scene renderings,
 all content sprites and the narrow viewport. It fails on JavaScript exceptions.
 
-Format rules are in `.prettierrc.json`. Install Prettier 3.6.2 temporarily with
-`npm install --no-save prettier@3.6.2`, then `npm run format`.
+Run `npm ci` once, then `npm run format` to format all supported files.
+`npm run check` runs Prettier verification, ESLint, strict type checks, the build
+and all Node tests. Use `npx playwright install chromium` and `npm run test:browser`
+for browser verification. CI also checks that generated files match their source.
+
+Shared simulation and UI contracts live in `src/types.ts`; `src/dom.ts` provides
+typed, required element lookup. External save values enter as `unknown` and are
+sanitized before entering game state. Browser and service-worker TypeScript use
+separate DOM/WebWorker libraries. Keep strict checking enabled; fix type errors
+instead of suppressing them. Existing Node/browser harnesses remain CommonJS and
+are linted and formatted alongside the TypeScript source.
 
 ## Safe changes
 
 Keep storage keys (`emberline.best`, `emberline.muted`, `emberline.effects`) stable.
-Keep browser script order in `index.html` consistent with dependencies. Adding an
-independent module is fine; no bundler or server should be needed just to run.
+Import new modules from their consumers; the bundler resolves dependency order.
+Run `npm run build` after changes and commit `dist/game.js` and `sw.js` with the
+source. No server or build tools are needed just to play the committed game.
 Use `Config` instead of duplicating balance numbers in presentation code.
 
 ## Version 3: equipment, difficulty and combat
 
-`src/loadout.js` owns the equipment catalogs, weapon damage/cooldowns, three
+`src/loadout.ts` owns the equipment catalogs, weapon damage/cooldowns, three
 difficulty presets and custom-setting bounds. `Loadout.sanitize()` validates all
 saved input. `Engine.create(seed, loadout)` captures a separate `state.rules`
 snapshot and integrity total. Equipment can change in a paused run, but its
@@ -151,7 +163,7 @@ in a second health constant.
 options. Ranges switch to custom difficulty. Selection saves automatically under
 `emberline.loadout`. The live preview draws the same sprites as gameplay at 2×
 logical scale; it does not use a separate illustration. Gear is cosmetic except
-for weapons. The default browser game still has no build step or dependencies.
+for weapons. The committed browser game needs no build step or dependencies to play.
 
 `Cloth.sample()` produces shaded vertical columns behind the shoulder. The
 attachment remains fixed while phase moves along the length. Character vertical
@@ -186,7 +198,7 @@ saved equipment, custom sliders, local score labels and actual projectile hits.
 
 ## Version 4: prices, ownership and difficulty rewards
 
-`Economy.prices` in `src/economy.js` defines category-qualified item costs. Zero
+`Economy.prices` in `src/economy.ts` defines category-qualified item costs. Zero
 means a starter/free choice. `Economy.create(saves)` loads the canonical snapshot,
 or migrates the legacy coin count once. The snapshot saves BigInt balance as a
 decimal string and ownership as `category:id` keys. A purchase writes debit and
@@ -218,7 +230,7 @@ all four difficulty payouts, locked previews and the narrow layout.
 
 ## Version 5: capped progression and simplified upgrade UI
 
-`src/upgrades.js` defines three L0–L5 tracks (dash, jump and damage) and a separate
+`src/upgrades.ts` defines three L0–L5 tracks (dash, jump and damage) and a separate
 L0–L1 Triple Jump unlock. Normal next-level cost is `100 * (currentLevel + 1)`;
 Triple Jump has a fixed 5,000-coin cost. Stats sanitize levels to their caps before
 calculating any effect. Base values are in Config, incremental effects in Upgrades.
@@ -231,7 +243,7 @@ charges an existing owner again. `upgrade(id, expectedLevel)` validates the cap,
 funds and displayed level before debiting; stale clicks cannot buy another level.
 Wallet, ownership and levels persist in the same single-key snapshot.
 
-`src/upgrade-panel.js` renders a focused full-width list. Each row contains level
+`src/upgrade-panel.ts` renders a focused full-width list. Each row contains level
 pips, one current-to-next benefit and a price action; detailed stats are behind
 native `details`. The character preview is hidden only on this tab. The panel
 preserves scroll and keyboard focus after a purchase, and announces the result.
@@ -275,10 +287,11 @@ sky at the sides rather than the approach lane. Do not switch the stage to
 `object-fit: contain` (letterbox seam) or make it fill the height with `cover`
 (the visible world narrows until hazards pop in at the screen edge).
 
-`sw.js` precaches the page, stylesheet, manifest, icons and every `src/*.js`.
+`src/service-worker.ts` builds into `sw.js` and precaches the page, stylesheet,
+manifest, icons and `dist/game.js`.
 Assets are cache-first, navigation is network-first with the cached page as the
 fallback. Bump `CACHE` for every release that changes a cached file; without a
-bump an installed client keeps the old build. `src/pwa.js` registers only on
+bump an installed client keeps the old build. Rebuild after changing the worker. `src/pwa.ts` registers only on
 HTTP(S), so `file://` launches and the browser suites stay silent. Add any new
 script or asset to `ASSETS`; `tests/pwa.test.cjs` compares the list with the
 page's script tags and the filesystem.

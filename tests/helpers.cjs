@@ -1,4 +1,4 @@
-const Engine = require("../src/engine.js");
+const Engine = require("../.build/engine.js");
 function run(seed = 42) {
   const state = Engine.create(seed);
   state.mode = "playing";

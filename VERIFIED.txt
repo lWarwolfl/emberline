@@ -56,7 +56,7 @@ score/best/pace readout, one toolbar row, slim hint/particle row, three 64px thu
 controls, and a full-screen setup sheet. Landscape keeps the complete 2:1 playfield
 centred with a single-row HUD. Desktop layout is unchanged.
 Added sw.js (precaches the page, stylesheet, manifest, icons and every src script)
-and src/pwa.js (HTTP/HTTPS registration only; file:// stays silent). iOS
+and src/pwa.ts (HTTP/HTTPS registration only; file:// stays silent). iOS
 standalone metas are generated from site.config.json.
 Verification: 72 Node tests passed (3 new PWA precache/registration checks), all
 source and sw.js syntax checks passed, and all five Edge browser suites passed
@@ -65,3 +65,16 @@ server with the network disabled: the service worker controlled the page, cached
 41 assets, and the game booted to the menu offline. Portrait 390x844, landscape
 844x390, the setup sheet and the offline screen were inspected; no horizontal
 overflow. No deployment was performed.
+
+TypeScript and quality tooling — 31 October 2026
+Migrated game modules and the service worker to strict TypeScript. Added typed
+game state, saves, equipment, rendering and DOM access without type suppressions.
+ESLint 10 and Prettier are locked development dependencies. npm run check runs
+format verification, lint with zero warnings, strict types, build and 72 Node tests.
+All 72 regression tests and all six Chromium browser suites passed, including
+controls, fullscreen, combat, gear, purchases, upgrades, reset, mobile layouts
+and an actual offline reload through the compiled service worker.
+Fullscreen and reset tests wait for their asynchronous transitions before asserting.
+The committed dist/game.js and sw.js preserve double-click/file:// launching.
+Build output is reproducible; metadata generation keeps HTML/JSON formatted.
+GitHub Actions runs the same checks and verifies generated files are current.

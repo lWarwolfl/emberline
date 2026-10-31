@@ -1,9 +1,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Engine = require("../src/engine.js");
-const Generator = require("../src/generator.js");
-const Content = require("../src/content.js");
-const Config = require("../src/config.js");
+const Engine = require("../.build/engine.js");
+const Generator = require("../.build/generator.js");
+const Content = require("../.build/content.js");
+const Config = require("../.build/config.js");
 const { run } = require("./helpers.cjs");
 
 // Explore a bounded set of jump/dash timings. This catches representative

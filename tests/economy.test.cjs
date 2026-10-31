@@ -1,9 +1,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Economy = require("../src/economy.js");
-const Storage = require("../src/storage.js");
-const Engine = require("../src/engine.js");
-const Popups = require("../src/popups.js");
+const Economy = require("../.build/economy.js");
+const Storage = require("../.build/storage.js");
+const Engine = require("../.build/engine.js");
+const Popups = require("../.build/popups.js");
 
 function fixture(balance = 0n) {
   const values = new Map([["emberline.coins", String(balance)]]);

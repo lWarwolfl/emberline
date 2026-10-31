@@ -1,10 +1,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Upgrades = require("../src/upgrades.js");
-const Economy = require("../src/economy.js");
-const Storage = require("../src/storage.js");
-const Engine = require("../src/engine.js");
-const Combat = require("../src/combat.js");
+const Upgrades = require("../.build/upgrades.js");
+const Economy = require("../.build/economy.js");
+const Storage = require("../.build/storage.js");
+const Engine = require("../.build/engine.js");
+const Combat = require("../.build/combat.js");
 
 function fixture(coins = 20000n, prior) {
   const values = new Map([["emberline.coins", String(coins)]]);

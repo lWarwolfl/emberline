@@ -142,7 +142,10 @@ async function main() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#101514"/><path fill="#ffae62" d="M17 14h28v8H26v7h15v7H26v7h19v8H17z"/><path fill="#ffe0a3" d="M47 5h5v5h5v5h-5v5h-5v-5h-5v-5h5z"/></svg>`;
   fs.writeFileSync(path.join(output, "favicon.svg"), svg);
   const browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || "msedge",
+    channel: process.env.BROWSER_EXECUTABLE_PATH
+      ? undefined
+      : process.env.BROWSER_CHANNEL || "chromium",
+    executablePath: process.env.BROWSER_EXECUTABLE_PATH,
     headless: true,
   });
   try {

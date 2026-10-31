@@ -1,10 +1,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Content = require("../src/content.js");
-const Config = require("../src/config.js");
-const Generator = require("../src/generator.js");
-const Engine = require("../src/engine.js");
-const Random = require("../src/random.js");
+const Content = require("../.build/content.js");
+const Config = require("../.build/config.js");
+const Generator = require("../.build/generator.js");
+const Engine = require("../.build/engine.js");
+const Random = require("../.build/random.js");
 const { run } = require("./helpers.cjs");
 
 test("same seed reproduces the route; different seeds produce different routes", () => {

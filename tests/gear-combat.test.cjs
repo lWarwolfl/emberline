@@ -1,13 +1,13 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Engine = require("../src/engine.js");
-const Combat = require("../src/combat.js");
-const Config = require("../src/config.js");
-const Loadout = require("../src/loadout.js");
-const Cloth = require("../src/cloth.js");
-const Difficulty = require("../src/difficulty.js");
-const Storage = require("../src/storage.js");
-const Popups = require("../src/popups.js");
+const Engine = require("../.build/engine.js");
+const Combat = require("../.build/combat.js");
+const Config = require("../.build/config.js");
+const Loadout = require("../.build/loadout.js");
+const Cloth = require("../.build/cloth.js");
+const Difficulty = require("../.build/difficulty.js");
+const Storage = require("../.build/storage.js");
+const Popups = require("../.build/popups.js");
 const { run, advance } = require("./helpers.cjs");
 
 function target(variant = "crate", x = 115) {

@@ -6,7 +6,10 @@ const { pathToFileURL } = require("node:url");
 async function main() {
   const root = path.resolve(__dirname, "..");
   const browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || "msedge",
+    channel: process.env.BROWSER_EXECUTABLE_PATH
+      ? undefined
+      : process.env.BROWSER_CHANNEL || "chromium",
+    executablePath: process.env.BROWSER_EXECUTABLE_PATH,
     headless: true,
   });
   try {

@@ -7,11 +7,15 @@ original synthesized sound, and an endless score. UI direction follows the
 Hermes Claude Design skill used for the original game. The hosted build installs
 as an app and keeps playing with no network after the first load.
 
+The game source uses strict TypeScript. ESLint and Prettier cover the project,
+and the checked-in browser bundle keeps offline and double-click launching available.
+
 ## Play
 
 Double-click **Play.cmd** for a dedicated Edge window, or open **index.html** in a
 modern browser. No build, package installation, server, or network is needed.
-Keep the whole folder together: the HTML loads the editable files in `src/`.
+Keep the whole folder together: the HTML loads the committed `dist/game.js` bundle.
+The TypeScript source is in `src/`; only editing requires Node and a build.
 
 | Key        | Action                                            |
 | ---------- | ------------------------------------------------- |
@@ -38,7 +42,7 @@ Safe-area insets cover notches and home bars, and the page never scrolls or
 rubber-bands. Landscape keeps the complete 2:1 playfield centred between a
 single-row HUD and the touch deck.
 
-On HTTPS the game registers `sw.js`, caches the whole editable source and installs
+On HTTPS the game registers `sw.js`, caches the compiled game and static assets and installs
 from the browser's app menu. After the first visit it opens offline. `file://`
 launches skip service-worker registration, so Play.cmd is unchanged.
 
@@ -104,7 +108,7 @@ Other prices are listed above and shown before purchase.
 Existing collected coins become the spendable balance without a reset. Old
 non-starter selections need purchasing before they can be equipped in this version.
 
-Prices live in `src/economy.js`; reward rates live in `src/loadout.js`. There are
+Prices live in `src/economy.ts`; reward rates live in `src/loadout.ts`. There are
 no real-money purchases, accounts or network services.
 
 ## New in version 3
@@ -150,45 +154,50 @@ the version 4 shop controls which items you own.
 
 ## Edit the game
 
-Open this folder in your editor, change the source, save, and refresh the game.
-There is **no generated bundle** to rebuild. Node is only needed for development
-checks. The browser loads plain scripts in the order listed in `index.html`, so
-`file://` launching works without the restrictions of native ES module imports.
+Install development dependencies with `npm ci`, edit the TypeScript in `src/`,
+then run `npm run build` and refresh. The build checks strict types, compiles Node
+modules for tests into ignored `.build/`, and bundles `dist/game.js` and `sw.js`.
+The browser bundle is a classic script, so `file://` launching still works.
+Commit the generated `dist/game.js` and `sw.js` with any source changes.
 
 ```text
-index.html                Screen structure and script dependency order
+index.html                Screen structure and compiled game entry point
 style.css                 Formatted responsive UI styles
-sw.js                     Offline precache for the installed PWA
+sw.js                     Generated offline service worker
+dist/game.js              Generated browser bundle (committed)
 Play.cmd                  Windows dedicated-window launcher
 src/
-  config.js               Speed, physics, dash and timing constants
-  loadout.js              Character/gear/weapon catalogs, difficulty presets and validation
-  economy.js              Prices, owned items, wallet migration, permanent purchases
-  upgrades.js             Capped progression, upgrade costs and run-stat formulas
-  upgrade-panel.js        Level/benefit/price UI with optional details
-  combat.js               Punch hitboxes, projectile movement, armor and destruction
-  cloth.js                Pure animated cape geometry
-  content.js              Hazard/enemy definitions, biomes, paces, pattern catalog
-  random.js               Seeded RNG, weighted choices and shuffle bags
-  difficulty.js           Smooth speed phases, sector and biome transitions
-  generator.js            Encounter assembly, coin paths and clearance rules
-  engine.js               Pure simulation, movement, collision and scoring
-  pixel.js                Shared pixel primitives and color mixing
-  backgrounds.js          Parallax geometry, weather and theme crossfades
-  sprites.js              Courier, hazard, enemy and coin drawing registries
-  renderer.js             Scene composition; no gameplay rules
-  audio.js                Original Web Audio sound synthesis
-  particles.js            Bounded particle system
-  popups.js               Local score/action labels with bounded lifetime
-  wardrobe.js             Accessible setup tabs, preview and custom difficulty controls
-  storage.js              Safe best-score and preference persistence
-  ui.js                   HUD, overlays and announcements
-  input.js                Keyboard, touch and focus handling
-  pwa.js                  Service-worker registration (HTTP/HTTPS only)
-  app.js                  Coordinates simulation, presentation and UI
-  main.js                 Browser entry point and optional debug hook
+  config.ts               Speed, physics, dash and timing constants
+  loadout.ts              Character/gear/weapon catalogs, difficulty presets and validation
+  economy.ts              Prices, owned items, wallet migration, permanent purchases
+  upgrades.ts             Capped progression, upgrade costs and run-stat formulas
+  upgrade-panel.ts        Level/benefit/price UI with optional details
+  combat.ts               Punch hitboxes, projectile movement, armor and destruction
+  cloth.ts                Pure animated cape geometry
+  content.ts              Hazard/enemy definitions, biomes, paces, pattern catalog
+  random.ts               Seeded RNG, weighted choices and shuffle bags
+  difficulty.ts           Smooth speed phases, sector and biome transitions
+  generator.ts            Encounter assembly, coin paths and clearance rules
+  engine.ts               Pure simulation, movement, collision and scoring
+  pixel.ts                Shared pixel primitives and color mixing
+  backgrounds.ts          Parallax geometry, weather and theme crossfades
+  sprites.ts              Courier, hazard, enemy and coin drawing registries
+  renderer.ts             Scene composition; no gameplay rules
+  audio.ts                Original Web Audio sound synthesis
+  particles.ts            Bounded particle system
+  popups.ts               Local score/action labels with bounded lifetime
+  wardrobe.ts             Accessible setup tabs, preview and custom difficulty controls
+  storage.ts              Safe best-score and preference persistence
+  ui.ts                   HUD, overlays and announcements
+  input.ts                Keyboard, touch and focus handling
+  pwa.ts                  Service-worker registration (HTTP/HTTPS only)
+  app.ts                  Coordinates simulation, presentation and UI
+  main.ts                 Browser entry point and optional debug hook
+  types.ts                Shared game-state, save, equipment and rendering contracts
+  dom.ts                  Required, typed DOM element lookup
+  service-worker.ts       Offline precache source
 tests/                    Node regression and generation tests
-scripts/check.cjs         Syntax checker
+scripts/build.cjs         TypeScript checks and deterministic browser/worker build
 scripts/browser-check.cjs Optional Edge/Chromium integration checks
 scripts/gear-browser-check.cjs Gear, difficulty, coins and combat integration checks
 scripts/shop-browser-check.cjs Purchases, insufficient funds and difficulty reward integration
@@ -228,27 +237,34 @@ The generated image files are already included, so playing needs no tools.
 Upload the entire folder when deploying; the absolute sharing URLs expect assets
 under `/assets/` on the configured domain, and `sw.js` must stay at the root so
 its scope covers the game. `sw.js` precaches the page, stylesheet, manifest,
-icons and every `src/` script. Bump its `CACHE` name whenever a cached file
-changes, otherwise installed clients keep the previous build. Service workers
+icons and `dist/game.js`. Edit `src/service-worker.ts` and bump its `CACHE` name whenever a cached file
+changes, then rebuild, otherwise installed clients keep the previous build. Service workers
 require HTTP or HTTPS; the local Desktop version already runs offline and
 skips registration on `file://`.
 
 ## Development checks
 
-With Node 18 or newer installed:
+With Node 22.13 or newer installed:
 
 ```sh
-npm test
-npm run check
+npm ci
+npm run format           # Format all supported project files
+npm run check            # Prettier, ESLint, strict TypeScript, build and Node tests
+npx playwright install chromium
+npm run test:browser     # File launcher, gameplay, shop, upgrades, reset and offline PWA
 ```
 
-These commands need no npm installation. The optional browser suite requires
-Playwright: `npm install --no-save playwright@1.62.1`, then `npm run test:browser`.
-It uses installed Microsoft Edge by default; set `BROWSER_CHANNEL=chrome` for
-Chrome. For a separately installed Playwright, set `PLAYWRIGHT_MODULE` to its
-module directory. Browser tests write screenshots to ignored `test-results/`.
-Use `npm run format` after installing Prettier 3.6.2 if you want automatic source
-formatting. Both tools are development-only and are not required to play.
+`npm run lint:fix` applies automatic lint fixes. `npm run format:check`,
+`npm run lint`, and `npm run typecheck` are available independently.
+ESLint uses a flat config, TypeScript recommended rules, and Prettier-compatible
+rules. Prettier settings live in `.prettierrc.json`. Dependencies are locked in
+`package-lock.json`; none are needed by players.
+
+Browser tests use Playwright's Chromium by default. Set `BROWSER_CHANNEL=msedge`
+or `BROWSER_CHANNEL=chrome` to use an installed browser. For an external Playwright
+installation, set `PLAYWRIGHT_MODULE` to its module directory. Set
+`BROWSER_EXECUTABLE_PATH` to test a custom Chromium executable. Screenshots go to
+ignored `test-results/`. CI runs the same checks and rejects stale generated files.
 
 ## Reproducible runs
 

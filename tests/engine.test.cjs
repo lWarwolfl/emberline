@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Engine = require("../src/engine.js");
-const Config = require("../src/config.js");
+const Engine = require("../.build/engine.js");
+const Config = require("../.build/config.js");
 const { run, advance } = require("./helpers.cjs");
 
 test("double jump is limited, and landing resets it", () => {

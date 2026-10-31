@@ -95,7 +95,7 @@ masthead and footer, and compresses the HUD to one row.
 
 The PWA layer is intentionally invisible: no install banner, no new chrome. The
 manifest and icons already existed; `sw.js` now caches the editable source so the
-installed app opens offline, and `src/pwa.js` registers it only over HTTP(S).
+installed app opens offline, and `src/pwa.ts` registers it only over HTTP(S).
 `file://` play is unchanged.
 
 Re-audit: 0/10 generic-design tells. No gradients used as decoration (the shell

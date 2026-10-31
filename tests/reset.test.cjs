@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Storage = require("../src/storage.js");
+const Storage = require("../.build/storage.js");
 
 function fixture(fail = false) {
   const values = new Map([

@@ -6,7 +6,10 @@ const { pathToFileURL } = require("node:url");
 async function main() {
   const root = path.resolve(__dirname, "..");
   const browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || "msedge",
+    channel: process.env.BROWSER_EXECUTABLE_PATH
+      ? undefined
+      : process.env.BROWSER_CHANNEL || "chromium",
+    executablePath: process.env.BROWSER_EXECUTABLE_PATH,
     headless: true,
   });
   try {
@@ -62,6 +65,7 @@ async function main() {
       false,
     );
     await Promise.all([page.waitForEvent("domcontentloaded"), page.click("#reset-confirm")]);
+    await page.waitForFunction(() => window.EmberlineDebug?.app.coins === 0n);
     assert.equal(await page.evaluate(() => EmberlineDebug.app.coins.toString()), "0");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.mode), "menu");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.loadout.character), "fox");

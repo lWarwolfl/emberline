@@ -10,7 +10,10 @@ async function main() {
   const output = path.join(root, "test-results");
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || "msedge",
+    channel: process.env.BROWSER_EXECUTABLE_PATH
+      ? undefined
+      : process.env.BROWSER_CHANNEL || "chromium",
+    executablePath: process.env.BROWSER_EXECUTABLE_PATH,
     headless: true,
   });
   try {
@@ -85,9 +88,11 @@ async function main() {
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.mode), "playing");
 
     await page.click("#fullscreen");
+    await page.waitForFunction(() => Boolean(document.fullscreenElement));
     assert(await page.evaluate(() => Boolean(document.fullscreenElement)));
     await page.screenshot({ path: path.join(output, "fullscreen.png") });
     await page.click("#fullscreen");
+    await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), false);
 
     await page.click("#sound");

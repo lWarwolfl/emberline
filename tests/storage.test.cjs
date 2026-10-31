@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const Storage = require("../src/storage.js");
+const Storage = require("../.build/storage.js");
 test("restricted and corrupt browser storage do not crash the game", () => {
   const blocked = Storage.create(null);
   assert.equal(blocked.best(), 0n);
