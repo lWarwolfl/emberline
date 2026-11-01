@@ -29,9 +29,15 @@ function obstacle(state: GameState, x: number): WorldObject {
   };
 }
 
-function enemy(state: GameState, x: number): WorldObject {
-  const definition = choose(state, "enemies");
-  const altitudeJitter = definition.id === "crawler" ? 0 : Random.range(state.rng, -4, 4);
+function enemy(state: GameState, x: number, variant?: string): WorldObject {
+  const definition =
+    Content.enemies.find((item) => item.id === variant && item.unlock <= state.sector) ??
+    choose(state, "enemies");
+  state.lastVariant.enemies = definition.id;
+  const altitudeJitter =
+    definition.altitude === definition.h && definition.amplitude === 0
+      ? 0
+      : Random.range(state.rng, -4, 4);
   const baseY = Config.floor - definition.altitude + altitudeJitter;
   return {
     kind: "enemy",
@@ -52,7 +58,17 @@ function enemy(state: GameState, x: number): WorldObject {
 
 function coinPath(state: GameState, pattern: string, startX: number, width: number) {
   const points: WorldObject[] = [];
-  const count = pattern === "scatter" ? 9 : 7;
+  const count = [
+    "scatter",
+    "zigzag",
+    "double-arc",
+    "diamond",
+    "helix",
+    "ripple",
+    "ladder",
+  ].includes(pattern)
+    ? 13
+    : 7;
   const yShift = Random.range(state.rng, -3, 3);
   for (let i = 0; i < count; i++) {
     const fraction = i / (count - 1);
@@ -77,6 +93,24 @@ function coinPath(state: GameState, pattern: string, startX: number, width: numb
       case "split":
         height = i < count / 2 ? 15 : 65;
         break;
+      case "zigzag":
+        height = 15 + (i % 2) * 42;
+        break;
+      case "double-arc":
+        height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
+        break;
+      case "diamond":
+        height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
+        break;
+      case "helix":
+        height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
+        break;
+      case "ripple":
+        height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
+        break;
+      case "ladder":
+        height = 12 + (i % 4) * 17;
+        break;
       case "scatter":
         height = Random.range(state.rng, 12, 70);
         x += Random.range(state.rng, -5, 5);
@@ -92,6 +126,9 @@ function coinPath(state: GameState, pattern: string, startX: number, width: numb
       w: 5,
       h: 6,
     });
+    if (pattern === "diamond" && i > 0 && i < count - 1) {
+      points.push({ ...points[points.length - 1], y: Config.floor - (78 - height) + yShift });
+    }
   }
   return points;
 }
@@ -136,8 +173,12 @@ function spawn(state: GameState) {
     case "hurdle":
       dangers.push(obstacle(state, x));
       break;
+    case "escort":
     case "patrol":
       dangers.push(enemy(state, x));
+      // Patrols grow more frequent in the shuffle pool and gain an escort later.
+      if (state.sector >= 4 && Random.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035))
+        dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
       break;
     case "steps":
       dangers.push(obstacle(state, x), obstacle(state, x + separation));
@@ -146,6 +187,19 @@ function spawn(state: GameState) {
       if (Random.next(state.rng) < 0.5)
         dangers.push(obstacle(state, x), enemy(state, x + separation));
       else dangers.push(enemy(state, x), obstacle(state, x + separation));
+      break;
+    case "squad": {
+      const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
+      for (let i = 0; i < count; i++)
+        dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+      break;
+    }
+    case "crossfire":
+      dangers.push(
+        enemy(state, x, "sentry"),
+        enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
+        enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
+      );
       break;
     case "convoy":
       // Extra room lets the dash recharge even if both enemies are on the floor.
@@ -163,11 +217,27 @@ function spawn(state: GameState) {
   // Every chunk retains a reward even if a new content definition blocks its trail.
   if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
   state.objects.push(...dangers, ...safeCoins);
+  // One combined 5% roll per encounter, split equally between the two devices.
+  let travelEnd = end;
+  if (Random.next(state.rng) < Config.traversal.spawnChance) {
+    const kind = Random.next(state.rng) < 0.5 ? "portal" : "pad";
+    const device = {
+      kind,
+      x: end + Math.max(95, safetySpeed * 0.65),
+      y: Config.floor - (kind === "portal" ? 43 : 5),
+      w: kind === "portal" ? 22 : 26,
+      h: kind === "portal" ? 43 : 5,
+      age: 0,
+    } as const;
+    state.traversals.push(device);
+    if (state.traversals.length > 4) state.traversals.shift();
+    travelEnd = device.x + device.w;
+  }
 
   const gap =
     Difficulty.gapSeconds(state.sector, state.rules) +
     Random.range(state.rng, 0, Config.generation.gapVariationSeconds);
-  const occupiedWidth = Math.max(end, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
+  const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
   state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
   state.encounterCount++;
   state.lastEncounter = {

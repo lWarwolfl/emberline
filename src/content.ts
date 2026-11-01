@@ -8,7 +8,7 @@ const obstacles = [
   { id: "reactor", w: 19, h: 31, unlock: 4, weight: 1 },
 ];
 
-// Enemy motion is predictable, with no projectiles or surprise lunges.
+// Shooting variants unlock later; Combat provides a visible, locked-aim warning.
 const enemies = [
   {
     id: "drone",
@@ -54,18 +54,79 @@ const enemies = [
     unlock: 4,
     weight: 2,
   },
+  {
+    id: "sentry",
+    w: 21,
+    h: 19,
+    altitude: 19,
+    amplitude: 0,
+    frequency: 0,
+    extraSpeed: 0,
+    unlock: 3,
+    weight: 2,
+  },
+  {
+    id: "beetle",
+    w: 24,
+    h: 15,
+    altitude: 15,
+    amplitude: 0,
+    frequency: 0,
+    extraSpeed: 8,
+    unlock: 4,
+    weight: 2,
+  },
+  {
+    id: "wasp",
+    w: 22,
+    h: 14,
+    altitude: 53,
+    amplitude: 6,
+    frequency: 3.2,
+    extraSpeed: 7,
+    unlock: 5,
+    weight: 2,
+  },
+  {
+    id: "wisp",
+    w: 17,
+    h: 17,
+    altitude: 45,
+    amplitude: 15,
+    frequency: 2.8,
+    extraSpeed: 18,
+    unlock: 6,
+    weight: 2,
+  },
 ];
 
 const patterns = [
   { id: "hurdle", unlock: 1 },
   { id: "patrol", unlock: 1 },
+  { id: "escort", unlock: 2 },
   { id: "coin-break", unlock: 1 },
   { id: "steps", unlock: 2 },
   { id: "mixed", unlock: 3 },
   { id: "convoy", unlock: 4 },
+  { id: "squad", unlock: 5 },
+  { id: "crossfire", unlock: 7 },
 ];
 
-const coinPatterns = ["ground", "arc", "staircase", "high", "wave", "split", "scatter"];
+const coinPatterns = [
+  "ground",
+  "arc",
+  "staircase",
+  "high",
+  "wave",
+  "split",
+  "scatter",
+  "zigzag",
+  "double-arc",
+  "diamond",
+  "helix",
+  "ripple",
+  "ladder",
+];
 const paces = [
   { id: "cruise", name: "CRUISE", multiplier: 1 },
   { id: "surge", name: "SURGE", multiplier: 1.19 },

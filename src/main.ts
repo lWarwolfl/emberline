@@ -22,8 +22,12 @@ import Backgrounds from "./backgrounds";
 import Cloth from "./cloth";
 import Pixel from "./pixel";
 import Config from "./config";
+import Traversal from "./traversal";
+import EnemyFire from "./enemy-fire";
 import "./pwa";
 const Emberline = {
+  Traversal,
+  EnemyFire,
   Economy,
   Content,
   Engine,

@@ -52,6 +52,10 @@ export interface WorldObject {
   extraSpeed?: number;
   phase?: number;
   age?: number;
+  shotCooldown?: number;
+  charge?: number;
+  aimX?: number;
+  aimY?: number;
 }
 export interface Projectile {
   x: number;
@@ -61,6 +65,26 @@ export interface Projectile {
   life: number;
   damage: number;
   color: string;
+  pierce?: number;
+  hitTargets?: WorldObject[];
+}
+export interface HostileProjectile extends Projectile {
+  previousX: number;
+  previousY: number;
+}
+export interface Traversal {
+  kind: "portal" | "pad";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  age: number;
+}
+export interface TraversalEffect {
+  kind: "portal" | "pad";
+  life: number;
+  duration: number;
+  distance: number;
 }
 export interface GameEvent {
   type: string;
@@ -102,6 +126,9 @@ export interface GameState {
   attackTime: number;
   attackId: number;
   projectiles: Projectile[];
+  hostileProjectiles: HostileProjectile[];
+  traversals: Traversal[];
+  traversalEffect: TraversalEffect | null;
   next: number;
   rng: Rng;
   sceneryRng: Rng;

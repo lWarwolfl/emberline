@@ -88,3 +88,15 @@ to strict TypeScript with typed imports. tsconfig.tools.json checks them all;
 node --import tsx executes them without a separate generated test tree.
 74 regression tests pass, including deployment asset completeness and stale-file
 cleanup. The PWA browser suite now serves the exact public deployment package.
+
+Version 6 expansion — 1 November 2026
+Added six coin trails; Sentry/Wasp shooters plus Beetle/Wisp enemies; later-run
+escorts, squads and crossfire; four skins; three guns; level-10 normal upgrades.
+Combined portal/pad encounter chance is 5%, with safe skips, launch/warp visuals,
+particles, sound, reduced-motion cues and no free currency for skipped pickups.
+Legacy ownership, coins and level-five stats/prices remain compatible.
+Expanded unit checks cover combat warnings, swept projectile hits, deflection,
+weapon penetration, progression, device rate, safe arrivals and group growth.
+All 85 regression tests and eight browser suites passed locally. New gear was
+purchased, fired and reloaded through the real shop. Shooter/device scenes and
+mobile level-10 screens were rendered and visually inspected.

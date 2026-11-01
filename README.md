@@ -33,6 +33,18 @@ them gives a combo bonus, helps recharge your dash, and adds difficulty-scaled
 coins to your saved spendable balance. Score awards appear at pickups, destroyed targets and cleared hazards.
 Losing window focus pauses the run. Touch buttons are included.
 
+## Version 6: crossfire and shortcuts
+
+- **Thirteen coin trails:** new zigzag, double arc, diamond, helix, ripple and ladder routes.
+- **Eight enemies:** Sentry turrets and Wasps fire red/pink bolts after a 0.65-second dotted aim warning. Their aim locks during the warning: jump away or dash through the bolt to deflect it. Armored Beetles and drifting Wisps add new ground and air silhouettes. Shooters unlock from sector 3; Wasps arrive at sector 5.
+- **More pressure over time:** speed growth rises about 10%, with a small increase in encounter frequency. Escorts, squads and crossfire groups unlock as sectors progress; squads grow from two to four enemies. Enemy spacing and simultaneous firing warnings remain bounded.
+- **Four new skins:** Copper lynx (2,000), Lunar moth (2,800), Deep relay diver (3,500) and Signal specter (4,200). Each has a distinct head/helmet silhouette and the same player hitbox.
+- **Three new guns:** Needle repeater (3,600; fast single shots), Nova fan (4,400; five-bolt spread), and Prism railgun (5,200; pierces up to three targets). Steel hazards still stop every weapon.
+- **Level-10 progression:** Dash, Jump height and Attack damage now reach L10. Existing L0–L5 prices and stats are unchanged. L6–L10 cost 750 / 1,000 / 1,250 / 1,500 / 1,750 coins. Advanced tiers have smaller increments; damage caps at ×2.6 and dash stays below ×1.8. Triple Jump remains a one-time unlock.
+- **Rare shortcuts:** every generated encounter has a combined **5%** chance of a portal or jump pad, split equally. Walk into a portal to skip 650m; a pad launches you and skips 350m, followed by a short speed burst. Both clear the skipped dangers and bullets, protect the arrival, and award distance score. Skipped coins are not collected. Devices have animated pixel art, particles, sound and local action labels; reduced motion keeps a restrained cue, and the devices stay visible with particle effects disabled.
+
+Your wallet, owned equipment and existing upgrade levels carry over. Open the shop to buy new equipment or continue past level five. Purchases still apply to the next run's upgrade snapshot.
+
 ## Version 5.3: seamless mobile shell and installable PWA
 
 Phones get one full-height surface instead of stacked page chrome: edge-to-edge
@@ -173,6 +185,8 @@ src/
   upgrades.ts             Capped progression, upgrade costs and run-stat formulas
   upgrade-panel.ts        Level/benefit/price UI with optional details
   combat.ts               Punch hitboxes, projectile movement, armor and destruction
+  enemy-fire.ts           Locked-aim warnings and hostile projectiles
+  traversal.ts            Portals, jump pads, safe skipping and travel effects
   cloth.ts                Pure animated cape geometry
   content.ts              Hazard/enemy definitions, biomes, paces, pattern catalog
   random.ts               Seeded RNG, weighted choices and shuffle bags

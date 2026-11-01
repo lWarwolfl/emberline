@@ -1140,11 +1140,14 @@ dialog::backdrop {
 }
 .level-meter {
   display: flex;
-  gap: 5px;
+  gap: 3px;
+  max-width: 190px;
   margin-top: 10px;
 }
 .level-meter i {
-  width: 24px;
+  flex: 1;
+  min-width: 0;
+  max-width: 24px;
   height: 5px;
   background: #354439;
 }

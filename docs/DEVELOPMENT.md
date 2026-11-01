@@ -4,7 +4,8 @@
 
 `main` creates `App`. App reads Input actions, updates Engine, consumes its event
 queue, updates UI/Audio/Particles, then asks Renderer to draw. Engine depends only
-on Config, Random, Difficulty and Generator; it has no DOM, storage or audio access.
+on pure simulation modules, including Combat, EnemyFire and Traversal; it has no
+DOM, storage or audio access.
 The source is strict TypeScript with typed module imports. `npm run build`
 checks the game and worker and bundles the browser entry point into `dist/game.js`.
 Regression tests and scripts are also TypeScript, checked by `tsconfig.tools.json`
@@ -315,3 +316,17 @@ The deployment tests verify every script and worker-cache asset exists in the
 package and stale output is removed. The PWA browser suite serves `public/` and
 verifies an actual offline reload. The other browser suites still open the
 committed root `index.html` through `file://` to preserve double-click playback.
+
+## Version 6: combat, generation and traversal
+
+`content.ts` holds 13 coin routes, eight enemy definitions and nine encounter templates. `escort` increases enemy encounter share; `squad` grows from two enemies at sector 5 to three at sector 8 and four at sector 11. `crossfire` includes a Sentry and Wasp. Spacing uses future safety speed and leaves time between enemies. Ground enemies have no altitude jitter.
+
+`enemy-fire.ts` owns shooter cooldowns, locked-aim telegraphs and the hostile projectile pool. Warnings last 0.65 seconds and at most two enemies charge at once. Offscreen, dead, passed or very close enemies cannot fire. Bolts have swept collision checks, a lifetime and a hard count limit; damage shares the engine's grace period. Dash deflection removes the bolt and awards 25 score. Cosmetic warning lines remain visible with particles disabled.
+
+`combat.ts` supports rapid single fire, five-bolt Nova spreads and rail piercing. A rail bolt records targets already hit, so it cannot repeatedly damage a durable target on consecutive frames. Penetration is limited to three targets and armored scenery intercepts the shot.
+
+`traversal.ts` handles portals/pads in a separate bounded `state.traversals` list. Generator makes one 5% seeded roll per encounter; a second equal roll chooses the device. Devices appear after that encounter's dangers and count toward occupied chunk width. Portals skip 650m; pads skip 350m and launch the player with a short travel boost. Activation clears skipped entities/projectiles and gives a safe arrival gap and grace period. Only distance score is awarded; no skipped pickups or kills are credited. Pausing freezes device movement, projectiles and effects. Render and audio layers consume events without changing simulation rules.
+
+Three normal upgrade tracks now cap at 10. Preserve levels 0–5 exactly for saved games. Levels 6–10 cost 750/1000/1250/1500/1750 and have smaller stat increments. The save schema stays at version 2: existing ownership, balances and levels survive. New skins have distinct silhouettes but share the player collider. New weapon IDs must be added to both Loadout and Economy before the shop can equip them.
+
+`tests/expansion.test.ts` checks warnings, bounded bullets, collision/deflection, group growth, new weapons, migration and a 20,000-encounter device-rate sample. `scripts/expansion-browser-check.ts` buys/renders every new skin and gun, fires the weapons, checks hostile warnings/shots and activates both shortcuts. It also checks persistence, mobile L10 layout and reduced motion. The representative route search covers all nine templates at three speeds. These are bounded checks, not a proof of solvability at infinite speed.

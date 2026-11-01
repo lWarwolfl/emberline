@@ -7,6 +7,8 @@ import Generator from "./generator";
 import Loadout from "./loadout";
 import Combat from "./combat";
 import Upgrades from "./upgrades";
+import EnemyFire from "./enemy-fire";
+import Traversal from "./traversal";
 
 function create(
   seed: Seed = Math.floor(Math.random() * 0xffffffff),
@@ -39,6 +41,9 @@ function create(
     attackTime: 0,
     attackId: 0,
     projectiles: [],
+    hostileProjectiles: [],
+    traversals: [],
+    traversalEffect: null,
     next: Config.generation.initialDistance,
     rng: Random.create(seed),
     sceneryRng: Random.create(seed + ":scenery"),
@@ -149,7 +154,9 @@ function step(state: GameState, dt: number) {
   state.time += dt;
   Difficulty.update(state, dt);
   const dashing = state.dash > 0;
-  state.runSpeed = state.speed * (dashing ? state.stats.dashWorldMultiplier : 1);
+  state.runSpeed =
+    state.speed *
+    (state.traversalEffect?.kind === "pad" ? 1.8 : dashing ? state.stats.dashWorldMultiplier : 1);
   state.distance += state.runSpeed * dt;
   state.scoreRemainder += state.runSpeed * dt;
   const points = Math.floor(state.scoreRemainder);
@@ -182,8 +189,21 @@ function step(state: GameState, dt: number) {
     Generator.move(object, state.runSpeed, dt);
   }
   // Attacks resolve before body collisions, so a well-timed punch saves the run.
+  Traversal.update(state, dt);
   Combat.update(state, dt);
+  EnemyFire.update(state, dt);
+  for (const bolt of state.hostileProjectiles) {
+    if (!EnemyFire.hitsPlayer(bolt, state.player)) continue;
+    bolt.life = 0;
+    if (state.dash > 0) {
+      addScore(state, 25);
+      emit(state, "deflect", bolt.x, bolt.y, { points: 25, label: "DEFLECT" });
+    } else hit(state, { kind: "hazard", variant: "shot", x: bolt.x, y: bolt.y, w: 4, h: 4 });
+    if (state.mode === "dead") break;
+  }
+  state.hostileProjectiles = state.hostileProjectiles.filter((bolt) => bolt.life > 0);
   for (const object of state.objects) {
+    if (state.hits >= state.health) break;
     if (object.dead) continue;
     if (
       !object.passed &&

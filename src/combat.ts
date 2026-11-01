@@ -6,9 +6,18 @@ const armor: Partial<Record<string, number>> = { crate: 1, barrier: 1, stack: 2.
 function durability(object: Pick<WorldObject, "kind" | "variant">) {
   if (object.kind === "enemy")
     return (
-      ({ drone: 1.2, crawler: 2.4, jelly: 1.5, bat: 1 } as Record<string, number>)[
-        object.variant
-      ] || 1
+      (
+        {
+          drone: 1.2,
+          crawler: 2.4,
+          jelly: 1.5,
+          bat: 1,
+          sentry: 2.2,
+          beetle: 3.2,
+          wasp: 1.8,
+          wisp: 1.4,
+        } as Record<string, number>
+      )[object.variant] || 1
     );
   return armor[object.variant] || 0;
 }
@@ -68,7 +77,12 @@ function attack(state: GameState) {
     );
     angle = Math.atan2((target.y + target.h / 2 - y) / travelTime, weapon.speed!);
   }
-  const spread = weapon.id === "scatter" ? [-0.16, 0, 0.16] : [0];
+  const spread =
+    weapon.id === "nova"
+      ? [-0.24, -0.12, 0, 0.12, 0.24]
+      : weapon.id === "scatter"
+        ? [-0.16, 0, 0.16]
+        : [0];
   for (const offset of spread)
     state.projectiles.push({
       x,
@@ -78,6 +92,8 @@ function attack(state: GameState) {
       life: weapon.life!,
       damage: weapon.damage * state.stats.damageMultiplier,
       color: weapon.color,
+      pierce: weapon.pierce ?? 0,
+      hitTargets: [],
     });
   return true;
 }
@@ -105,7 +121,7 @@ function update(state: GameState, dt: number) {
     bolt.y += bolt.vy * dt;
     bolt.life -= dt;
     for (const object of state.objects) {
-      if (object.dead || object.kind === "ember") continue;
+      if (object.dead || object.kind === "ember" || bolt.hitTargets?.includes(object)) continue;
       if (
         Math.max(bolt.x, previousX) + 3 >= object.x &&
         Math.min(bolt.x, previousX) <= object.x + object.w &&
@@ -115,8 +131,13 @@ function update(state: GameState, dt: number) {
         damage(state, object, bolt.damage, "shot");
         if (!breakable(object))
           state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
-        bolt.life = 0;
-        break;
+        if (breakable(object) && (bolt.pierce ?? 0) > 0) {
+          bolt.pierce!--;
+          (bolt.hitTargets ??= []).push(object);
+        } else {
+          bolt.life = 0;
+          break;
+        }
       }
     }
   }

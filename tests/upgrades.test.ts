@@ -20,17 +20,18 @@ function fixture(coins = 20000n, prior?: unknown) {
   return { saves, values, shop: Economy.create(saves) };
 }
 
-test("each normal track costs 100, 200, 300, 400, 500 and stops at L5", () => {
+test("normal upgrades preserve early prices, extend to L10, and stop at the new cap", () => {
+  const costs = [100, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750];
   for (const id of ["dash", "jump", "damage"] as const) {
-    const { shop } = fixture(1500n);
-    for (let level = 0; level < 5; level++) {
-      assert.equal(Upgrades.cost(id, shop.levels), (level + 1) * 100);
+    const { shop } = fixture(7750n);
+    for (let level = 0; level < 10; level++) {
+      assert.equal(Upgrades.cost(id, shop.levels), costs[level]);
       assert(shop.upgrade(id, level).ok);
     }
-    assert.equal(shop.levels[id], 5);
+    assert.equal(shop.levels[id], 10);
     assert.equal(shop.balance, 0n);
     assert.equal(Upgrades.cost(id, shop.levels), null);
-    assert.equal(shop.upgrade(id, 5).reason, "maxed");
+    assert.equal(shop.upgrade(id, 10).reason, "maxed");
   }
 });
 
@@ -89,7 +90,7 @@ test("upgrade debit and level persist in the same saved snapshot", () => {
 
 test("corrupt upgrade levels are clamped to the documented caps", () => {
   assert.deepEqual(Upgrades.sanitize({ dash: 99, jump: -2, damage: NaN, triple: 9 }), {
-    dash: 5,
+    dash: 10,
     jump: 0,
     damage: 0,
     triple: 1,

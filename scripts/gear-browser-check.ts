@@ -20,7 +20,7 @@ async function main() {
     const errors: string[] = [];
     await page.addInitScript(() => {
       if (!localStorage.getItem("test.gear-funded")) {
-        localStorage.setItem("emberline.coins", "20000");
+        localStorage.setItem("emberline.coins", "50000");
         localStorage.setItem("test.gear-funded", "yes");
       }
     });

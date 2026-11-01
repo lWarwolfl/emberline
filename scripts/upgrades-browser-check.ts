@@ -26,7 +26,7 @@ async function main() {
     await page.evaluate(() => {
       localStorage.setItem(
         "emberline.economy",
-        JSON.stringify({ version: 1, balance: "20000", owned: ["character:hare", "weapon:pulse"] }),
+        JSON.stringify({ version: 1, balance: "50000", owned: ["character:hare", "weapon:pulse"] }),
       );
       localStorage.setItem(
         "emberline.loadout",
@@ -34,7 +34,7 @@ async function main() {
       );
     });
     await page.reload();
-    assert.equal(await page.evaluate(() => EmberlineDebug.app.coins.toString()), "20000");
+    assert.equal(await page.evaluate(() => EmberlineDebug.app.coins.toString()), "50000");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.loadout.weapon), "pulse");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.levels.jump), 0);
     await page.click("#start");
@@ -60,16 +60,17 @@ async function main() {
     assert.equal(await page.locator("#upgrade-triple").getAttribute("data-cost"), "5000");
     await page.screenshot({ path: path.join(root, "test-results/v5-upgrades-basic.png") });
 
-    let expected = 20000n;
+    let expected = 50000n;
     for (const track of ["dash", "jump", "damage"]) {
-      for (let level = 0; level < 5; level++) {
+      for (let level = 0; level < 10; level++) {
         assert(
           (await page.locator("#upgrade-" + track).innerText()).includes(
-            (level + 1) * 100 + " COINS",
+            [100, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750][level].toLocaleString("en-US") +
+              " COINS",
           ),
         );
         await page.click("#upgrade-" + track);
-        expected -= BigInt((level + 1) * 100);
+        expected -= BigInt([100, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750][level]);
         assert.equal(
           await page.evaluate(() => EmberlineDebug.app.coins.toString()),
           expected.toString(),
@@ -116,9 +117,9 @@ async function main() {
       expected.toString(),
     );
     assert.deepEqual(await page.evaluate(() => EmberlineDebug.app.economy.levels), {
-      dash: 5,
-      jump: 5,
-      damage: 5,
+      dash: 10,
+      jump: 10,
+      damage: 10,
       triple: 1,
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -139,7 +140,7 @@ async function main() {
     await page.screenshot({ path: path.join(root, "test-results/v5-triple-jump.png") });
     await page.waitForTimeout(1500);
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.player.jumps), 0);
-    assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.damageMultiplier), 2);
+    assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.damageMultiplier), 2.6);
     await page.evaluate(() => {
       const state = EmberlineDebug.app.state;
       state.objects = [
@@ -163,7 +164,7 @@ async function main() {
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.objects.length), 0);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS upgrade browser: legacy ownership migration, 100..500 prices, L5 limits, 5000-coin one-time triple jump, exact wallet debits, persistence, next-run stats, three actual jumps, max damage combat and mobile upgrade layout.",
+      "PASS upgrade browser: legacy ownership migration, 100..1750 prices, L10 limits, 5000-coin one-time triple jump, exact wallet debits, persistence, next-run stats, three actual jumps, max damage combat and mobile upgrade layout.",
     );
   } finally {
     await browser.close();

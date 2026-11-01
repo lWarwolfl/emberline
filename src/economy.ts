@@ -4,10 +4,19 @@ import Upgrades from "./upgrades";
 
 // Prices are whole earned coins. Starter items and unequipping are always free.
 const prices: Record<GearGroup, Record<string, number>> = {
-  character: { fox: 0, bot: 500, hare: 900, ranger: 1500 },
+  character: {
+    fox: 0,
+    bot: 500,
+    hare: 900,
+    ranger: 1500,
+    lynx: 2000,
+    moth: 2800,
+    diver: 3500,
+    specter: 4200,
+  },
   cape: { ember: 0, signal: 250, storm: 600, none: 0 },
   jetpack: { ember: 0, twin: 400, coil: 800, none: 0 },
-  weapon: { punch: 0, pulse: 1200, scatter: 2400 },
+  weapon: { punch: 0, pulse: 1200, scatter: 2400, repeater: 3600, rail: 5200, nova: 4400 },
 };
 const keyOf = (group: string, id: string) => group + ":" + id;
 function price(group: string, id: string) {

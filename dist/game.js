@@ -88,6 +88,46 @@
           trim: "#e2cf9b",
           boots: "#7b856b",
         },
+        {
+          id: "lynx",
+          name: "Copper lynx",
+          description: "Tufted ears, dark cheek stripes and a copper coat.",
+          skin: "#d7a06e",
+          light: "#ffe0a1",
+          jacket: "#627b76",
+          trim: "#abd2bd",
+          boots: "#415c58",
+        },
+        {
+          id: "moth",
+          name: "Lunar moth",
+          description: "Feathery antennae and a luminous violet flight suit.",
+          skin: "#d1c5ee",
+          light: "#efe4ff",
+          jacket: "#7b6aa3",
+          trim: "#c8edcf",
+          boots: "#51466f",
+        },
+        {
+          id: "diver",
+          name: "Deep relay diver",
+          description: "A reinforced round helmet with an ocean-blue visor.",
+          skin: "#729ca9",
+          light: "#bce3e5",
+          jacket: "#3f7080",
+          trim: "#f5bf77",
+          boots: "#365366",
+        },
+        {
+          id: "specter",
+          name: "Signal specter",
+          description: "A pale hood and a bright signal mask from a lost relay.",
+          skin: "#c5dbd1",
+          light: "#e3f4de",
+          jacket: "#4c6974",
+          trim: "#8ae5dc",
+          boots: "#314b58",
+        },
       ];
       var capes = [
         {
@@ -192,6 +232,40 @@
           speed: 265,
           life: 0.95,
           color: "#ffbf7a",
+        },
+        {
+          id: "repeater",
+          name: "Needle repeater",
+          short: "REPEAT",
+          description: "Fast precision fire. 0.6 damage \xB7 0.20s recharge.",
+          damage: 0.6,
+          cooldown: 0.2,
+          speed: 370,
+          life: 1,
+          color: "#c3e87e",
+        },
+        {
+          id: "rail",
+          name: "Prism railgun",
+          short: "RAIL",
+          description: "Pierces up to three targets. 2 damage \xB7 1.05s recharge.",
+          damage: 2,
+          cooldown: 1.05,
+          speed: 650,
+          life: 0.85,
+          pierce: 2,
+          color: "#c6b3ff",
+        },
+        {
+          id: "nova",
+          name: "Nova fan",
+          short: "NOVA",
+          description: "Five wide-angle bolts. 0.45 damage each \xB7 1.10s recharge.",
+          damage: 0.45,
+          cooldown: 1.1,
+          speed: 300,
+          life: 0.9,
+          color: "#ff95b0",
         },
       ];
       var difficulties = [
@@ -324,9 +398,9 @@
         sectorSeconds: 18,
         speed: {
           start: 98,
-          growth: 31,
+          growth: 34,
           growthSeconds: 16,
-          acceleration: 19,
+          acceleration: 21,
           deceleration: 17,
           phaseMinSeconds: 12,
           phaseMaxSeconds: 19,
@@ -335,11 +409,13 @@
           spawnX: 510,
           initialDistance: 190,
           minimumGapSeconds: 0.95,
-          initialGapSeconds: 1.65,
-          gapVariationSeconds: 0.4,
+          initialGapSeconds: 1.55,
+          gapVariationSeconds: 0.35,
           coinClearance: 7,
           themeFadeSeconds: 2.2,
         },
+        traversal: { spawnChance: 0.05, portalSkip: 650, padSkip: 350, arrivalGrace: 1.5 },
+        enemyFire: { warningSeconds: 0.65, maxProjectiles: 24, maxCharging: 2 },
         simulationStep: 1 / 120,
         maxFrameSeconds: 0.1,
         particleLimit: 550,
@@ -356,22 +432,22 @@
         {
           id: "dash",
           name: "Dash drive",
-          maxLevel: 5,
+          maxLevel: 10,
           description:
             "Improve boost, duration and lunge; shorten recharge. A short burst at level 0, never full invulnerability.",
         },
         {
           id: "jump",
           name: "Jump coils",
-          maxLevel: 5,
+          maxLevel: 10,
           description: "Both jumps gain height. Triple Jump is a separate unlock.",
         },
         {
           id: "damage",
           name: "Impact amplifier",
-          maxLevel: 5,
+          maxLevel: 10,
           description:
-            "Add 20% damage per level to punches, bolts and dash impacts. Maximum 2.00\xD7 base damage.",
+            "Levels 1\u20135 add 20% damage each; levels 6\u201310 add 12% each. Punches, bolts and dash impacts cap at 2.60\xD7 base damage.",
         },
         {
           id: "triple",
@@ -401,22 +477,42 @@
         const track = definition(id);
         if (!track) return null;
         const level = sanitize(value)[track.id];
-        return level >= track.maxLevel ? null : track.fixedCost || (level + 1) * 100;
+        return level >= track.maxLevel
+          ? null
+          : track.fixedCost || (level + 1) * 100 + Math.max(0, level - 4) * 150;
       }
       function stats(value = {}) {
         const levels = sanitize(value);
+        const basic = {
+          dash: Math.min(5, levels.dash),
+          jump: Math.min(5, levels.jump),
+          damage: Math.min(5, levels.damage),
+        };
+        const advanced = {
+          dash: Math.max(0, levels.dash - 5),
+          jump: Math.max(0, levels.jump - 5),
+          damage: Math.max(0, levels.damage - 5),
+        };
         return {
           levels,
           maxJumps: import_config2.default.maxJumps + levels.triple,
-          jumpVelocity: import_config2.default.jumpVelocity - levels.jump * 7,
-          doubleJumpVelocity: import_config2.default.doubleJumpVelocity - levels.jump * 6,
-          thirdJumpVelocity: (import_config2.default.doubleJumpVelocity - levels.jump * 6) * 0.85,
-          dashDuration: import_config2.default.dashDuration + levels.dash * 0.016,
-          dashCooldown: import_config2.default.dashCooldown - levels.dash * 0.16,
-          dashWorldMultiplier: import_config2.default.dashWorldMultiplier + levels.dash * 0.07,
-          dashLungeMax: import_config2.default.dashLungeMax + levels.dash * 5,
-          dashLungeSpeed: import_config2.default.dashLungeSpeed + levels.dash * 12,
-          damageMultiplier: 1 + levels.damage * 0.2,
+          jumpVelocity: import_config2.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
+          doubleJumpVelocity:
+            import_config2.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
+          thirdJumpVelocity:
+            (import_config2.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) *
+            0.85,
+          dashDuration:
+            import_config2.default.dashDuration + (basic.dash * 0.016 + advanced.dash * 8e-3),
+          dashCooldown:
+            import_config2.default.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
+          dashWorldMultiplier:
+            import_config2.default.dashWorldMultiplier +
+            (basic.dash * 0.07 + advanced.dash * 0.035),
+          dashLungeMax: import_config2.default.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
+          dashLungeSpeed:
+            import_config2.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
+          damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
         };
       }
       function describe(id, value) {
@@ -458,10 +554,19 @@
       var import_loadout2 = __toESM(require_loadout());
       var import_upgrades2 = __toESM(require_upgrades());
       var prices = {
-        character: { fox: 0, bot: 500, hare: 900, ranger: 1500 },
+        character: {
+          fox: 0,
+          bot: 500,
+          hare: 900,
+          ranger: 1500,
+          lynx: 2e3,
+          moth: 2800,
+          diver: 3500,
+          specter: 4200,
+        },
         cape: { ember: 0, signal: 250, storm: 600, none: 0 },
         jetpack: { ember: 0, twin: 400, coil: 800, none: 0 },
-        weapon: { punch: 0, pulse: 1200, scatter: 2400 },
+        weapon: { punch: 0, pulse: 1200, scatter: 2400, repeater: 3600, rail: 5200, nova: 4400 },
       };
       var keyOf = (group, id) => group + ":" + id;
       function price(group, id) {
@@ -620,16 +725,77 @@
           unlock: 4,
           weight: 2,
         },
+        {
+          id: "sentry",
+          w: 21,
+          h: 19,
+          altitude: 19,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 0,
+          unlock: 3,
+          weight: 2,
+        },
+        {
+          id: "beetle",
+          w: 24,
+          h: 15,
+          altitude: 15,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 8,
+          unlock: 4,
+          weight: 2,
+        },
+        {
+          id: "wasp",
+          w: 22,
+          h: 14,
+          altitude: 53,
+          amplitude: 6,
+          frequency: 3.2,
+          extraSpeed: 7,
+          unlock: 5,
+          weight: 2,
+        },
+        {
+          id: "wisp",
+          w: 17,
+          h: 17,
+          altitude: 45,
+          amplitude: 15,
+          frequency: 2.8,
+          extraSpeed: 18,
+          unlock: 6,
+          weight: 2,
+        },
       ];
       var patterns = [
         { id: "hurdle", unlock: 1 },
         { id: "patrol", unlock: 1 },
+        { id: "escort", unlock: 2 },
         { id: "coin-break", unlock: 1 },
         { id: "steps", unlock: 2 },
         { id: "mixed", unlock: 3 },
         { id: "convoy", unlock: 4 },
+        { id: "squad", unlock: 5 },
+        { id: "crossfire", unlock: 7 },
       ];
-      var coinPatterns = ["ground", "arc", "staircase", "high", "wave", "split", "scatter"];
+      var coinPatterns = [
+        "ground",
+        "arc",
+        "staircase",
+        "high",
+        "wave",
+        "split",
+        "scatter",
+        "zigzag",
+        "double-arc",
+        "diamond",
+        "helix",
+        "ripple",
+        "ladder",
+      ];
       var paces = [
         { id: "cruise", name: "CRUISE", multiplier: 1 },
         { id: "surge", name: "SURGE", multiplier: 1.19 },
@@ -904,10 +1070,16 @@
           passed: false,
         };
       }
-      function enemy(state, x) {
-        const definition = choose(state, "enemies");
+      function enemy(state, x, variant) {
+        const definition =
+          import_content2.default.enemies.find(
+            (item) => item.id === variant && item.unlock <= state.sector,
+          ) ?? choose(state, "enemies");
+        state.lastVariant.enemies = definition.id;
         const altitudeJitter =
-          definition.id === "crawler" ? 0 : import_random2.default.range(state.rng, -4, 4);
+          definition.altitude === definition.h && definition.amplitude === 0
+            ? 0
+            : import_random2.default.range(state.rng, -4, 4);
         const baseY = import_config2.default.floor - definition.altitude + altitudeJitter;
         return {
           kind: "enemy",
@@ -927,7 +1099,17 @@
       }
       function coinPath(state, pattern, startX, width) {
         const points = [];
-        const count = pattern === "scatter" ? 9 : 7;
+        const count = [
+          "scatter",
+          "zigzag",
+          "double-arc",
+          "diamond",
+          "helix",
+          "ripple",
+          "ladder",
+        ].includes(pattern)
+          ? 13
+          : 7;
         const yShift = import_random2.default.range(state.rng, -3, 3);
         for (let i = 0; i < count; i++) {
           const fraction = i / (count - 1);
@@ -952,6 +1134,24 @@
             case "split":
               height = i < count / 2 ? 15 : 65;
               break;
+            case "zigzag":
+              height = 15 + (i % 2) * 42;
+              break;
+            case "double-arc":
+              height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
+              break;
+            case "diamond":
+              height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
+              break;
+            case "helix":
+              height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
+              break;
+            case "ripple":
+              height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
+              break;
+            case "ladder":
+              height = 12 + (i % 4) * 17;
+              break;
             case "scatter":
               height = import_random2.default.range(state.rng, 12, 70);
               x += import_random2.default.range(state.rng, -5, 5);
@@ -973,6 +1173,12 @@
             w: 5,
             h: 6,
           });
+          if (pattern === "diamond" && i > 0 && i < count - 1) {
+            points.push({
+              ...points[points.length - 1],
+              y: import_config2.default.floor - (78 - height) + yShift,
+            });
+          }
         }
         return points;
       }
@@ -1017,8 +1223,14 @@
           case "hurdle":
             dangers.push(obstacle(state, x));
             break;
+          case "escort":
           case "patrol":
             dangers.push(enemy(state, x));
+            if (
+              state.sector >= 4 &&
+              import_random2.default.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035)
+            )
+              dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
             break;
           case "steps":
             dangers.push(obstacle(state, x), obstacle(state, x + separation));
@@ -1027,6 +1239,19 @@
             if (import_random2.default.next(state.rng) < 0.5)
               dangers.push(obstacle(state, x), enemy(state, x + separation));
             else dangers.push(enemy(state, x), obstacle(state, x + separation));
+            break;
+          case "squad": {
+            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
+            for (let i = 0; i < count; i++)
+              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+            break;
+          }
+          case "crossfire":
+            dangers.push(
+              enemy(state, x, "sentry"),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
+            );
             break;
           case "convoy":
             dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
@@ -1043,6 +1268,21 @@
         );
         if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
         state.objects.push(...dangers, ...safeCoins);
+        let travelEnd = end;
+        if (import_random2.default.next(state.rng) < import_config2.default.traversal.spawnChance) {
+          const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
+          const device = {
+            kind,
+            x: end + Math.max(95, safetySpeed * 0.65),
+            y: import_config2.default.floor - (kind === "portal" ? 43 : 5),
+            w: kind === "portal" ? 22 : 26,
+            h: kind === "portal" ? 43 : 5,
+            age: 0,
+          };
+          state.traversals.push(device);
+          if (state.traversals.length > 4) state.traversals.shift();
+          travelEnd = device.x + device.w;
+        }
         const gap =
           import_difficulty2.default.gapSeconds(state.sector, state.rules) +
           import_random2.default.range(
@@ -1050,7 +1290,7 @@
             0,
             import_config2.default.generation.gapVariationSeconds,
           );
-        const occupiedWidth = Math.max(end, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
+        const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
         state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
         state.encounterCount++;
         state.lastEncounter = {
@@ -1084,7 +1324,18 @@
       var armor = { crate: 1, barrier: 1, stack: 2.6 };
       function durability(object) {
         if (object.kind === "enemy")
-          return { drone: 1.2, crawler: 2.4, jelly: 1.5, bat: 1 }[object.variant] || 1;
+          return (
+            {
+              drone: 1.2,
+              crawler: 2.4,
+              jelly: 1.5,
+              bat: 1,
+              sentry: 2.2,
+              beetle: 3.2,
+              wasp: 1.8,
+              wisp: 1.4,
+            }[object.variant] || 1
+          );
         return armor[object.variant] || 0;
       }
       function breakable(object) {
@@ -1144,7 +1395,12 @@
           );
           angle = Math.atan2((target.y + target.h / 2 - y) / travelTime, weapon.speed);
         }
-        const spread = weapon.id === "scatter" ? [-0.16, 0, 0.16] : [0];
+        const spread =
+          weapon.id === "nova"
+            ? [-0.24, -0.12, 0, 0.12, 0.24]
+            : weapon.id === "scatter"
+              ? [-0.16, 0, 0.16]
+              : [0];
         for (const offset of spread)
           state.projectiles.push({
             x,
@@ -1154,6 +1410,8 @@
             life: weapon.life,
             damage: weapon.damage * state.stats.damageMultiplier,
             color: weapon.color,
+            pierce: weapon.pierce ?? 0,
+            hitTargets: [],
           });
         return true;
       }
@@ -1183,7 +1441,8 @@
           bolt.y += bolt.vy * dt;
           bolt.life -= dt;
           for (const object of state.objects) {
-            if (object.dead || object.kind === "ember") continue;
+            if (object.dead || object.kind === "ember" || bolt.hitTargets?.includes(object))
+              continue;
             if (
               Math.max(bolt.x, previousX) + 3 >= object.x &&
               Math.min(bolt.x, previousX) <= object.x + object.w &&
@@ -1193,8 +1452,13 @@
               damage(state, object, bolt.damage, "shot");
               if (!breakable(object))
                 state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
-              bolt.life = 0;
-              break;
+              if (breakable(object) && (bolt.pierce ?? 0) > 0) {
+                bolt.pierce--;
+                (bolt.hitTargets ??= []).push(object);
+              } else {
+                bolt.life = 0;
+                break;
+              }
             }
           }
         }
@@ -1210,6 +1474,167 @@
     },
   });
 
+  // src/enemy-fire.ts
+  var require_enemy_fire = __commonJS({
+    "src/enemy-fire.ts"(exports, module) {
+      "use strict";
+      var import_config2 = __toESM(require_config());
+      var shooters = {
+        sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
+        wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
+      };
+      function update(state, dt) {
+        if (state.mode !== "playing") return;
+        for (const object of state.objects) {
+          const gun = shooters[object.variant];
+          if (object.kind !== "enemy" || !gun) continue;
+          if (object.dead || object.passed) {
+            object.charge = 0;
+            continue;
+          }
+          if (
+            object.x <= state.player.x + Math.max(70, state.runSpeed * 0.35) ||
+            object.x > import_config2.default.width - 12
+          ) {
+            object.charge = 0;
+            continue;
+          }
+          if ((object.charge ?? 0) > 0) {
+            object.charge = Math.max(0, object.charge - dt);
+            if (object.charge > 0) continue;
+            const x = object.x,
+              y = object.y + object.h / 2;
+            const angle = Math.atan2(object.aimY - y, object.aimX - x);
+            const speed = gun.speed + state.runSpeed * 0.3;
+            if (state.hostileProjectiles.length < import_config2.default.enemyFire.maxProjectiles) {
+              state.hostileProjectiles.push({
+                x,
+                y,
+                previousX: x,
+                previousY: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 4,
+                damage: 1,
+                color: gun.color,
+              });
+              state.events.push({ type: "enemy-shot", x, y });
+            }
+            object.shotCooldown = gun.interval;
+          } else {
+            object.shotCooldown = Math.max(0, (object.shotCooldown ?? 0.35) - dt);
+            const charging = state.objects.filter(
+              (item) => !item.dead && (item.charge ?? 0) > 0,
+            ).length;
+            if (
+              object.shotCooldown <= 0 &&
+              object.x - state.player.x > 170 &&
+              charging < import_config2.default.enemyFire.maxCharging
+            ) {
+              object.charge = import_config2.default.enemyFire.warningSeconds;
+              object.aimX = state.player.x + 7;
+              object.aimY = state.player.y + 9;
+              state.events.push({ type: "charge", x: object.x, y: object.y });
+            }
+          }
+        }
+        for (const bolt of state.hostileProjectiles) {
+          bolt.previousX = bolt.x;
+          bolt.previousY = bolt.y;
+          bolt.x += bolt.vx * dt;
+          bolt.y += bolt.vy * dt;
+          bolt.life -= dt;
+        }
+        state.hostileProjectiles = state.hostileProjectiles.filter(
+          (bolt) =>
+            bolt.life > 0 &&
+            bolt.x > -20 &&
+            bolt.x < import_config2.default.width + 20 &&
+            bolt.y > -10 &&
+            bolt.y < import_config2.default.floor + 10,
+        );
+      }
+      function hitsPlayer(bolt, player) {
+        return (
+          Math.min(bolt.x, bolt.previousX) < player.x + 12 &&
+          Math.max(bolt.x, bolt.previousX) + 4 > player.x + 1 &&
+          Math.min(bolt.y, bolt.previousY) < player.y + 17 &&
+          Math.max(bolt.y, bolt.previousY) + 4 > player.y + 1
+        );
+      }
+      module.exports = { shooters, update, hitsPlayer };
+    },
+  });
+
+  // src/traversal.ts
+  var require_traversal = __commonJS({
+    "src/traversal.ts"(exports, module) {
+      "use strict";
+      var import_config2 = __toESM(require_config());
+      function activate(state, device) {
+        const distance =
+          device.kind === "portal"
+            ? import_config2.default.traversal.portalSkip
+            : import_config2.default.traversal.padSkip;
+        state.distance += distance;
+        state.score += BigInt(distance);
+        state.time += Math.min(6, distance / Math.max(98, state.speed));
+        state.objects = [];
+        state.projectiles = [];
+        state.hostileProjectiles = [];
+        state.traversals = [];
+        state.next =
+          state.distance +
+          Math.max(import_config2.default.generation.initialDistance, state.runSpeed * 2);
+        state.invincible = Math.max(
+          state.invincible,
+          import_config2.default.traversal.arrivalGrace,
+        );
+        state.player.x = import_config2.default.playerX;
+        if (device.kind === "portal") {
+          state.player.y = import_config2.default.floor - import_config2.default.playerHeight;
+          state.player.vy = 0;
+          state.player.jumps = 0;
+        } else {
+          state.player.vy = -260;
+          state.player.jumps = 1;
+        }
+        const duration = device.kind === "portal" ? 0.8 : 1.5;
+        state.traversalEffect = { kind: device.kind, life: duration, duration, distance };
+        state.events.push({
+          type: device.kind,
+          x: state.player.x,
+          y: state.player.y,
+          points: distance,
+          label: `${device.kind === "portal" ? "WARP" : "LAUNCH"} / ${distance}m`,
+        });
+      }
+      function update(state, dt) {
+        if (state.traversalEffect) {
+          state.traversalEffect.life -= dt;
+          if (state.traversalEffect.life <= 0) state.traversalEffect = null;
+        }
+        for (const device of state.traversals) {
+          const previousX = device.x;
+          device.x -= state.runSpeed * dt;
+          device.age += dt;
+          const player = state.player;
+          if (
+            player.x + 13 > Math.min(previousX, device.x) &&
+            player.x < Math.max(previousX, device.x) + device.w &&
+            player.y + import_config2.default.playerHeight > device.y &&
+            player.y < device.y + device.h
+          ) {
+            activate(state, device);
+            return;
+          }
+        }
+        state.traversals = state.traversals.filter((device) => device.x + device.w > -20);
+      }
+      module.exports = { activate, update };
+    },
+  });
+
   // src/engine.ts
   var require_engine = __commonJS({
     "src/engine.ts"(exports, module) {
@@ -1221,6 +1646,8 @@
       var import_loadout2 = __toESM(require_loadout());
       var import_combat2 = __toESM(require_combat());
       var import_upgrades2 = __toESM(require_upgrades());
+      var import_enemy_fire2 = __toESM(require_enemy_fire());
+      var import_traversal2 = __toESM(require_traversal());
       function create(seed = Math.floor(Math.random() * 4294967295), equipment, upgradeLevels) {
         const loadout = import_loadout2.default.sanitize(equipment);
         const rules = import_loadout2.default.rules(loadout);
@@ -1248,6 +1675,9 @@
           attackTime: 0,
           attackId: 0,
           projectiles: [],
+          hostileProjectiles: [],
+          traversals: [],
+          traversalEffect: null,
           next: import_config2.default.generation.initialDistance,
           rng: import_random2.default.create(seed),
           sceneryRng: import_random2.default.create(seed + ":scenery"),
@@ -1357,7 +1787,13 @@
         state.time += dt;
         import_difficulty2.default.update(state, dt);
         const dashing = state.dash > 0;
-        state.runSpeed = state.speed * (dashing ? state.stats.dashWorldMultiplier : 1);
+        state.runSpeed =
+          state.speed *
+          (state.traversalEffect?.kind === "pad"
+            ? 1.8
+            : dashing
+              ? state.stats.dashWorldMultiplier
+              : 1);
         state.distance += state.runSpeed * dt;
         state.scoreRemainder += state.runSpeed * dt;
         const points = Math.floor(state.scoreRemainder);
@@ -1392,8 +1828,21 @@
           previousPositions.set(object, object.x);
           import_generator2.default.move(object, state.runSpeed, dt);
         }
+        import_traversal2.default.update(state, dt);
         import_combat2.default.update(state, dt);
+        import_enemy_fire2.default.update(state, dt);
+        for (const bolt of state.hostileProjectiles) {
+          if (!import_enemy_fire2.default.hitsPlayer(bolt, state.player)) continue;
+          bolt.life = 0;
+          if (state.dash > 0) {
+            addScore(state, 25);
+            emit(state, "deflect", bolt.x, bolt.y, { points: 25, label: "DEFLECT" });
+          } else hit(state, { kind: "hazard", variant: "shot", x: bolt.x, y: bolt.y, w: 4, h: 4 });
+          if (state.mode === "dead") break;
+        }
+        state.hostileProjectiles = state.hostileProjectiles.filter((bolt) => bolt.life > 0);
         for (const object of state.objects) {
+          if (state.hits >= state.health) break;
           if (object.dead) continue;
           if (
             !object.passed &&
@@ -1557,6 +2006,24 @@
         }
         function sound(type, combo = 0) {
           switch (type) {
+            case "portal":
+              [220, 440, 880, 1320].forEach((freq, i) =>
+                tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),
+              );
+              break;
+            case "pad":
+              tone(180, 0.3, "triangle", 0.06, 900);
+              noise(0.12, 0.025);
+              break;
+            case "charge":
+              tone(340, 0.3, "sine", 0.012, 620);
+              break;
+            case "enemy-shot":
+              tone(220, 0.15, "sawtooth", 0.02, 95);
+              break;
+            case "deflect":
+              tone(1200, 0.13, "triangle", 0.035, 1800);
+              break;
             case "jump":
               tone(170, 0.14, "square", 0.025, 420);
               break;
@@ -2011,6 +2478,39 @@
             rect(x + 8, y + 3, 6, 2, "#f4d18c");
             rect(x + 6, y - 5, 1, 5, person.light);
             rect(x + 5, y - 6, 3, 2, "#ffae62");
+          } else if (person.id === "lynx") {
+            rect(x + 1, y - 5, 4, 8, person.skin);
+            rect(x + 11, y - 5, 4, 8, person.skin);
+            rect(x + 1, y - 7, 2, 3, person.boots);
+            rect(x + 13, y - 7, 2, 3, person.boots);
+            rect(x + 1, y + 1, 14, 7, person.skin);
+            rect(x + 10, y + 3, 2, 2, "#203d34");
+            line(x + 1, y + 5, 5, person.boots);
+            line(x + 2, y + 7, 5, person.boots);
+            rect(x + 12, y + 6, 4, 2, person.light);
+          } else if (person.id === "moth") {
+            rect(x + 2, y, 13, 9, person.skin);
+            rect(x + 4, y + 2, 4, 4, person.boots);
+            rect(x + 10, y + 2, 4, 4, person.boots);
+            rect(x + 11, y + 3, 2, 2, person.trim);
+            rect(x + 3, y - 6, 2, 6, person.light);
+            rect(x + 11, y - 6, 2, 6, person.light);
+            line(x, y - 5, 5, person.trim);
+            line(x + 11, y - 5, 5, person.trim);
+          } else if (person.id === "diver") {
+            rect(x + 3, y - 3, 10, 2, person.light);
+            rect(x, y - 1, 16, 10, person.skin);
+            rect(x + 3, y + 9, 10, 2, person.light);
+            rect(x + 4, y + 1, 10, 6, "#183f58");
+            line(x + 5, y + 2, 7, "#9ae1ec");
+            rect(x - 2, y + 2, 3, 5, person.trim);
+          } else if (person.id === "specter") {
+            rect(x + 3, y - 4, 10, 3, person.light);
+            rect(x, y - 1, 16, 11, person.skin);
+            rect(x + 4, y + 1, 10, 7, "#172e37");
+            rect(x + 6, y + 3, 2, 2, person.trim);
+            rect(x + 11, y + 3, 2, 2, person.trim);
+            rect(x - 2, y + 6, 4, 6, person.skin);
           } else {
             rect(x + 2, y - 1, 12, 10, person.skin);
             rect(x + 1, y + 1, 14, 3, person.light);
@@ -2032,7 +2532,25 @@
               line(x + 29, y + 15, 6, "#ffe3ab");
             }
           } else {
-            rect(x + 13, y + 8, weapon.id === "scatter" ? 12 : 9, 4, "#9da995");
+            rect(
+              x + 13,
+              y + 8,
+              weapon.id === "rail" ? 18 : weapon.id === "scatter" || weapon.id === "nova" ? 12 : 9,
+              4,
+              "#9da995",
+            );
+            if (weapon.id === "rail") {
+              line(x + 16, y + 7, 15, weapon.color);
+              rect(x + 19, y + 11, 6, 3, "#685784");
+            }
+            if (weapon.id === "repeater") {
+              rect(x + 15, y + 11, 4, 5, "#5b7752");
+              rect(x + 20, y + 6, 3, 2, weapon.color);
+            }
+            if (weapon.id === "nova") {
+              rect(x + 23, y + 6, 4, 2, weapon.color);
+              rect(x + 23, y + 13, 4, 2, weapon.color);
+            }
             rect(x + 16, y + 9, 6, 2, weapon.color);
             if (striking) {
               rect(x + 24, y + 7, 5, 6, weapon.color);
@@ -2080,6 +2598,41 @@
           },
         };
         const enemies = {
+          sentry(o, t) {
+            rect(o.x + 2, o.y + 13, 18, 6, "#5b665b");
+            rect(o.x + 5, o.y + 3, 14, 11, "#a59077");
+            rect(o.x, o.y + 6, 10, 5, "#dca36b");
+            rect(o.x + 8, o.y, 8, 3, "#c8c6aa");
+            rect(o.x + 1, o.y + 7, 3, 3, (o.charge ?? 0) > 0 ? "#fff0ba" : "#ff7b73");
+            line(o.x + 5, o.y + 14, 12, Math.sin(t * 10) > 0 ? "#a4b79d" : "#61765d");
+          },
+          beetle(o, t) {
+            rect(o.x + 3, o.y, 18, 4, "#b79879");
+            rect(o.x, o.y + 4, 24, 8, "#7f7561");
+            rect(o.x + 6, o.y + 2, 4, 9, "#d6c9a4");
+            rect(o.x + 14, o.y + 2, 4, 9, "#d6c9a4");
+            rect(o.x + 1, o.y + 6, 3, 2, "#f39678");
+            for (let i = 0; i < 4; i++)
+              rect(o.x + i * 6, o.y + 12, 3, Math.floor(t * 14 + i) % 2 ? 3 : 1, "#536f67");
+          },
+          wasp(o, t) {
+            const wing = reducedMotion ? 0 : Math.round(Math.sin(t * 28) * 3);
+            rect(o.x + 5, o.y + 3, 14, 8, "#a18ba6");
+            rect(o.x + 10, o.y + 4, 3, 6, "#e4b4bf");
+            rect(o.x, o.y + 6, 8, 4, "#f0be94");
+            rect(o.x + 8, o.y - 2 + wing, 12, 3, "#a5d5cf");
+            rect(o.x + 7, o.y + 11 - wing, 13, 3, "#6eaaa6");
+            rect(o.x + 1, o.y + 6, 2, 3, "#ff98ca");
+          },
+          wisp(o, t) {
+            const sway = reducedMotion ? 0 : Math.sin(t * 8) * 2;
+            rect(o.x + 4, o.y, 8, 3, "#ded1ef");
+            rect(o.x + 1, o.y + 3, 14, 8, "#9b99cc");
+            rect(o.x + 3, o.y + 5, 4, 3, "#f5c1d7");
+            rect(o.x + 10, o.y + 5, 3, 3, "#f5c1d7");
+            for (let i = 0; i < 3; i++)
+              rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
+          },
           drone(o, t) {
             rect(o.x, o.y + 3, o.w, 7, "#b7b995");
             rect(o.x + 3, o.y, 13, 12, "#637c68");
@@ -2136,8 +2689,25 @@
             rect(o.x - 2, o.y - 2, 9, 10, "#594e2e");
             rect(o.x + (thin ? 2 : 0), o.y, thin ? 2 : 5, 6, "#ffae62");
             rect(o.x + 2, o.y + 1, 1, 3, "#ffe0a3");
-          } else if (o.kind === "enemy") (enemies[o.variant] || enemies.drone)(o, time);
-          else {
+          } else if (o.kind === "enemy") {
+            if ((o.charge ?? 0) > 0 && o.aimX !== void 0 && o.aimY !== void 0) {
+              ctx.save();
+              ctx.globalAlpha = 0.45;
+              for (let i = 0; i <= 20; i++) {
+                const ratio = i / 20;
+                rect(
+                  o.x + (o.aimX - o.x) * ratio,
+                  o.y + o.h / 2 + (o.aimY - o.y - o.h / 2) * ratio,
+                  2,
+                  1,
+                  "#ff9a8c",
+                );
+              }
+              ctx.restore();
+              rect(o.x - 4, o.y + o.h / 2 - 2, 5, 5, "#ffe1ae");
+            }
+            (enemies[o.variant] || enemies.drone)(o, time);
+          } else {
             (hazards[o.variant] || hazards.crate)(o, time);
             line(
               o.x + 2,
@@ -2147,7 +2717,71 @@
             );
           }
         }
-        return { courier, object, hazards, enemies, cape, jetpack };
+        function traversal(device) {
+          const { x, y, w, h } = device;
+          const time = reducedMotion ? 0 : device.age;
+          if (device.kind === "portal") {
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            rect(x + 5, y + 6, w - 10, h - 12, "#a5adff");
+            ctx.restore();
+            for (let i = 0; i < 28; i++) {
+              const phase = (i / 28) * Math.PI * 2;
+              rect(
+                x + w / 2 + Math.cos(phase) * (w / 2 - 1),
+                y + h / 2 + (Math.sin(phase) * h) / 2,
+                2,
+                3,
+                i % 3 === Math.floor(time * 8) % 3 ? "#ece0ff" : "#9d9bde",
+              );
+            }
+            rect(x + w / 2 - 3, y + h / 2 + Math.sin(time * 3) * 7, 6, 2, "#cde7ff");
+          } else {
+            rect(x, y + 1, w, h - 1, "#5f8782");
+            line(x, y, w, "#adf3cc");
+            for (let i = 0; i < 3; i++) {
+              const lift = reducedMotion ? 7 : 4 + ((time * 18 + i * 5) % 18);
+              line(x + 6, y - lift, 14, "#8bd4b3");
+              line(x + 9, y - lift - 2, 8, "#8bd4b3");
+            }
+          }
+          ctx.font = "5px monospace";
+          ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
+          ctx.fillText(
+            device.kind === "portal" ? "PORTAL" : "JUMP PAD",
+            x - 2,
+            y - (device.kind === "portal" ? 5 : 24),
+          );
+        }
+        function travelEffect(state) {
+          const effect = state.traversalEffect;
+          if (!effect) return;
+          const ratio = effect.life / effect.duration;
+          const color = effect.kind === "portal" ? "#d2c7ff" : "#9fecc7";
+          if (reducedMotion) {
+            line(state.player.x - 4, state.player.y + 22, 24, color);
+            return;
+          }
+          ctx.save();
+          ctx.globalAlpha = ratio * 0.7;
+          if (effect.kind === "portal") {
+            const radius = 12 + (1 - ratio) * 80;
+            for (let i = 0; i < 32; i++) {
+              const angle = (i / 32) * Math.PI * 2;
+              rect(
+                state.player.x + 7 + Math.cos(angle) * radius,
+                state.player.y + 10 + Math.sin(angle) * radius,
+                3,
+                3,
+                color,
+              );
+            }
+          } else
+            for (let i = 0; i < 6; i++)
+              line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
+          ctx.restore();
+        }
+        return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
       }
       module.exports = { create };
     },
@@ -2195,13 +2829,29 @@
               time,
             );
           } else {
+            for (const device of state.traversals) sprites.traversal(device);
             for (const object of state.objects) sprites.object(object, time);
-            if (state.mode !== "dead" && !(state.invincible > 0 && Math.floor(time * 15) % 2)) {
+            if (
+              state.mode !== "dead" &&
+              !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
+            ) {
               sprites.courier(state.player.x, state.player.y, time, state.dash > 0, state);
             }
           }
+          sprites.travelEffect(state);
+          for (const bolt of state.hostileProjectiles) {
+            rect(bolt.x - 2, bolt.y - 2, 7, 6, "#702c47");
+            rect(bolt.x, bolt.y - 1, 4, 4, bolt.color);
+            rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
+          }
           for (const bolt of state.projectiles) {
-            rect(bolt.x - 5, bolt.y, 7, 2, bolt.color);
+            rect(
+              bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
+              bolt.y,
+              bolt.color === "#c6b3ff" ? 20 : 7,
+              2,
+              bolt.color,
+            );
             rect(bolt.x + 1, bolt.y, 2, 2, "#fff1c7");
           }
           for (const particle of particles) {
@@ -3176,6 +3826,10 @@
           if (!audio.muted) audio.play("pickup");
         }
         const bursts = {
+          portal: [65, "#c5bbff", 95],
+          pad: [45, "#9de9c2", 85],
+          deflect: [16, "#fff0b4", 60],
+          "enemy-shot": [5, "#ff8a93", 25],
           jump: [10, "#d3c294", 25],
           dash: [25, "#b6dbc3", 90],
           pickup: [12, "#ffcb7c", 50],
@@ -3192,8 +3846,14 @@
             if (event.points || event.type === "armor") popups.add(event);
             audio.play(event.type, state.combo);
             const burst = bursts[event.type];
-            if (burst) particles.burst(event.x, event.y, ...burst);
+            if (burst && !(reducedMotion && (event.type === "portal" || event.type === "pad")))
+              particles.burst(event.x, event.y, ...burst);
             switch (event.type) {
+              case "portal":
+              case "pad":
+                feedback.shake = event.type === "portal" ? 4 : 2;
+                ui.announce(event.label ?? "SHORTCUT", 2.5);
+                break;
               case "smash":
                 feedback.shake = 4;
                 break;
@@ -3348,6 +4008,8 @@
   var import_cloth = __toESM(require_cloth());
   var import_pixel = __toESM(require_pixel());
   var import_config = __toESM(require_config());
+  var import_traversal = __toESM(require_traversal());
+  var import_enemy_fire = __toESM(require_enemy_fire());
 
   // src/pwa.ts
   (() => {
@@ -3360,6 +4022,8 @@
 
   // src/main.ts
   var Emberline = {
+    Traversal: import_traversal.default,
+    EnemyFire: import_enemy_fire.default,
     Economy: import_economy.default,
     Content: import_content.default,
     Engine: import_engine.default,

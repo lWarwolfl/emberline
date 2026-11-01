@@ -43,13 +43,29 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       sprites.courier(294, 177, time, false, state);
       sprites.object({ kind: "hazard", variant: "barrier", x: 440, y: 178, w: 25, h: 18 }, time);
     } else {
+      for (const device of state.traversals) sprites.traversal(device);
       for (const object of state.objects) sprites.object(object, time);
-      if (state.mode !== "dead" && !(state.invincible > 0 && Math.floor(time * 15) % 2)) {
+      if (
+        state.mode !== "dead" &&
+        !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
+      ) {
         sprites.courier(state.player.x, state.player.y, time, state.dash > 0, state);
       }
     }
+    sprites.travelEffect(state);
+    for (const bolt of state.hostileProjectiles) {
+      rect(bolt.x - 2, bolt.y - 2, 7, 6, "#702c47");
+      rect(bolt.x, bolt.y - 1, 4, 4, bolt.color);
+      rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
+    }
     for (const bolt of state.projectiles) {
-      rect(bolt.x - 5, bolt.y, 7, 2, bolt.color);
+      rect(
+        bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
+        bolt.y,
+        bolt.color === "#c6b3ff" ? 20 : 7,
+        2,
+        bolt.color,
+      );
       rect(bolt.x + 1, bolt.y, 2, 2, "#fff1c7");
     }
     for (const particle of particles) {

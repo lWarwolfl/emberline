@@ -11,22 +11,22 @@ const tracks: {
   {
     id: "dash",
     name: "Dash drive",
-    maxLevel: 5,
+    maxLevel: 10,
     description:
       "Improve boost, duration and lunge; shorten recharge. A short burst at level 0, never full invulnerability.",
   },
   {
     id: "jump",
     name: "Jump coils",
-    maxLevel: 5,
+    maxLevel: 10,
     description: "Both jumps gain height. Triple Jump is a separate unlock.",
   },
   {
     id: "damage",
     name: "Impact amplifier",
-    maxLevel: 5,
+    maxLevel: 10,
     description:
-      "Add 20% damage per level to punches, bolts and dash impacts. Maximum 2.00× base damage.",
+      "Levels 1–5 add 20% damage each; levels 6–10 add 12% each. Punches, bolts and dash impacts cap at 2.60× base damage.",
   },
   {
     id: "triple",
@@ -56,22 +56,34 @@ function cost(id: string, value: unknown = {}) {
   const track = definition(id);
   if (!track) return null;
   const level = sanitize(value)[track.id];
-  return level >= track.maxLevel ? null : track.fixedCost || (level + 1) * 100;
+  return level >= track.maxLevel
+    ? null
+    : track.fixedCost || (level + 1) * 100 + Math.max(0, level - 4) * 150;
 }
 function stats(value: unknown = {}) {
   const levels = sanitize(value);
+  const basic = {
+    dash: Math.min(5, levels.dash),
+    jump: Math.min(5, levels.jump),
+    damage: Math.min(5, levels.damage),
+  };
+  const advanced = {
+    dash: Math.max(0, levels.dash - 5),
+    jump: Math.max(0, levels.jump - 5),
+    damage: Math.max(0, levels.damage - 5),
+  };
   return {
     levels,
     maxJumps: Config.maxJumps + levels.triple,
-    jumpVelocity: Config.jumpVelocity - levels.jump * 7,
-    doubleJumpVelocity: Config.doubleJumpVelocity - levels.jump * 6,
-    thirdJumpVelocity: (Config.doubleJumpVelocity - levels.jump * 6) * 0.85,
-    dashDuration: Config.dashDuration + levels.dash * 0.016,
-    dashCooldown: Config.dashCooldown - levels.dash * 0.16,
-    dashWorldMultiplier: Config.dashWorldMultiplier + levels.dash * 0.07,
-    dashLungeMax: Config.dashLungeMax + levels.dash * 5,
-    dashLungeSpeed: Config.dashLungeSpeed + levels.dash * 12,
-    damageMultiplier: 1 + levels.damage * 0.2,
+    jumpVelocity: Config.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
+    doubleJumpVelocity: Config.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
+    thirdJumpVelocity: (Config.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) * 0.85,
+    dashDuration: Config.dashDuration + (basic.dash * 0.016 + advanced.dash * 0.008),
+    dashCooldown: Config.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
+    dashWorldMultiplier: Config.dashWorldMultiplier + (basic.dash * 0.07 + advanced.dash * 0.035),
+    dashLungeMax: Config.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
+    dashLungeSpeed: Config.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
+    damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
   };
 }
 function describe(id: string, value: unknown) {

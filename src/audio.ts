@@ -44,6 +44,24 @@ function create(initialMuted = false) {
   }
   function sound(type: string, combo = 0) {
     switch (type) {
+      case "portal":
+        [220, 440, 880, 1320].forEach((freq, i) =>
+          tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),
+        );
+        break;
+      case "pad":
+        tone(180, 0.3, "triangle", 0.06, 900);
+        noise(0.12, 0.025);
+        break;
+      case "charge":
+        tone(340, 0.3, "sine", 0.012, 620);
+        break;
+      case "enemy-shot":
+        tone(220, 0.15, "sawtooth", 0.02, 95);
+        break;
+      case "deflect":
+        tone(1200, 0.13, "triangle", 0.035, 1800);
+        break;
       case "jump":
         tone(170, 0.14, "square", 0.025, 420);
         break;

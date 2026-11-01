@@ -111,6 +111,10 @@ function create(doc: Document) {
   }
 
   const bursts: Record<string, [number, string, number]> = {
+    portal: [65, "#c5bbff", 95],
+    pad: [45, "#9de9c2", 85],
+    deflect: [16, "#fff0b4", 60],
+    "enemy-shot": [5, "#ff8a93", 25],
     jump: [10, "#d3c294", 25],
     dash: [25, "#b6dbc3", 90],
     pickup: [12, "#ffcb7c", 50],
@@ -128,8 +132,14 @@ function create(doc: Document) {
       if (event.points || event.type === "armor") popups.add(event);
       audio.play(event.type, state.combo);
       const burst = bursts[event.type];
-      if (burst) particles.burst(event.x, event.y, ...burst);
+      if (burst && !(reducedMotion && (event.type === "portal" || event.type === "pad")))
+        particles.burst(event.x, event.y, ...burst);
       switch (event.type) {
+        case "portal":
+        case "pad":
+          feedback.shake = event.type === "portal" ? 4 : 2;
+          ui.announce(event.label ?? "SHORTCUT", 2.5);
+          break;
         case "smash":
           feedback.shake = 4;
           break;

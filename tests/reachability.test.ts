@@ -52,7 +52,7 @@ test("representative mixed encounters have a damage-free route at three speeds",
   for (const speed of [100, 180, 280]) {
     for (const pattern of Content.patterns) {
       const state = run(pattern.id + speed);
-      Object.assign(state, { sector: 5, time: 72, speed, nextPaceTime: Infinity });
+      Object.assign(state, { sector: 10, time: 162, speed, nextPaceTime: Infinity });
       state.patternPool = Content.patterns.map((item) => item.id).join(",");
       state.patternBag = [pattern.id];
       Generator.spawn(state);

@@ -1,4 +1,4 @@
-import type { Cape, Jetpack } from "./types";
+import type { Cape, Jetpack, Traversal } from "./types";
 import type { GameState, WorldObject } from "./types";
 import Config from "./config";
 import Pixel from "./pixel";
@@ -109,6 +109,39 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       rect(x + 8, y + 3, 6, 2, "#f4d18c");
       rect(x + 6, y - 5, 1, 5, person.light);
       rect(x + 5, y - 6, 3, 2, "#ffae62");
+    } else if (person.id === "lynx") {
+      rect(x + 1, y - 5, 4, 8, person.skin);
+      rect(x + 11, y - 5, 4, 8, person.skin);
+      rect(x + 1, y - 7, 2, 3, person.boots);
+      rect(x + 13, y - 7, 2, 3, person.boots);
+      rect(x + 1, y + 1, 14, 7, person.skin);
+      rect(x + 10, y + 3, 2, 2, "#203d34");
+      line(x + 1, y + 5, 5, person.boots);
+      line(x + 2, y + 7, 5, person.boots);
+      rect(x + 12, y + 6, 4, 2, person.light);
+    } else if (person.id === "moth") {
+      rect(x + 2, y, 13, 9, person.skin);
+      rect(x + 4, y + 2, 4, 4, person.boots);
+      rect(x + 10, y + 2, 4, 4, person.boots);
+      rect(x + 11, y + 3, 2, 2, person.trim);
+      rect(x + 3, y - 6, 2, 6, person.light);
+      rect(x + 11, y - 6, 2, 6, person.light);
+      line(x, y - 5, 5, person.trim);
+      line(x + 11, y - 5, 5, person.trim);
+    } else if (person.id === "diver") {
+      rect(x + 3, y - 3, 10, 2, person.light);
+      rect(x, y - 1, 16, 10, person.skin);
+      rect(x + 3, y + 9, 10, 2, person.light);
+      rect(x + 4, y + 1, 10, 6, "#183f58");
+      line(x + 5, y + 2, 7, "#9ae1ec");
+      rect(x - 2, y + 2, 3, 5, person.trim);
+    } else if (person.id === "specter") {
+      rect(x + 3, y - 4, 10, 3, person.light);
+      rect(x, y - 1, 16, 11, person.skin);
+      rect(x + 4, y + 1, 10, 7, "#172e37");
+      rect(x + 6, y + 3, 2, 2, person.trim);
+      rect(x + 11, y + 3, 2, 2, person.trim);
+      rect(x - 2, y + 6, 4, 6, person.skin);
     } else {
       rect(x + 2, y - 1, 12, 10, person.skin);
       rect(x + 1, y + 1, 14, 3, person.light);
@@ -130,7 +163,25 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         line(x + 29, y + 15, 6, "#ffe3ab");
       }
     } else {
-      rect(x + 13, y + 8, weapon.id === "scatter" ? 12 : 9, 4, "#9da995");
+      rect(
+        x + 13,
+        y + 8,
+        weapon.id === "rail" ? 18 : weapon.id === "scatter" || weapon.id === "nova" ? 12 : 9,
+        4,
+        "#9da995",
+      );
+      if (weapon.id === "rail") {
+        line(x + 16, y + 7, 15, weapon.color);
+        rect(x + 19, y + 11, 6, 3, "#685784");
+      }
+      if (weapon.id === "repeater") {
+        rect(x + 15, y + 11, 4, 5, "#5b7752");
+        rect(x + 20, y + 6, 3, 2, weapon.color);
+      }
+      if (weapon.id === "nova") {
+        rect(x + 23, y + 6, 4, 2, weapon.color);
+        rect(x + 23, y + 13, 4, 2, weapon.color);
+      }
       rect(x + 16, y + 9, 6, 2, weapon.color);
       if (striking) {
         rect(x + 24, y + 7, 5, 6, weapon.color);
@@ -179,6 +230,41 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   };
 
   const enemies: Record<string, (o: WorldObject, t: number) => void> = {
+    sentry(o: WorldObject, t: number) {
+      rect(o.x + 2, o.y + 13, 18, 6, "#5b665b");
+      rect(o.x + 5, o.y + 3, 14, 11, "#a59077");
+      rect(o.x, o.y + 6, 10, 5, "#dca36b");
+      rect(o.x + 8, o.y, 8, 3, "#c8c6aa");
+      rect(o.x + 1, o.y + 7, 3, 3, (o.charge ?? 0) > 0 ? "#fff0ba" : "#ff7b73");
+      line(o.x + 5, o.y + 14, 12, Math.sin(t * 10) > 0 ? "#a4b79d" : "#61765d");
+    },
+    beetle(o: WorldObject, t: number) {
+      rect(o.x + 3, o.y, 18, 4, "#b79879");
+      rect(o.x, o.y + 4, 24, 8, "#7f7561");
+      rect(o.x + 6, o.y + 2, 4, 9, "#d6c9a4");
+      rect(o.x + 14, o.y + 2, 4, 9, "#d6c9a4");
+      rect(o.x + 1, o.y + 6, 3, 2, "#f39678");
+      for (let i = 0; i < 4; i++)
+        rect(o.x + i * 6, o.y + 12, 3, Math.floor(t * 14 + i) % 2 ? 3 : 1, "#536f67");
+    },
+    wasp(o: WorldObject, t: number) {
+      const wing = reducedMotion ? 0 : Math.round(Math.sin(t * 28) * 3);
+      rect(o.x + 5, o.y + 3, 14, 8, "#a18ba6");
+      rect(o.x + 10, o.y + 4, 3, 6, "#e4b4bf");
+      rect(o.x, o.y + 6, 8, 4, "#f0be94");
+      rect(o.x + 8, o.y - 2 + wing, 12, 3, "#a5d5cf");
+      rect(o.x + 7, o.y + 11 - wing, 13, 3, "#6eaaa6");
+      rect(o.x + 1, o.y + 6, 2, 3, "#ff98ca");
+    },
+    wisp(o: WorldObject, t: number) {
+      const sway = reducedMotion ? 0 : Math.sin(t * 8) * 2;
+      rect(o.x + 4, o.y, 8, 3, "#ded1ef");
+      rect(o.x + 1, o.y + 3, 14, 8, "#9b99cc");
+      rect(o.x + 3, o.y + 5, 4, 3, "#f5c1d7");
+      rect(o.x + 10, o.y + 5, 3, 3, "#f5c1d7");
+      for (let i = 0; i < 3; i++)
+        rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
+    },
     drone(o: WorldObject, t: number) {
       rect(o.x, o.y + 3, o.w, 7, "#b7b995");
       rect(o.x + 3, o.y, 13, 12, "#637c68");
@@ -224,13 +310,94 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       rect(o.x - 2, o.y - 2, 9, 10, "#594e2e");
       rect(o.x + (thin ? 2 : 0), o.y, thin ? 2 : 5, 6, "#ffae62");
       rect(o.x + 2, o.y + 1, 1, 3, "#ffe0a3");
-    } else if (o.kind === "enemy") (enemies[o.variant] || enemies.drone)(o, time);
-    else {
+    } else if (o.kind === "enemy") {
+      if ((o.charge ?? 0) > 0 && o.aimX !== undefined && o.aimY !== undefined) {
+        ctx.save();
+        ctx.globalAlpha = 0.45;
+        for (let i = 0; i <= 20; i++) {
+          const ratio = i / 20;
+          rect(
+            o.x + (o.aimX - o.x) * ratio,
+            o.y + o.h / 2 + (o.aimY - o.y - o.h / 2) * ratio,
+            2,
+            1,
+            "#ff9a8c",
+          );
+        }
+        ctx.restore();
+        rect(o.x - 4, o.y + o.h / 2 - 2, 5, 5, "#ffe1ae");
+      }
+      (enemies[o.variant] || enemies.drone)(o, time);
+    } else {
       (hazards[o.variant] || hazards.crate)(o, time);
       // Breakable seams glow warm; armored hazards carry a pale steel marker.
       line(o.x + 2, o.y + 2, Math.max(3, o.w - 4), Combat.breakable(o) ? "#ffce83" : "#c0d2c4");
     }
   }
-  return { courier, object, hazards, enemies, cape, jetpack };
+  function traversal(device: Traversal) {
+    const { x, y, w, h } = device;
+    const time = reducedMotion ? 0 : device.age;
+    if (device.kind === "portal") {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      rect(x + 5, y + 6, w - 10, h - 12, "#a5adff");
+      ctx.restore();
+      for (let i = 0; i < 28; i++) {
+        const phase = (i / 28) * Math.PI * 2;
+        rect(
+          x + w / 2 + Math.cos(phase) * (w / 2 - 1),
+          y + h / 2 + (Math.sin(phase) * h) / 2,
+          2,
+          3,
+          i % 3 === Math.floor(time * 8) % 3 ? "#ece0ff" : "#9d9bde",
+        );
+      }
+      rect(x + w / 2 - 3, y + h / 2 + Math.sin(time * 3) * 7, 6, 2, "#cde7ff");
+    } else {
+      rect(x, y + 1, w, h - 1, "#5f8782");
+      line(x, y, w, "#adf3cc");
+      for (let i = 0; i < 3; i++) {
+        const lift = reducedMotion ? 7 : 4 + ((time * 18 + i * 5) % 18);
+        line(x + 6, y - lift, 14, "#8bd4b3");
+        line(x + 9, y - lift - 2, 8, "#8bd4b3");
+      }
+    }
+    ctx.font = "5px monospace";
+    ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
+    ctx.fillText(
+      device.kind === "portal" ? "PORTAL" : "JUMP PAD",
+      x - 2,
+      y - (device.kind === "portal" ? 5 : 24),
+    );
+  }
+  function travelEffect(state: GameState) {
+    const effect = state.traversalEffect;
+    if (!effect) return;
+    const ratio = effect.life / effect.duration;
+    const color = effect.kind === "portal" ? "#d2c7ff" : "#9fecc7";
+    if (reducedMotion) {
+      line(state.player.x - 4, state.player.y + 22, 24, color);
+      return;
+    }
+    ctx.save();
+    ctx.globalAlpha = ratio * 0.7;
+    if (effect.kind === "portal") {
+      const radius = 12 + (1 - ratio) * 80;
+      for (let i = 0; i < 32; i++) {
+        const angle = (i / 32) * Math.PI * 2;
+        rect(
+          state.player.x + 7 + Math.cos(angle) * radius,
+          state.player.y + 10 + Math.sin(angle) * radius,
+          3,
+          3,
+          color,
+        );
+      }
+    } else
+      for (let i = 0; i < 6; i++)
+        line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
+    ctx.restore();
+  }
+  return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
 }
 export = { create };
