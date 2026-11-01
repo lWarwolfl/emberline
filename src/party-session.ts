@@ -1,4 +1,5 @@
 import * as Party from "./party";
+import Config from "./config";
 import * as Network from "./party-network";
 import { element } from "./dom";
 import type { GameEvent } from "./types";
@@ -51,7 +52,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     beaconProgress.value = progress?.value ?? 0;
     beaconDistance.textContent = progress
       ? `${Math.ceil(progress.remaining)}m TO BEACON · ${progress.distance}m`
-      : "2500m TO BEACON";
+      : `${Config.beaconInterval}m TO BEACON`;
     element(doc, "party", "button").textContent = active
       ? `PARTY ${members.length}/4`
       : "PARTY / LAN";
@@ -81,6 +82,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           const levels = doc.createElement("small");
           const l = m.state.stats.levels;
           levels.textContent = `DASH ${l.dash} · JUMP ${l.jump} · DAMAGE ${l.damage} · ${m.state.stats.maxJumps} JUMPS`;
+          row.title = `${title.textContent} · ${health.textContent} · ${levels.textContent}`;
+          if (container === hud && !Party.alive(m) && m.connected) health.textContent = "DOWN";
           row.append(title, health, levels);
           container.append(row);
         }

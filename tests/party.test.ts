@@ -180,7 +180,7 @@ test("a forward dash reaches a beacon to revive without awarding coins", () => {
   assert.equal(r.earned, 0);
   assert.equal(r.world.events.filter((event) => event.type === "revive").length, 1);
 });
-test("beacons start at 2500m and repeat by distance rather than biome transitions", () => {
+test("beacons start at 5000m and preserve the route across biome transitions", () => {
   const r = run(2);
   assert.equal(Boolean(r.checkpoint), false);
   const down = r.members[1];
@@ -189,40 +189,45 @@ test("beacons start at 2500m and repeat by distance rather than biome transition
   Party.update(r, 1 / 60);
   assert.equal(r.world.sector, 2);
   assert.equal(Boolean(r.checkpoint), false);
-  r.world.distance = 2100;
-  r.world.objects = [{ kind: "hazard", variant: "spike", x: 80, y: 180, w: 12, h: 16 }];
+  r.world.distance = 4600;
+  r.world.next = Infinity;
+  r.world.objects = [
+    { kind: "hazard", variant: "spike", x: 80, y: 180, w: 12, h: 16 },
+    { kind: "ember", variant: "coin", x: 320, y: 40, w: 8, h: 8 },
+  ];
   Party.update(r, 1 / 120);
   assert(r.checkpoint && !r.checkpoint.used && r.checkpoint.x > Config.width);
-  assert(Math.abs(r.checkpoint.x + r.world.distance - r.members[0].state.player.x - 2500) < 0.001);
-  assert.equal(r.world.objects.length, 0);
-  assert(r.world.next > r.world.distance + 200);
+  assert(Math.abs(r.checkpoint.x + r.world.distance - r.members[0].state.player.x - 5000) < 0.001);
+  assert(r.world.objects.some((o) => o.variant === "spike"));
+  assert(r.world.objects.some((o) => o.kind === "ember"));
+  assert.equal(r.world.next, Infinity);
   assert.equal(down.state.hits, down.state.health);
   r.world.time = Config.sectorSeconds * 2 - 0.001;
   const beacon = r.checkpoint;
   Party.update(r, 1 / 60);
   assert.equal(r.checkpoint, beacon);
-  r.world.distance = 2800;
+  r.world.distance = 5300;
   r.checkpoint.x = -81;
   Party.update(r, 1 / 120);
   assert.equal(Boolean(r.checkpoint), false);
   r.world.next = Infinity;
-  r.world.distance = 4600;
+  r.world.distance = 9600;
   Party.update(r, 1 / 120);
   assert(r.checkpoint);
-  assert(Math.abs(r.checkpoint.x + r.world.distance - r.members[0].state.player.x - 5000) < 0.001);
+  assert(Math.abs(r.checkpoint.x + r.world.distance - r.members[0].state.player.x - 10000) < 0.001);
 });
 test("beacon progress clamps at the current distance target until the next beacon", () => {
   const r = run(2);
-  assert.deepEqual(Party.progress(r), { value: 0, remaining: 2500, distance: 2500 });
-  r.world.distance = 1250;
-  assert.deepEqual(Party.progress(r), { value: 0.5, remaining: 1250, distance: 2500 });
-  r.world.distance = 2510;
-  assert.deepEqual(Party.progress(r), { value: 1, remaining: 0, distance: 2500 });
+  assert.deepEqual(Party.progress(r), { value: 0, remaining: 5000, distance: 5000 });
+  r.world.distance = 2500;
+  assert.deepEqual(Party.progress(r), { value: 0.5, remaining: 2500, distance: 5000 });
+  r.world.distance = 5010;
+  assert.deepEqual(Party.progress(r), { value: 1, remaining: 0, distance: 5000 });
   assert.deepEqual(Party.progress(Party.decode(Party.encode(r))), Party.progress(r));
-  r.beaconDistance = 5000;
-  assert.deepEqual(Party.progress(r), { value: 0.004, remaining: 2490, distance: 5000 });
+  r.beaconDistance = 10000;
+  assert.deepEqual(Party.progress(r), { value: 0.002, remaining: 4990, distance: 10000 });
   Party.start(r);
-  assert.deepEqual(Party.progress(r), { value: 0, remaining: 2500, distance: 2500 });
+  assert.deepEqual(Party.progress(r), { value: 0, remaining: 5000, distance: 5000 });
 });
 test("coins are collected once for the team and custom parties earn no coins", () => {
   const r = run();

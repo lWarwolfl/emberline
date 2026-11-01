@@ -328,10 +328,6 @@ function step(run: PartyRun, dt: number) {
       used: false,
       flash: 0,
     };
-    w.objects = [];
-    w.hostileProjectiles = [];
-    w.traversals = [];
-    w.next = w.distance + Math.max(260, w.speed * 3);
   }
   const beacon = run.checkpoint;
   if (beacon) {

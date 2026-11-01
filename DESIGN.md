@@ -113,7 +113,7 @@ region gives the remaining height to the playfield. Container units preserve
 the 2:1 desktop scene without pushing controls below the monitor. Portrait
 keeps the existing approach-lane crop; short landscape hides secondary copy.
 Buttons retain 44px targets and the existing square charcoal/ember styling.
-A mint native progress trail shows distance to the next 2500m revive beacon.
+A mint native progress trail shows distance to the next 5000m revive beacon.
 
 Design audit: 0/10 generic-design tells; no new cards, decorative gradients,
 fonts, icons or dependencies. Verified with static markup checks and builds;
@@ -138,3 +138,16 @@ accent rail and competing ungrouped actions; the revised composition removes the
 rail, restores the shared amber start action and separates setup from lobby state.
 Static markup regression, lint, types, simulation/network tests and packaged build
 are the verification path; no browser or visual inspection was performed.
+
+## Compact co-op instruments
+
+Claude Design surface: Command / Inspect. Keep the gameplay canvas dominant.
+The in-game party strip uses two fixed-height text lines per courier: name/order
+and HP or DOWN. Upgrade details remain in the Party menu and the full status is
+available on hover. Existing parchment/mint/down-state colors and Consolas stay
+unchanged; no new controls or decorative panels. Names truncate rather than wrap.
+Four columns on desktop and two on narrow screens bound the HUD height.
+
+Source-based slop audit: 0/10; no listed tells introduced. CSS regression checks
+verify density rules, not rendered fit. Live GUI verification remains unrun.
+Beacons are 5000 world-distance units apart and do not clear the current route.

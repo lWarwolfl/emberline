@@ -69,7 +69,7 @@
         damageGrace: 1.6,
         pickupRecharge: 0.06,
         sectorSeconds: 18,
-        beaconInterval: 2500,
+        beaconInterval: 5e3,
         speed: {
           start: 98,
           growth: 34,
@@ -389,18 +389,18 @@
   var require_difficulty = __commonJS({
     "src/difficulty.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
       var import_content2 = __toESM(require_content());
       function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
-        const speed = import_config3.default.speed;
+        const speed = import_config4.default.speed;
         return (
           speed.start * rules.speed +
           speed.growth * rules.growth * Math.log2(1 + time / speed.growthSeconds)
         );
       }
       function update2(state, dt) {
-        const sector = 1 + Math.floor(state.time / import_config3.default.sectorSeconds);
+        const sector = 1 + Math.floor(state.time / import_config4.default.sectorSeconds);
         if (sector !== state.sector) {
           state.sector = sector;
           state.previousBiome = state.biome;
@@ -416,7 +416,7 @@
         }
         state.biomeBlend = Math.min(
           1,
-          state.biomeBlend + dt / import_config3.default.generation.themeFadeSeconds,
+          state.biomeBlend + dt / import_config4.default.generation.themeFadeSeconds,
         );
         if (state.time >= state.nextPaceTime) {
           const ids = import_content2.default.paces.map((pace2) => pace2.id);
@@ -430,8 +430,8 @@
             state.time +
             import_random2.default.range(
               state.paceRng,
-              import_config3.default.speed.phaseMinSeconds,
-              import_config3.default.speed.phaseMaxSeconds,
+              import_config4.default.speed.phaseMinSeconds,
+              import_config4.default.speed.phaseMaxSeconds,
             );
           state.events.push({ type: "pace", x: 240, y: 60 });
         }
@@ -440,12 +440,12 @@
         const difference = state.targetSpeed - state.speed;
         const rate =
           difference > 0
-            ? import_config3.default.speed.acceleration
-            : import_config3.default.speed.deceleration;
+            ? import_config4.default.speed.acceleration
+            : import_config4.default.speed.deceleration;
         state.speed += Math.sign(difference) * Math.min(Math.abs(difference), rate * dt);
       }
       function gapSeconds(sector, rules = { gap: 1 }) {
-        const settings = import_config3.default.generation;
+        const settings = import_config4.default.generation;
         return Math.max(
           settings.minimumGapSeconds,
           (settings.initialGapSeconds - 0.16 * Math.log2(sector + 1)) * rules.gap,
@@ -471,7 +471,7 @@
   var require_generator = __commonJS({
     "src/generator.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
       var import_content2 = __toESM(require_content());
       var import_difficulty3 = __toESM(require_difficulty());
@@ -493,7 +493,7 @@
           kind: "hazard",
           variant: definition.id,
           x,
-          y: import_config3.default.floor - definition.h,
+          y: import_config4.default.floor - definition.h,
           w: definition.w,
           h: definition.h,
           passed: false,
@@ -509,7 +509,7 @@
           definition.altitude === definition.h && definition.amplitude === 0
             ? 0
             : import_random2.default.range(state.rng, -4, 4);
-        const baseY = import_config3.default.floor - definition.altitude + altitudeJitter;
+        const baseY = import_config4.default.floor - definition.altitude + altitudeJitter;
         return {
           kind: "enemy",
           variant: definition.id,
@@ -593,10 +593,10 @@
             variant: pattern,
             x,
             y: Math.max(
-              import_config3.default.floor - 70,
+              import_config4.default.floor - 70,
               Math.min(
-                import_config3.default.floor - 10,
-                import_config3.default.floor - height + yShift,
+                import_config4.default.floor - 10,
+                import_config4.default.floor - height + yShift,
               ),
             ),
             w: 5,
@@ -605,14 +605,14 @@
           if (pattern === "diamond" && i > 0 && i < count - 1) {
             points.push({
               ...points[points.length - 1],
-              y: import_config3.default.floor - (78 - height) + yShift,
+              y: import_config4.default.floor - (78 - height) + yShift,
             });
           }
         }
         return points;
       }
       function overlapsDanger(coin, object) {
-        const clearance = import_config3.default.generation.coinClearance;
+        const clearance = import_config4.default.generation.coinClearance;
         const amplitude = object.amplitude || 0;
         return (
           coin.x + coin.w + clearance > object.x &&
@@ -644,7 +644,7 @@
         );
         state.lastPattern = pattern;
         state.lastCoinPattern = coinPattern;
-        const x = import_config3.default.generation.spawnX;
+        const x = import_config4.default.generation.spawnX;
         const safetySpeed = import_difficulty3.default.safetySpeed(state);
         const separation = Math.max(155, safetySpeed * 1.25);
         const dangers = [];
@@ -698,12 +698,12 @@
         if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
         state.objects.push(...dangers, ...safeCoins);
         let travelEnd = end;
-        if (import_random2.default.next(state.rng) < import_config3.default.traversal.spawnChance) {
+        if (import_random2.default.next(state.rng) < import_config4.default.traversal.spawnChance) {
           const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
           const device = {
             kind,
             x: end + Math.max(95, safetySpeed * 0.65),
-            y: import_config3.default.floor - (kind === "portal" ? 43 : 5),
+            y: import_config4.default.floor - (kind === "portal" ? 43 : 5),
             w: kind === "portal" ? 22 : 26,
             h: kind === "portal" ? 43 : 5,
             age: 0,
@@ -717,7 +717,7 @@
           import_random2.default.range(
             state.rng,
             0,
-            import_config3.default.generation.gapVariationSeconds,
+            import_config4.default.generation.gapVariationSeconds,
           );
         const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
         state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
@@ -1078,7 +1078,7 @@
   var require_combat = __commonJS({
     "src/combat.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_loadout3 = __toESM(require_loadout());
       var armor = { crate: 1, barrier: 1, stack: 2.6 };
       function durability(object) {
@@ -1225,9 +1225,9 @@
         state.projectiles = state.projectiles.filter(
           (bolt) =>
             bolt.life > 0 &&
-            bolt.x < import_config3.default.width + 30 &&
+            bolt.x < import_config4.default.width + 30 &&
             bolt.y > 0 &&
-            bolt.y < import_config3.default.floor + 10,
+            bolt.y < import_config4.default.floor + 10,
         );
       }
       module.exports = { armor, durability, breakable, damage, attack, update: update2 };
@@ -1238,7 +1238,7 @@
   var require_upgrades = __commonJS({
     "src/upgrades.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var tracks = [
         {
           id: "dash",
@@ -1306,23 +1306,23 @@
         };
         return {
           levels,
-          maxJumps: import_config3.default.maxJumps + levels.triple,
-          jumpVelocity: import_config3.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
+          maxJumps: import_config4.default.maxJumps + levels.triple,
+          jumpVelocity: import_config4.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
           doubleJumpVelocity:
-            import_config3.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
+            import_config4.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
           thirdJumpVelocity:
-            (import_config3.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) *
+            (import_config4.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) *
             0.85,
           dashDuration:
-            import_config3.default.dashDuration + (basic.dash * 0.016 + advanced.dash * 8e-3),
+            import_config4.default.dashDuration + (basic.dash * 0.016 + advanced.dash * 8e-3),
           dashCooldown:
-            import_config3.default.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
+            import_config4.default.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
           dashWorldMultiplier:
-            import_config3.default.dashWorldMultiplier +
+            import_config4.default.dashWorldMultiplier +
             (basic.dash * 0.07 + advanced.dash * 0.035),
-          dashLungeMax: import_config3.default.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
+          dashLungeMax: import_config4.default.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
           dashLungeSpeed:
-            import_config3.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
+            import_config4.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
           damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
         };
       }
@@ -1341,9 +1341,9 @@
           case "jump":
             return (
               "First jump ~" +
-              Math.round(result.jumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
+              Math.round(result.jumpVelocity ** 2 / (2 * import_config4.default.gravity)) +
               "px \xB7 second jump adds ~" +
-              Math.round(result.doubleJumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
+              Math.round(result.doubleJumpVelocity ** 2 / (2 * import_config4.default.gravity)) +
               "px"
             );
           case "damage":
@@ -1362,7 +1362,7 @@
   var require_enemy_fire = __commonJS({
     "src/enemy-fire.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var shooters = {
         sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
         wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
@@ -1378,7 +1378,7 @@
           }
           if (
             object.x <= state.player.x + Math.max(70, state.runSpeed * 0.35) ||
-            object.x > import_config3.default.width - 12
+            object.x > import_config4.default.width - 12
           ) {
             object.charge = 0;
             continue;
@@ -1390,7 +1390,7 @@
               y = object.y + object.h / 2;
             const angle = Math.atan2(object.aimY - y, object.aimX - x);
             const speed = gun.speed + state.runSpeed * 0.3;
-            if (state.hostileProjectiles.length < import_config3.default.enemyFire.maxProjectiles) {
+            if (state.hostileProjectiles.length < import_config4.default.enemyFire.maxProjectiles) {
               state.hostileProjectiles.push({
                 x,
                 y,
@@ -1413,9 +1413,9 @@
             if (
               object.shotCooldown <= 0 &&
               object.x - state.player.x > 170 &&
-              charging < import_config3.default.enemyFire.maxCharging
+              charging < import_config4.default.enemyFire.maxCharging
             ) {
-              object.charge = import_config3.default.enemyFire.warningSeconds;
+              object.charge = import_config4.default.enemyFire.warningSeconds;
               object.aimX = state.player.x + 7;
               object.aimY = state.player.y + 9;
               state.events.push({ type: "charge", x: object.x, y: object.y });
@@ -1433,9 +1433,9 @@
           (bolt) =>
             bolt.life > 0 &&
             bolt.x > -20 &&
-            bolt.x < import_config3.default.width + 20 &&
+            bolt.x < import_config4.default.width + 20 &&
             bolt.y > -10 &&
-            bolt.y < import_config3.default.floor + 10,
+            bolt.y < import_config4.default.floor + 10,
         );
       }
       function hitsPlayer(bolt, player) {
@@ -1454,12 +1454,12 @@
   var require_traversal = __commonJS({
     "src/traversal.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       function activate(state, device) {
         const distance =
           device.kind === "portal"
-            ? import_config3.default.traversal.portalSkip
-            : import_config3.default.traversal.padSkip;
+            ? import_config4.default.traversal.portalSkip
+            : import_config4.default.traversal.padSkip;
         state.distance += distance;
         state.score += BigInt(distance);
         state.time += Math.min(6, distance / Math.max(98, state.speed));
@@ -1469,14 +1469,14 @@
         state.traversals = [];
         state.next =
           state.distance +
-          Math.max(import_config3.default.generation.initialDistance, state.runSpeed * 2);
+          Math.max(import_config4.default.generation.initialDistance, state.runSpeed * 2);
         state.invincible = Math.max(
           state.invincible,
-          import_config3.default.traversal.arrivalGrace,
+          import_config4.default.traversal.arrivalGrace,
         );
-        state.player.x = import_config3.default.playerX;
+        state.player.x = import_config4.default.playerX;
         if (device.kind === "portal") {
-          state.player.y = import_config3.default.floor - import_config3.default.playerHeight;
+          state.player.y = import_config4.default.floor - import_config4.default.playerHeight;
           state.player.vy = 0;
           state.player.jumps = 0;
         } else {
@@ -1506,7 +1506,7 @@
           if (
             player.x + 13 > Math.min(previousX, device.x) &&
             player.x < Math.max(previousX, device.x) + device.w &&
-            player.y + import_config3.default.playerHeight > device.y &&
+            player.y + import_config4.default.playerHeight > device.y &&
             player.y < device.y + device.h
           ) {
             activate(state, device);
@@ -1523,7 +1523,7 @@
   var require_engine = __commonJS({
     "src/engine.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
       var import_difficulty3 = __toESM(require_difficulty());
       var import_generator3 = __toESM(require_generator());
@@ -1562,21 +1562,21 @@
           hostileProjectiles: [],
           traversals: [],
           traversalEffect: null,
-          next: import_config3.default.generation.initialDistance,
+          next: import_config4.default.generation.initialDistance,
           rng: import_random2.default.create(seed),
           sceneryRng: import_random2.default.create(seed + ":scenery"),
           paceRng: import_random2.default.create(seed + ":pace"),
           player: {
-            x: import_config3.default.playerX,
-            y: import_config3.default.floor - import_config3.default.playerHeight,
+            x: import_config4.default.playerX,
+            y: import_config4.default.floor - import_config4.default.playerHeight,
             vy: 0,
             jumps: 0,
           },
           objects: [],
           events: [],
-          speed: import_config3.default.speed.start * rules.speed,
-          runSpeed: import_config3.default.speed.start * rules.speed,
-          targetSpeed: import_config3.default.speed.start * rules.speed,
+          speed: import_config4.default.speed.start * rules.speed,
+          runSpeed: import_config4.default.speed.start * rules.speed,
+          targetSpeed: import_config4.default.speed.start * rules.speed,
           pace: "cruise",
           nextPaceTime: 12,
           paceBag: [],
@@ -1624,10 +1624,10 @@
         player,
         object,
         previousX,
-        previousPlayerX = player.x ?? import_config3.default.playerX,
+        previousPlayerX = player.x ?? import_config4.default.playerX,
       ) {
         const relativeStart = previousX - previousPlayerX;
-        const relativeEnd = object.x - (player.x ?? import_config3.default.playerX);
+        const relativeEnd = object.x - (player.x ?? import_config4.default.playerX);
         return (
           11 > Math.min(relativeStart, relativeEnd) + 2 &&
           2 < Math.max(relativeStart, relativeEnd) + object.w - 2 &&
@@ -1642,7 +1642,7 @@
         state.combo++;
         const points = 50 + Math.min(state.combo, 20) * 5;
         addScore(state, points);
-        state.cooldown = Math.max(0, state.cooldown - import_config3.default.pickupRecharge);
+        state.cooldown = Math.max(0, state.cooldown - import_config4.default.pickupRecharge);
         emit(state, "pickup", object.x, object.y, {
           points,
           coins: state.rules.coinReward,
@@ -1658,7 +1658,7 @@
         } else if (state.invincible <= 0) {
           state.hits++;
           state.combo = 0;
-          state.invincible = import_config3.default.damageGrace;
+          state.invincible = import_config4.default.damageGrace;
           object.dead = true;
           emit(state, "hit", state.player.x, state.player.y);
           if (state.hits >= state.health) {
@@ -1692,17 +1692,17 @@
         const previousPlayerX = player.x;
         player.x = dashing
           ? Math.min(
-              import_config3.default.playerX + state.stats.dashLungeMax,
+              import_config4.default.playerX + state.stats.dashLungeMax,
               player.x + state.stats.dashLungeSpeed * dt,
             )
           : Math.max(
-              import_config3.default.playerX,
-              player.x - import_config3.default.dashReturnSpeed * dt,
+              import_config4.default.playerX,
+              player.x - import_config4.default.dashReturnSpeed * dt,
             );
-        player.vy += import_config3.default.gravity * dt;
+        player.vy += import_config4.default.gravity * dt;
         player.y += player.vy * dt;
-        if (player.y >= import_config3.default.floor - import_config3.default.playerHeight) {
-          player.y = import_config3.default.floor - import_config3.default.playerHeight;
+        if (player.y >= import_config4.default.floor - import_config4.default.playerHeight) {
+          player.y = import_config4.default.floor - import_config4.default.playerHeight;
           player.vy = 0;
           player.jumps = 0;
         }
@@ -1753,9 +1753,9 @@
       }
       function update2(state, seconds) {
         if (state.mode !== "playing" || !Number.isFinite(seconds)) return;
-        let remaining = Math.min(import_config3.default.maxFrameSeconds, Math.max(0, seconds));
+        let remaining = Math.min(import_config4.default.maxFrameSeconds, Math.max(0, seconds));
         while (remaining > 1e-9 && state.mode === "playing") {
-          const dt = Math.min(import_config3.default.simulationStep, remaining);
+          const dt = Math.min(import_config4.default.simulationStep, remaining);
           step2(state, dt);
           remaining -= dt;
         }
@@ -2110,10 +2110,6 @@
         used: false,
         flash: 0,
       };
-      w.objects = [];
-      w.hostileProjectiles = [];
-      w.traversals = [];
-      w.next = w.distance + Math.max(260, w.speed * 3);
     }
     const beacon = run.checkpoint;
     if (beacon) {
@@ -2569,7 +2565,7 @@
   var require_particles = __commonJS({
     "src/particles.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       function create4() {
         let particles = [];
         let enabled = true;
@@ -2586,8 +2582,8 @@
               size: Math.random() > 0.7 ? 2 : 1,
             });
           }
-          if (particles.length > import_config3.default.particleLimit)
-            particles.splice(0, particles.length - import_config3.default.particleLimit);
+          if (particles.length > import_config4.default.particleLimit)
+            particles.splice(0, particles.length - import_config4.default.particleLimit);
         }
         function update2(dt) {
           for (const particle of particles) {
@@ -2656,7 +2652,7 @@
   var require_backgrounds = __commonJS({
     "src/backgrounds.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_content2 = __toESM(require_content());
       var import_pixel2 = __toESM(require_pixel());
       var import_random2 = __toESM(require_random());
@@ -2717,7 +2713,7 @@
             const width = architecture === "mountains" ? 105 : [43, 56, 75][layer];
             const base = [149, 175, 197][layer];
             const offset = distance * [0.12, 0.28, 0.48][layer];
-            for (let i = -2; i < Math.ceil(import_config3.default.width / width) + 2; i++) {
+            for (let i = -2; i < Math.ceil(import_config4.default.width / width) + 2; i++) {
               const world = i + Math.floor(offset / width);
               const noise = import_random2.default.hash(
                 seed + ":" + layer + ":" + world + ":" + biome.id,
@@ -2770,8 +2766,8 @@
               import_pixel2.default.mix(previous.palette[key], current.palette[key], blend),
             ]),
           );
-          rect(0, 0, import_config3.default.width, import_config3.default.height, palette.horizon);
-          rect(0, 0, import_config3.default.width, 100, palette.sky);
+          rect(0, 0, import_config4.default.width, import_config4.default.height, palette.horizon);
+          rect(0, 0, import_config4.default.width, 100, palette.sky);
           rect(355, 25, 27, 27, palette.detail);
           rect(351, 31, 5, 15, palette.detail);
           rect(361, 22, 15, 3, palette.detail);
@@ -2790,12 +2786,12 @@
           }
           landscape(current, distance, time, palette, state.seed);
           ctx.globalAlpha = 1;
-          rect(0, import_config3.default.floor, import_config3.default.width, 5, palette.floor);
-          line(0, import_config3.default.floor, import_config3.default.width, palette.rail);
+          rect(0, import_config4.default.floor, import_config4.default.width, 5, palette.floor);
+          line(0, import_config4.default.floor, import_config4.default.width, palette.rail);
           rect(
             0,
-            import_config3.default.floor + 5,
-            import_config3.default.width,
+            import_config4.default.floor + 5,
+            import_config4.default.width,
             39,
             palette.ground,
           );
@@ -2848,7 +2844,7 @@
   var require_sprites = __commonJS({
     "src/sprites.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_pixel2 = __toESM(require_pixel());
       var import_loadout3 = __toESM(require_loadout());
       var import_cloth2 = __toESM(require_cloth());
@@ -3171,7 +3167,7 @@
           },
         };
         function object(o, time) {
-          if (o.x > import_config3.default.width + 35 || o.x + o.w < -10) return;
+          if (o.x > import_config4.default.width + 35 || o.x + o.w < -10) return;
           if (o.kind === "ember") {
             const thin = Math.sin(time * 5 + o.x * 0.025) > 0.7;
             rect(o.x - 2, o.y - 2, 9, 10, "#594e2e");
@@ -3279,7 +3275,7 @@
   var require_renderer = __commonJS({
     "src/renderer.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       init_party();
       var import_pixel2 = __toESM(require_pixel());
       var import_backgrounds2 = __toESM(require_backgrounds());
@@ -3416,7 +3412,7 @@
           }
           for (const popup of popups) {
             ctx.globalAlpha = Math.min(1, popup.life * 4);
-            const x = Math.max(5, Math.min(import_config3.default.width - 54, popup.x));
+            const x = Math.max(5, Math.min(import_config4.default.width - 54, popup.x));
             const y = Math.max(30, popup.y);
             ctx.font = "bold 8px monospace";
             ctx.fillStyle = "#12201b";
@@ -3434,7 +3430,7 @@
           ctx.globalAlpha = 1;
           if (feedback.flash > 0 && !reducedMotion) {
             ctx.globalAlpha = feedback.flash;
-            rect(0, 0, import_config3.default.width, import_config3.default.height, "#ffbf77");
+            rect(0, 0, import_config4.default.width, import_config4.default.height, "#ffbf77");
             ctx.globalAlpha = 1;
           }
           ctx.restore();
@@ -3712,7 +3708,7 @@
       "use strict";
       init_dom();
       var import_upgrades3 = __toESM(require_upgrades());
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var names = {
         dash: "Dash",
         jump: "Jump height",
@@ -3727,7 +3723,7 @@
           case "jump":
             return (
               "~" +
-              Math.round(stats.jumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
+              Math.round(stats.jumpVelocity ** 2 / (2 * import_config4.default.gravity)) +
               "px"
             );
           case "damage":
@@ -4637,7 +4633,7 @@
       beaconProgress.value = progress2?.value ?? 0;
       beaconDistance.textContent = progress2
         ? `${Math.ceil(progress2.remaining)}m TO BEACON \xB7 ${progress2.distance}m`
-        : "2500m TO BEACON";
+        : `${import_config2.default.beaconInterval}m TO BEACON`;
       element(doc, "party", "button").textContent = active
         ? `PARTY ${members.length}/4`
         : "PARTY / LAN";
@@ -4667,6 +4663,8 @@
             const levels = doc.createElement("small");
             const l = m.state.stats.levels;
             levels.textContent = `DASH ${l.dash} \xB7 JUMP ${l.jump} \xB7 DAMAGE ${l.damage} \xB7 ${m.state.stats.maxJumps} JUMPS`;
+            row.title = `${title.textContent} \xB7 ${health.textContent} \xB7 ${levels.textContent}`;
+            if (container === hud && !alive(m) && m.connected) health.textContent = "DOWN";
             row.append(title, health, levels);
             container.append(row);
           }
@@ -4973,10 +4971,12 @@
       leave,
     };
   }
+  var import_config2;
   var init_party_session = __esm({
     "src/party-session.ts"() {
       "use strict";
       init_party();
+      import_config2 = __toESM(require_config());
       init_party_network();
       init_dom();
     },
@@ -4986,7 +4986,7 @@
   var require_app = __commonJS({
     "src/app.ts"(exports, module) {
       "use strict";
-      var import_config3 = __toESM(require_config());
+      var import_config4 = __toESM(require_config());
       var import_content2 = __toESM(require_content());
       var import_engine3 = __toESM(require_engine());
       var import_storage2 = __toESM(require_storage());
@@ -5253,7 +5253,7 @@
         }
         function frame(now) {
           const dt = Math.min(
-            import_config3.default.maxFrameSeconds,
+            import_config4.default.maxFrameSeconds,
             Math.max(0, (now - lastTime) / 1e3 || 0),
           );
           lastTime = now;
@@ -5354,7 +5354,7 @@
   var import_backgrounds = __toESM(require_backgrounds());
   var import_cloth = __toESM(require_cloth());
   var import_pixel = __toESM(require_pixel());
-  var import_config2 = __toESM(require_config());
+  var import_config3 = __toESM(require_config());
   var import_traversal2 = __toESM(require_traversal());
   var import_enemy_fire2 = __toESM(require_enemy_fire());
 
@@ -5396,7 +5396,7 @@
     Backgrounds: import_backgrounds.default,
     Cloth: import_cloth.default,
     Pixel: import_pixel.default,
-    Config: import_config2.default,
+    Config: import_config3.default,
   };
   window.Emberline = Emberline;
   (() => {

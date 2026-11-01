@@ -18,7 +18,7 @@ export = {
   damageGrace: 1.6,
   pickupRecharge: 0.06,
   sectorSeconds: 18,
-  beaconInterval: 2500,
+  beaconInterval: 5000,
   speed: {
     start: 98,
     growth: 34,
