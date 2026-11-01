@@ -50,6 +50,13 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     KeyF: actions.fullscreen,
     KeyM: actions.sound,
   };
+  doc.addEventListener(
+    "close",
+    () => {
+      if (!doc.querySelector("dialog[open]")) canvas.focus({ preventScroll: true });
+    },
+    true,
+  );
   doc.addEventListener("keydown", (event) => {
     if (doc.querySelector("dialog[open]")) return;
     // Keep standard keyboard activation when deliberately tabbing through UI.

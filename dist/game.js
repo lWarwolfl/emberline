@@ -3626,6 +3626,13 @@
           KeyF: actions.fullscreen,
           KeyM: actions.sound,
         };
+        doc.addEventListener(
+          "close",
+          () => {
+            if (!doc.querySelector("dialog[open]")) canvas.focus({ preventScroll: true });
+          },
+          true,
+        );
         doc.addEventListener("keydown", (event) => {
           if (doc.querySelector("dialog[open]")) return;
           if (
