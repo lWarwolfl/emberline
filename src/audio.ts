@@ -104,6 +104,9 @@ function create(initialMuted = false) {
       case "death":
         [260, 195, 130, 65].forEach((f, i) => tone(f, 0.3, "triangle", 0.1, 0, i * 0.13));
         break;
+      case "boss":
+        [90, 70, 50, 110].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.07, 20, i * 0.12));
+        break;
       case "sector":
         [330, 440, 660].forEach((f, i) => tone(f, 0.16, "triangle", 0.06, 0, i * 0.09));
         break;

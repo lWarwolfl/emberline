@@ -16,6 +16,7 @@ function durability(object: Pick<WorldObject, "kind" | "variant">) {
           beetle: 3.2,
           wasp: 1.8,
           wisp: 1.4,
+          boss: 18,
         } as Record<string, number>
       )[object.variant] || 1
     );

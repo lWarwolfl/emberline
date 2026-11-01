@@ -29,7 +29,11 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
         Math.round((Math.random() - 0.5) * feedback.shake),
       );
     }
-    background.draw(state.mode === "menu" ? time * 24 : state.distance, time, state);
+    background.draw(
+      state.mode === "menu" ? time * 24 : state.distance - state.parallax,
+      time,
+      state,
+    );
     if (state.mode === "menu") {
       for (let i = 0; i < 5; i++)
         sprites.object(

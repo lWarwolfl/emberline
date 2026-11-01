@@ -146,6 +146,18 @@ function overlapsDanger(coin: WorldObject, object: WorldObject) {
 }
 
 function spawn(state: GameState) {
+  if (state.bossActive) {
+    state.next = state.distance + 480;
+    return (
+      state.lastEncounter ?? {
+        pattern: "boss",
+        coinPattern: "ground",
+        variants: ["boss"],
+        gap: 0,
+        width: 0,
+      }
+    );
+  }
   const eligible = Content.patterns
     .filter((pattern) => pattern.unlock <= state.sector)
     .map((pattern) => pattern.id);
@@ -251,6 +263,13 @@ function spawn(state: GameState) {
 }
 
 function move(object: WorldObject, speed: number, dt: number) {
+  if (object.variant === "boss") {
+    object.age = (object.age ?? 0) + dt;
+    object.x += (300 - object.x) * Math.min(1, dt * 2);
+    object.y =
+      object.baseY! + Math.sin(object.age * object.frequency! + object.phase!) * object.amplitude!;
+    return;
+  }
   object.x -= (speed + (object.extraSpeed || 0)) * dt;
   if (object.kind === "enemy") {
     object.age = (object.age ?? 0) + dt;

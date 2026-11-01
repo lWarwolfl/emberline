@@ -289,458 +289,469 @@
         { id: "surge", name: "SURGE", multiplier: 1.19 },
         { id: "recovery", name: "BREATHER", multiplier: 0.89 },
       ];
-      var biomes = [
+      function theme(
+        id,
+        name,
+        architecture,
+        weather,
+        sky,
+        horizon,
+        far,
+        mid,
+        near,
+        detail,
+        light,
+        ground,
+        rail,
+        floor,
+      ) {
+        return {
+          id,
+          name,
+          architecture,
+          weather,
+          palette: { sky, horizon, far, mid, near, detail, light, ground, rail, floor },
+        };
+      }
+      var groups = [
         {
-          id: "city",
-          name: "THE OUTSKIRTS",
-          architecture: "city",
-          weather: "embers",
-          palette: {
-            sky: "#192b27",
-            horizon: "#172823",
-            far: "#243b31",
-            mid: "#294437",
-            near: "#31493a",
-            detail: "#627354",
-            light: "#c0a96e",
-            ground: "#172820",
-            rail: "#a2a074",
-            floor: "#78805a",
-          },
+          id: "line",
+          name: "THE LINE",
+          boss: "WARDEN",
+          biomes: [
+            theme(
+              "city",
+              "THE OUTSKIRTS",
+              "city",
+              "embers",
+              "#192b27",
+              "#172823",
+              "#243b31",
+              "#294437",
+              "#31493a",
+              "#627354",
+              "#c0a96e",
+              "#172820",
+              "#a2a074",
+              "#78805a",
+            ),
+            theme(
+              "foundry",
+              "COPPER FOUNDRY",
+              "factory",
+              "ash",
+              "#302323",
+              "#392b28",
+              "#48302d",
+              "#593a2e",
+              "#674737",
+              "#9c6244",
+              "#ffb461",
+              "#302421",
+              "#d2a06c",
+              "#9b7551",
+            ),
+            theme(
+              "forest",
+              "OVERGROWN SIGNAL",
+              "forest",
+              "fireflies",
+              "#122d2c",
+              "#153c34",
+              "#1c493c",
+              "#245b44",
+              "#38684c",
+              "#749869",
+              "#c6d688",
+              "#183b2b",
+              "#b7ba76",
+              "#668353",
+            ),
+            theme(
+              "frost",
+              "FROST RELAY",
+              "mountains",
+              "snow",
+              "#1e2d3c",
+              "#2b4050",
+              "#354e60",
+              "#426177",
+              "#537a8b",
+              "#8eabb2",
+              "#d0e6d7",
+              "#253e4d",
+              "#d5e0cd",
+              "#94b8bc",
+            ),
+            theme(
+              "dunes",
+              "THE GLASS WASTES",
+              "ruins",
+              "sand",
+              "#352d36",
+              "#514037",
+              "#63503f",
+              "#7a6048",
+              "#8f7354",
+              "#b6976d",
+              "#f4cf8a",
+              "#45362d",
+              "#edc48a",
+              "#b18b60",
+            ),
+          ],
         },
         {
-          id: "foundry",
-          name: "COPPER FOUNDRY",
-          architecture: "factory",
-          weather: "ash",
-          palette: {
-            sky: "#302323",
-            horizon: "#392b28",
-            far: "#48302d",
-            mid: "#593a2e",
-            near: "#674737",
-            detail: "#9c6244",
-            light: "#ffb461",
-            ground: "#302421",
-            rail: "#d2a06c",
-            floor: "#9b7551",
-          },
+          id: "salt",
+          name: "SALT MERIDIAN",
+          boss: "LEVIATHAN",
+          biomes: [
+            theme(
+              "tide",
+              "TIDE LOCK",
+              "coast",
+              "rain",
+              "#16343a",
+              "#1c4650",
+              "#245866",
+              "#2d6c78",
+              "#3d8490",
+              "#8ec4c8",
+              "#d5f0ea",
+              "#143840",
+              "#b7ddd4",
+              "#6ea8a4",
+            ),
+            theme(
+              "reef",
+              "GLASS REEF",
+              "coast",
+              "embers",
+              "#12343a",
+              "#184850",
+              "#1f5c62",
+              "#2a7474",
+              "#3c9088",
+              "#7ec8b0",
+              "#d8f6c8",
+              "#123830",
+              "#b6e6c4",
+              "#5e9a84",
+            ),
+            theme(
+              "harbor",
+              "CINDER HARBOR",
+              "coast",
+              "ash",
+              "#2a3038",
+              "#3a4044",
+              "#4a4840",
+              "#5c5640",
+              "#726848",
+              "#a89060",
+              "#f0d090",
+              "#2a2820",
+              "#d8c090",
+              "#8a7848",
+            ),
+            theme(
+              "gale",
+              "GALE CUT",
+              "mountains",
+              "rain",
+              "#243044",
+              "#304058",
+              "#3c5070",
+              "#4c6488",
+              "#607ca0",
+              "#98b0c8",
+              "#d8e8f0",
+              "#1c2838",
+              "#c0d0e0",
+              "#7090a8",
+            ),
+            theme(
+              "lamp",
+              "LAMP REACH",
+              "spire",
+              "embers",
+              "#2c2838",
+              "#3c3848",
+              "#504858",
+              "#685868",
+              "#806878",
+              "#c09098",
+              "#ffd0a0",
+              "#282028",
+              "#e8c0a0",
+              "#a08070",
+            ),
+          ],
         },
         {
-          id: "forest",
-          name: "OVERGROWN SIGNAL",
-          architecture: "forest",
-          weather: "fireflies",
-          palette: {
-            sky: "#122d2c",
-            horizon: "#153c34",
-            far: "#1c493c",
-            mid: "#245b44",
-            near: "#38684c",
-            detail: "#749869",
-            light: "#c6d688",
-            ground: "#183b2b",
-            rail: "#b7ba76",
-            floor: "#668353",
-          },
+          id: "neon",
+          name: "NEON VAULT",
+          boss: "HERALD",
+          biomes: [
+            theme(
+              "bazaar",
+              "NIGHT BAZAAR",
+              "neon",
+              "embers",
+              "#24182c",
+              "#341e38",
+              "#4a2860",
+              "#603070",
+              "#784080",
+              "#c060a0",
+              "#ffb0d0",
+              "#1c1020",
+              "#e090c0",
+              "#804868",
+            ),
+            theme(
+              "conduit",
+              "LIVE CONDUIT",
+              "neon",
+              "rain",
+              "#101828",
+              "#142038",
+              "#1c3058",
+              "#244070",
+              "#305888",
+              "#60a0d0",
+              "#b0e0ff",
+              "#0c1420",
+              "#80c0e8",
+              "#406888",
+            ),
+            theme(
+              "atrium",
+              "AMBER ATRIUM",
+              "neon",
+              "ash",
+              "#2c2018",
+              "#3c2c20",
+              "#544030",
+              "#6c5438",
+              "#846848",
+              "#c89860",
+              "#ffe0a0",
+              "#241810",
+              "#e8c080",
+              "#907048",
+            ),
+            theme(
+              "underpass",
+              "QUIET UNDERPASS",
+              "cavern",
+              "spores",
+              "#16141c",
+              "#221e28",
+              "#302838",
+              "#403448",
+              "#504058",
+              "#887898",
+              "#d0c0e0",
+              "#141018",
+              "#b0a0c0",
+              "#685868",
+            ),
+            theme(
+              "marquee",
+              "THE MARQUEE",
+              "neon",
+              "embers",
+              "#301820",
+              "#482028",
+              "#682830",
+              "#883038",
+              "#a84048",
+              "#e07070",
+              "#ffd0a8",
+              "#281418",
+              "#f0a090",
+              "#a05850",
+            ),
+          ],
         },
         {
-          id: "frost",
-          name: "FROST RELAY",
-          architecture: "mountains",
-          weather: "snow",
-          palette: {
-            sky: "#1e2d3c",
-            horizon: "#2b4050",
-            far: "#354e60",
-            mid: "#426177",
-            near: "#537a8b",
-            detail: "#8eabb2",
-            light: "#d0e6d7",
-            ground: "#253e4d",
-            rail: "#d5e0cd",
-            floor: "#94b8bc",
-          },
+          id: "hollow",
+          name: "HOLLOW REACH",
+          boss: "MATRON",
+          biomes: [
+            theme(
+              "shaft",
+              "THE SHAFT",
+              "cavern",
+              "ash",
+              "#1c1814",
+              "#2c241c",
+              "#3c3024",
+              "#4c3c2c",
+              "#5c4c38",
+              "#907860",
+              "#e0c8a0",
+              "#181410",
+              "#c8b090",
+              "#706050",
+            ),
+            theme(
+              "geode",
+              "OPEN GEODE",
+              "cavern",
+              "embers",
+              "#201828",
+              "#302038",
+              "#403050",
+              "#504068",
+              "#685080",
+              "#a080c0",
+              "#e0d0ff",
+              "#181420",
+              "#c0b0e0",
+              "#685880",
+            ),
+            theme(
+              "mycelium",
+              "MYCELIUM",
+              "forest",
+              "spores",
+              "#182018",
+              "#243024",
+              "#304030",
+              "#3c5438",
+              "#4c6844",
+              "#88a070",
+              "#d8e8a8",
+              "#142014",
+              "#b8d090",
+              "#5c7848",
+            ),
+            theme(
+              "vent",
+              "RED VENT",
+              "factory",
+              "ash",
+              "#301410",
+              "#481c14",
+              "#602818",
+              "#78341c",
+              "#904424",
+              "#d07040",
+              "#ffc080",
+              "#280c08",
+              "#e89860",
+              "#a05030",
+            ),
+            theme(
+              "cistern",
+              "OLD CISTERN",
+              "ruins",
+              "rain",
+              "#142028",
+              "#1c3040",
+              "#244050",
+              "#305060",
+              "#3c6470",
+              "#70a0a8",
+              "#d0e8e8",
+              "#101820",
+              "#90c0c0",
+              "#487080",
+            ),
+          ],
         },
         {
-          id: "dunes",
-          name: "THE GLASS WASTES",
-          architecture: "ruins",
-          weather: "sand",
-          palette: {
-            sky: "#352d36",
-            horizon: "#514037",
-            far: "#63503f",
-            mid: "#7a6048",
-            near: "#8f7354",
-            detail: "#b6976d",
-            light: "#f4cf8a",
-            ground: "#45362d",
-            rail: "#edc48a",
-            floor: "#b18b60",
-          },
+          id: "silence",
+          name: "HIGH SILENCE",
+          boss: "ARCHON",
+          biomes: [
+            theme(
+              "terrace",
+              "WHITE TERRACE",
+              "ruins",
+              "snow",
+              "#d8e0e4",
+              "#c8d4dc",
+              "#b0c4d0",
+              "#98b4c4",
+              "#88a8b8",
+              "#f0f4f4",
+              "#ffffff",
+              "#b8c8d0",
+              "#e8f0f0",
+              "#90a8b0",
+            ),
+            theme(
+              "cloister",
+              "CLOISTER",
+              "spire",
+              "embers",
+              "#2c2420",
+              "#3c342c",
+              "#504438",
+              "#645444",
+              "#786450",
+              "#c0a080",
+              "#ffe8c0",
+              "#241c18",
+              "#e0c8a8",
+              "#907860",
+            ),
+            theme(
+              "spire",
+              "BROKEN SPIRE",
+              "spire",
+              "rain",
+              "#1c2430",
+              "#283444",
+              "#344458",
+              "#445870",
+              "#586c84",
+              "#90a8c0",
+              "#e0e8f0",
+              "#141820",
+              "#b0c0d0",
+              "#607088",
+            ),
+            theme(
+              "orchard",
+              "EMBER ORCHARD",
+              "forest",
+              "fireflies",
+              "#201810",
+              "#342418",
+              "#48301c",
+              "#5c3c24",
+              "#704c2c",
+              "#c08048",
+              "#ffd090",
+              "#1c140c",
+              "#e0a868",
+              "#8a5830",
+            ),
+            theme(
+              "observatory",
+              "OBSERVATORY",
+              "spire",
+              "snow",
+              "#101820",
+              "#182838",
+              "#203448",
+              "#2c4460",
+              "#385478",
+              "#7090b0",
+              "#d0e8ff",
+              "#0c141c",
+              "#a0c0e0",
+              "#486080",
+            ),
+          ],
         },
       ];
-      module.exports = { obstacles, enemies, patterns, coinPatterns, paces, biomes };
-    },
-  });
-
-  // src/difficulty.ts
-  var require_difficulty = __commonJS({
-    "src/difficulty.ts"(exports, module) {
-      "use strict";
-      var import_config4 = __toESM(require_config());
-      var import_random2 = __toESM(require_random());
-      var import_content2 = __toESM(require_content());
-      function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
-        const speed = import_config4.default.speed;
-        return (
-          speed.start * rules.speed +
-          speed.growth * rules.growth * Math.log2(1 + time / speed.growthSeconds)
-        );
-      }
-      function update2(state, dt) {
-        const sector = 1 + Math.floor(state.time / import_config4.default.sectorSeconds);
-        if (sector !== state.sector) {
-          state.sector = sector;
-          state.previousBiome = state.biome;
-          const ids = import_content2.default.biomes.map((biome) => biome.id);
-          state.biome = import_random2.default.drawBag(
-            state.sceneryRng,
-            state.biomeBag,
-            ids,
-            state.biome,
-          );
-          state.biomeBlend = 0;
-          state.events.push({ type: "sector", x: 240, y: 60 });
-        }
-        state.biomeBlend = Math.min(
-          1,
-          state.biomeBlend + dt / import_config4.default.generation.themeFadeSeconds,
-        );
-        if (state.time >= state.nextPaceTime) {
-          const ids = import_content2.default.paces.map((pace2) => pace2.id);
-          state.pace = import_random2.default.drawBag(
-            state.paceRng,
-            state.paceBag,
-            ids,
-            state.pace,
-          );
-          state.nextPaceTime =
-            state.time +
-            import_random2.default.range(
-              state.paceRng,
-              import_config4.default.speed.phaseMinSeconds,
-              import_config4.default.speed.phaseMaxSeconds,
-            );
-          state.events.push({ type: "pace", x: 240, y: 60 });
-        }
-        const pace = import_content2.default.paces.find((item) => item.id === state.pace);
-        state.targetSpeed = baseSpeed(state.time, state.rules) * pace.multiplier;
-        const difference = state.targetSpeed - state.speed;
-        const rate =
-          difference > 0
-            ? import_config4.default.speed.acceleration
-            : import_config4.default.speed.deceleration;
-        state.speed += Math.sign(difference) * Math.min(Math.abs(difference), rate * dt);
-      }
-      function gapSeconds(sector, rules = { gap: 1 }) {
-        const settings = import_config4.default.generation;
-        return Math.max(
-          settings.minimumGapSeconds,
-          (settings.initialGapSeconds - 0.16 * Math.log2(sector + 1)) * rules.gap,
-        );
-      }
-      function safetySpeed(state) {
-        const fastestPace = Math.max(
-          ...import_content2.default.paces.map((pace) => pace.multiplier),
-        );
-        const fastestEnemy = Math.max(
-          0,
-          ...import_content2.default.enemies.map((enemy) => enemy.extraSpeed),
-        );
-        return (
-          Math.max(state.speed, baseSpeed(state.time + 6, state.rules) * fastestPace) + fastestEnemy
-        );
-      }
-      module.exports = { baseSpeed, update: update2, gapSeconds, safetySpeed };
-    },
-  });
-
-  // src/generator.ts
-  var require_generator = __commonJS({
-    "src/generator.ts"(exports, module) {
-      "use strict";
-      var import_config4 = __toESM(require_config());
-      var import_random2 = __toESM(require_random());
-      var import_content2 = __toESM(require_content());
-      var import_difficulty3 = __toESM(require_difficulty());
-      function choose(state, type) {
-        const definitions = import_content2.default[type].filter(
-          (item) => item.unlock <= state.sector,
-        );
-        const chosen = import_random2.default.weighted(
-          state.rng,
-          definitions,
-          state.lastVariant[type],
-        );
-        state.lastVariant[type] = chosen.id;
-        return chosen;
-      }
-      function obstacle(state, x) {
-        const definition = choose(state, "obstacles");
-        return {
-          kind: "hazard",
-          variant: definition.id,
-          x,
-          y: import_config4.default.floor - definition.h,
-          w: definition.w,
-          h: definition.h,
-          passed: false,
-        };
-      }
-      function enemy(state, x, variant) {
-        const definition =
-          import_content2.default.enemies.find(
-            (item) => item.id === variant && item.unlock <= state.sector,
-          ) ?? choose(state, "enemies");
-        state.lastVariant.enemies = definition.id;
-        const altitudeJitter =
-          definition.altitude === definition.h && definition.amplitude === 0
-            ? 0
-            : import_random2.default.range(state.rng, -4, 4);
-        const baseY = import_config4.default.floor - definition.altitude + altitudeJitter;
-        return {
-          kind: "enemy",
-          variant: definition.id,
-          x,
-          y: baseY,
-          baseY,
-          w: definition.w,
-          h: definition.h,
-          amplitude: definition.amplitude,
-          frequency: definition.frequency,
-          extraSpeed: definition.extraSpeed,
-          phase: import_random2.default.range(state.rng, 0, Math.PI * 2),
-          age: 0,
-          passed: false,
-        };
-      }
-      function coinPath(state, pattern, startX, width) {
-        const points = [];
-        const count = [
-          "scatter",
-          "zigzag",
-          "double-arc",
-          "diamond",
-          "helix",
-          "ripple",
-          "ladder",
-        ].includes(pattern)
-          ? 13
-          : 7;
-        const yShift = import_random2.default.range(state.rng, -3, 3);
-        for (let i = 0; i < count; i++) {
-          const fraction = i / (count - 1);
-          let x = startX + fraction * width;
-          let height;
-          switch (pattern) {
-            case "ground":
-              height = 12;
-              break;
-            case "arc":
-              height = 28 + Math.sin(fraction * Math.PI) * 40;
-              break;
-            case "staircase":
-              height = 18 + Math.floor(fraction * 4) * 13;
-              break;
-            case "high":
-              height = 67;
-              break;
-            case "wave":
-              height = 37 + Math.sin(fraction * Math.PI * 2) * 22;
-              break;
-            case "split":
-              height = i < count / 2 ? 15 : 65;
-              break;
-            case "zigzag":
-              height = 15 + (i % 2) * 42;
-              break;
-            case "double-arc":
-              height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
-              break;
-            case "diamond":
-              height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
-              break;
-            case "helix":
-              height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
-              break;
-            case "ripple":
-              height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
-              break;
-            case "ladder":
-              height = 12 + (i % 4) * 17;
-              break;
-            case "scatter":
-              height = import_random2.default.range(state.rng, 12, 70);
-              x += import_random2.default.range(state.rng, -5, 5);
-              break;
-            default:
-              throw new Error("Unknown coin pattern: " + pattern);
-          }
-          points.push({
-            kind: "ember",
-            variant: pattern,
-            x,
-            y: Math.max(
-              import_config4.default.floor - 70,
-              Math.min(
-                import_config4.default.floor - 10,
-                import_config4.default.floor - height + yShift,
-              ),
-            ),
-            w: 5,
-            h: 6,
-          });
-          if (pattern === "diamond" && i > 0 && i < count - 1) {
-            points.push({
-              ...points[points.length - 1],
-              y: import_config4.default.floor - (78 - height) + yShift,
-            });
-          }
-        }
-        return points;
-      }
-      function overlapsDanger(coin, object) {
-        const clearance = import_config4.default.generation.coinClearance;
-        const amplitude = object.amplitude || 0;
-        return (
-          coin.x + coin.w + clearance > object.x &&
-          coin.x - clearance < object.x + object.w &&
-          coin.y + coin.h + clearance > object.y - amplitude &&
-          coin.y - clearance < object.y + object.h + amplitude
-        );
-      }
-      function spawn(state) {
-        const eligible = import_content2.default.patterns
-          .filter((pattern2) => pattern2.unlock <= state.sector)
-          .map((pattern2) => pattern2.id);
-        const key = eligible.join(",");
-        if (key !== state.patternPool) {
-          state.patternBag.length = 0;
-          state.patternPool = key;
-        }
-        const pattern = import_random2.default.drawBag(
-          state.rng,
-          state.patternBag,
-          eligible,
-          state.lastPattern,
-        );
-        const coinPattern = import_random2.default.drawBag(
-          state.rng,
-          state.coinBag,
-          import_content2.default.coinPatterns,
-          state.lastCoinPattern,
-        );
-        state.lastPattern = pattern;
-        state.lastCoinPattern = coinPattern;
-        const x = import_config4.default.generation.spawnX;
-        const safetySpeed = import_difficulty3.default.safetySpeed(state);
-        const separation = Math.max(155, safetySpeed * 1.25);
-        const dangers = [];
-        switch (pattern) {
-          case "hurdle":
-            dangers.push(obstacle(state, x));
-            break;
-          case "escort":
-          case "patrol":
-            dangers.push(enemy(state, x));
-            if (
-              state.sector >= 4 &&
-              import_random2.default.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035)
-            )
-              dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
-            break;
-          case "steps":
-            dangers.push(obstacle(state, x), obstacle(state, x + separation));
-            break;
-          case "mixed":
-            if (import_random2.default.next(state.rng) < 0.5)
-              dangers.push(obstacle(state, x), enemy(state, x + separation));
-            else dangers.push(enemy(state, x), obstacle(state, x + separation));
-            break;
-          case "squad": {
-            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
-            for (let i = 0; i < count; i++)
-              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
-            break;
-          }
-          case "crossfire":
-            dangers.push(
-              enemy(state, x, "sentry"),
-              enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
-              enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
-            );
-            break;
-          case "convoy":
-            dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
-            break;
-          case "coin-break":
-            break;
-          default:
-            throw new Error("Unknown encounter: " + pattern);
-        }
-        const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
-        const coins = coinPath(state, coinPattern, x - 24, Math.max(115, end - x + 95));
-        const safeCoins = coins.filter(
-          (coin) => !dangers.some((danger) => overlapsDanger(coin, danger)),
-        );
-        if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
-        state.objects.push(...dangers, ...safeCoins);
-        let travelEnd = end;
-        if (import_random2.default.next(state.rng) < import_config4.default.traversal.spawnChance) {
-          const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
-          const device = {
-            kind,
-            x: end + Math.max(95, safetySpeed * 0.65),
-            y: import_config4.default.floor - (kind === "portal" ? 43 : 5),
-            w: kind === "portal" ? 22 : 26,
-            h: kind === "portal" ? 43 : 5,
-            age: 0,
-          };
-          state.traversals.push(device);
-          if (state.traversals.length > 4) state.traversals.shift();
-          travelEnd = device.x + device.w;
-        }
-        const gap =
-          import_difficulty3.default.gapSeconds(state.sector, state.rules) +
-          import_random2.default.range(
-            state.rng,
-            0,
-            import_config4.default.generation.gapVariationSeconds,
-          );
-        const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
-        state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
-        state.encounterCount++;
-        state.lastEncounter = {
-          pattern,
-          coinPattern,
-          variants: dangers.map((item) => item.variant),
-          gap,
-          width: occupiedWidth,
-        };
-        return state.lastEncounter;
-      }
-      function move(object, speed, dt) {
-        object.x -= (speed + (object.extraSpeed || 0)) * dt;
-        if (object.kind === "enemy") {
-          object.age = (object.age ?? 0) + dt;
-          object.y =
-            object.baseY +
-            Math.sin(object.age * object.frequency + object.phase) * object.amplitude;
-        }
-      }
-      module.exports = { spawn, obstacle, enemy, coinPath, overlapsDanger, move };
+      var biomes = groups.flatMap((group) => group.biomes);
+      module.exports = { obstacles, enemies, patterns, coinPatterns, paces, biomes, groups };
     },
   });
 
@@ -1093,6 +1104,7 @@
               beetle: 3.2,
               wasp: 1.8,
               wisp: 1.4,
+              boss: 18,
             }[object.variant] || 1
           );
         return armor[object.variant] || 0;
@@ -1234,6 +1246,439 @@
     },
   });
 
+  // src/difficulty.ts
+  var require_difficulty = __commonJS({
+    "src/difficulty.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var import_content2 = __toESM(require_content());
+      var import_combat3 = __toESM(require_combat());
+      function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
+        const speed = import_config4.default.speed;
+        return (
+          speed.start * rules.speed +
+          speed.growth * rules.growth * Math.log2(1 + time / speed.growthSeconds)
+        );
+      }
+      function applyBiome(state, id) {
+        if (state.biome === id) return;
+        state.previousBiome = state.biome;
+        state.biome = id;
+        state.biomeBlend = 0;
+      }
+      function beginBoss(state) {
+        const group = import_content2.default.groups[state.groupIndex];
+        state.bossActive = true;
+        state.objects.push({
+          kind: "enemy",
+          variant: "boss",
+          x: 330,
+          y: import_config4.default.floor - 58,
+          w: 46,
+          h: 58,
+          hp: import_combat3.default.durability({ kind: "enemy", variant: "boss" }),
+          baseY: import_config4.default.floor - 58,
+          amplitude: 5,
+          frequency: 1.3,
+          extraSpeed: 0,
+          phase: 0,
+          age: 0,
+        });
+        state.events.push({ type: "boss", x: 240, y: 48, label: group.boss });
+      }
+      function finishBoss(state) {
+        state.bossActive = false;
+        state.groupIndex = (state.groupIndex + 1) % import_content2.default.groups.length;
+        state.biomeIndex = 0;
+        state.sector = 1 + Math.floor(state.time / import_config4.default.sectorSeconds);
+        applyBiome(state, import_content2.default.groups[state.groupIndex].biomes[0].id);
+        state.events.push({
+          type: "sector",
+          x: 240,
+          y: 60,
+          label: import_content2.default.groups[state.groupIndex].name,
+        });
+      }
+      function update2(state, dt) {
+        if (state.bossActive) {
+          if (!state.objects.some((object) => object.variant === "boss" && !object.dead))
+            finishBoss(state);
+          else {
+            state.biomeBlend = Math.min(
+              1,
+              state.biomeBlend + dt / import_config4.default.generation.themeFadeSeconds,
+            );
+            advancePace(state, dt);
+            return;
+          }
+        }
+        const sector = 1 + Math.floor(state.time / import_config4.default.sectorSeconds);
+        if (sector !== state.sector) {
+          state.sector = sector;
+          const group = import_content2.default.groups[state.groupIndex];
+          if (state.biomeIndex >= group.biomes.length - 1) beginBoss(state);
+          else {
+            state.biomeIndex += 1;
+            state.previousBiome = state.biome;
+            state.biome = group.biomes[state.biomeIndex].id;
+            state.biomeBlend = 0;
+            state.events.push({ type: "sector", x: 240, y: 60 });
+          }
+        }
+        state.biomeBlend = Math.min(
+          1,
+          state.biomeBlend + dt / import_config4.default.generation.themeFadeSeconds,
+        );
+        advancePace(state, dt);
+      }
+      function advancePace(state, dt) {
+        if (state.time >= state.nextPaceTime) {
+          const ids = import_content2.default.paces.map((pace2) => pace2.id);
+          state.pace = import_random2.default.drawBag(
+            state.paceRng,
+            state.paceBag,
+            ids,
+            state.pace,
+          );
+          state.nextPaceTime =
+            state.time +
+            import_random2.default.range(
+              state.paceRng,
+              import_config4.default.speed.phaseMinSeconds,
+              import_config4.default.speed.phaseMaxSeconds,
+            );
+          state.events.push({ type: "pace", x: 240, y: 60 });
+        }
+        const pace = import_content2.default.paces.find((item) => item.id === state.pace);
+        state.targetSpeed = baseSpeed(state.time, state.rules) * pace.multiplier;
+        const difference = state.targetSpeed - state.speed;
+        const rate =
+          difference > 0
+            ? import_config4.default.speed.acceleration
+            : import_config4.default.speed.deceleration;
+        state.speed += Math.sign(difference) * Math.min(Math.abs(difference), rate * dt);
+      }
+      function gapSeconds(sector, rules = { gap: 1 }) {
+        const settings = import_config4.default.generation;
+        return Math.max(
+          settings.minimumGapSeconds,
+          (settings.initialGapSeconds - 0.16 * Math.log2(sector + 1)) * rules.gap,
+        );
+      }
+      function safetySpeed(state) {
+        const fastestPace = Math.max(
+          ...import_content2.default.paces.map((pace) => pace.multiplier),
+        );
+        const fastestEnemy = Math.max(
+          0,
+          ...import_content2.default.enemies.map((enemy) => enemy.extraSpeed),
+        );
+        return (
+          Math.max(state.speed, baseSpeed(state.time + 6, state.rules) * fastestPace) + fastestEnemy
+        );
+      }
+      module.exports = { baseSpeed, update: update2, gapSeconds, safetySpeed };
+    },
+  });
+
+  // src/generator.ts
+  var require_generator = __commonJS({
+    "src/generator.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var import_content2 = __toESM(require_content());
+      var import_difficulty3 = __toESM(require_difficulty());
+      function choose(state, type) {
+        const definitions = import_content2.default[type].filter(
+          (item) => item.unlock <= state.sector,
+        );
+        const chosen = import_random2.default.weighted(
+          state.rng,
+          definitions,
+          state.lastVariant[type],
+        );
+        state.lastVariant[type] = chosen.id;
+        return chosen;
+      }
+      function obstacle(state, x) {
+        const definition = choose(state, "obstacles");
+        return {
+          kind: "hazard",
+          variant: definition.id,
+          x,
+          y: import_config4.default.floor - definition.h,
+          w: definition.w,
+          h: definition.h,
+          passed: false,
+        };
+      }
+      function enemy(state, x, variant) {
+        const definition =
+          import_content2.default.enemies.find(
+            (item) => item.id === variant && item.unlock <= state.sector,
+          ) ?? choose(state, "enemies");
+        state.lastVariant.enemies = definition.id;
+        const altitudeJitter =
+          definition.altitude === definition.h && definition.amplitude === 0
+            ? 0
+            : import_random2.default.range(state.rng, -4, 4);
+        const baseY = import_config4.default.floor - definition.altitude + altitudeJitter;
+        return {
+          kind: "enemy",
+          variant: definition.id,
+          x,
+          y: baseY,
+          baseY,
+          w: definition.w,
+          h: definition.h,
+          amplitude: definition.amplitude,
+          frequency: definition.frequency,
+          extraSpeed: definition.extraSpeed,
+          phase: import_random2.default.range(state.rng, 0, Math.PI * 2),
+          age: 0,
+          passed: false,
+        };
+      }
+      function coinPath(state, pattern, startX, width) {
+        const points = [];
+        const count = [
+          "scatter",
+          "zigzag",
+          "double-arc",
+          "diamond",
+          "helix",
+          "ripple",
+          "ladder",
+        ].includes(pattern)
+          ? 13
+          : 7;
+        const yShift = import_random2.default.range(state.rng, -3, 3);
+        for (let i = 0; i < count; i++) {
+          const fraction = i / (count - 1);
+          let x = startX + fraction * width;
+          let height;
+          switch (pattern) {
+            case "ground":
+              height = 12;
+              break;
+            case "arc":
+              height = 28 + Math.sin(fraction * Math.PI) * 40;
+              break;
+            case "staircase":
+              height = 18 + Math.floor(fraction * 4) * 13;
+              break;
+            case "high":
+              height = 67;
+              break;
+            case "wave":
+              height = 37 + Math.sin(fraction * Math.PI * 2) * 22;
+              break;
+            case "split":
+              height = i < count / 2 ? 15 : 65;
+              break;
+            case "zigzag":
+              height = 15 + (i % 2) * 42;
+              break;
+            case "double-arc":
+              height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
+              break;
+            case "diamond":
+              height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
+              break;
+            case "helix":
+              height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
+              break;
+            case "ripple":
+              height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
+              break;
+            case "ladder":
+              height = 12 + (i % 4) * 17;
+              break;
+            case "scatter":
+              height = import_random2.default.range(state.rng, 12, 70);
+              x += import_random2.default.range(state.rng, -5, 5);
+              break;
+            default:
+              throw new Error("Unknown coin pattern: " + pattern);
+          }
+          points.push({
+            kind: "ember",
+            variant: pattern,
+            x,
+            y: Math.max(
+              import_config4.default.floor - 70,
+              Math.min(
+                import_config4.default.floor - 10,
+                import_config4.default.floor - height + yShift,
+              ),
+            ),
+            w: 5,
+            h: 6,
+          });
+          if (pattern === "diamond" && i > 0 && i < count - 1) {
+            points.push({
+              ...points[points.length - 1],
+              y: import_config4.default.floor - (78 - height) + yShift,
+            });
+          }
+        }
+        return points;
+      }
+      function overlapsDanger(coin, object) {
+        const clearance = import_config4.default.generation.coinClearance;
+        const amplitude = object.amplitude || 0;
+        return (
+          coin.x + coin.w + clearance > object.x &&
+          coin.x - clearance < object.x + object.w &&
+          coin.y + coin.h + clearance > object.y - amplitude &&
+          coin.y - clearance < object.y + object.h + amplitude
+        );
+      }
+      function spawn(state) {
+        if (state.bossActive) {
+          state.next = state.distance + 480;
+          return (
+            state.lastEncounter ?? {
+              pattern: "boss",
+              coinPattern: "ground",
+              variants: ["boss"],
+              gap: 0,
+              width: 0,
+            }
+          );
+        }
+        const eligible = import_content2.default.patterns
+          .filter((pattern2) => pattern2.unlock <= state.sector)
+          .map((pattern2) => pattern2.id);
+        const key = eligible.join(",");
+        if (key !== state.patternPool) {
+          state.patternBag.length = 0;
+          state.patternPool = key;
+        }
+        const pattern = import_random2.default.drawBag(
+          state.rng,
+          state.patternBag,
+          eligible,
+          state.lastPattern,
+        );
+        const coinPattern = import_random2.default.drawBag(
+          state.rng,
+          state.coinBag,
+          import_content2.default.coinPatterns,
+          state.lastCoinPattern,
+        );
+        state.lastPattern = pattern;
+        state.lastCoinPattern = coinPattern;
+        const x = import_config4.default.generation.spawnX;
+        const safetySpeed = import_difficulty3.default.safetySpeed(state);
+        const separation = Math.max(155, safetySpeed * 1.25);
+        const dangers = [];
+        switch (pattern) {
+          case "hurdle":
+            dangers.push(obstacle(state, x));
+            break;
+          case "escort":
+          case "patrol":
+            dangers.push(enemy(state, x));
+            if (
+              state.sector >= 4 &&
+              import_random2.default.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035)
+            )
+              dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
+            break;
+          case "steps":
+            dangers.push(obstacle(state, x), obstacle(state, x + separation));
+            break;
+          case "mixed":
+            if (import_random2.default.next(state.rng) < 0.5)
+              dangers.push(obstacle(state, x), enemy(state, x + separation));
+            else dangers.push(enemy(state, x), obstacle(state, x + separation));
+            break;
+          case "squad": {
+            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
+            for (let i = 0; i < count; i++)
+              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+            break;
+          }
+          case "crossfire":
+            dangers.push(
+              enemy(state, x, "sentry"),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
+            );
+            break;
+          case "convoy":
+            dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
+            break;
+          case "coin-break":
+            break;
+          default:
+            throw new Error("Unknown encounter: " + pattern);
+        }
+        const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
+        const coins = coinPath(state, coinPattern, x - 24, Math.max(115, end - x + 95));
+        const safeCoins = coins.filter(
+          (coin) => !dangers.some((danger) => overlapsDanger(coin, danger)),
+        );
+        if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
+        state.objects.push(...dangers, ...safeCoins);
+        let travelEnd = end;
+        if (import_random2.default.next(state.rng) < import_config4.default.traversal.spawnChance) {
+          const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
+          const device = {
+            kind,
+            x: end + Math.max(95, safetySpeed * 0.65),
+            y: import_config4.default.floor - (kind === "portal" ? 43 : 5),
+            w: kind === "portal" ? 22 : 26,
+            h: kind === "portal" ? 43 : 5,
+            age: 0,
+          };
+          state.traversals.push(device);
+          if (state.traversals.length > 4) state.traversals.shift();
+          travelEnd = device.x + device.w;
+        }
+        const gap =
+          import_difficulty3.default.gapSeconds(state.sector, state.rules) +
+          import_random2.default.range(
+            state.rng,
+            0,
+            import_config4.default.generation.gapVariationSeconds,
+          );
+        const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
+        state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
+        state.encounterCount++;
+        state.lastEncounter = {
+          pattern,
+          coinPattern,
+          variants: dangers.map((item) => item.variant),
+          gap,
+          width: occupiedWidth,
+        };
+        return state.lastEncounter;
+      }
+      function move(object, speed, dt) {
+        if (object.variant === "boss") {
+          object.age = (object.age ?? 0) + dt;
+          object.x += (300 - object.x) * Math.min(1, dt * 2);
+          object.y =
+            object.baseY +
+            Math.sin(object.age * object.frequency + object.phase) * object.amplitude;
+          return;
+        }
+        object.x -= (speed + (object.extraSpeed || 0)) * dt;
+        if (object.kind === "enemy") {
+          object.age = (object.age ?? 0) + dt;
+          object.y =
+            object.baseY +
+            Math.sin(object.age * object.frequency + object.phase) * object.amplitude;
+        }
+      }
+      module.exports = { spawn, obstacle, enemy, coinPath, overlapsDanger, move };
+    },
+  });
+
   // src/upgrades.ts
   var require_upgrades = __commonJS({
     "src/upgrades.ts"(exports, module) {
@@ -1366,6 +1811,7 @@
       var shooters = {
         sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
         wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
+        boss: { interval: 1.7, speed: 90, color: "#ffb15a" },
       };
       function update2(state, dt) {
         if (state.mode !== "playing") return;
@@ -1456,29 +1902,38 @@
       "use strict";
       var import_config4 = __toESM(require_config());
       function activate(state, device) {
+        if (device.role === "exit") return;
         const distance =
           device.kind === "portal"
             ? import_config4.default.traversal.portalSkip
             : import_config4.default.traversal.padSkip;
         state.distance += distance;
+        state.parallax += distance;
+        state.next += distance;
         state.score += BigInt(distance);
         state.time += Math.min(6, distance / Math.max(98, state.speed));
-        state.objects = [];
-        state.projectiles = [];
-        state.hostileProjectiles = [];
-        state.traversals = [];
-        state.next =
-          state.distance +
-          Math.max(import_config4.default.generation.initialDistance, state.runSpeed * 2);
         state.invincible = Math.max(
           state.invincible,
           import_config4.default.traversal.arrivalGrace,
         );
         state.player.x = import_config4.default.playerX;
+        state.traversals = state.traversals.filter((item) => item !== device);
         if (device.kind === "portal") {
           state.player.y = import_config4.default.floor - import_config4.default.playerHeight;
           state.player.vy = 0;
           state.player.jumps = 0;
+          state.traversals.push({
+            kind: "portal",
+            role: "exit",
+            x: Math.min(
+              import_config4.default.width - 40,
+              Math.max(device.x + 130, state.player.x + 160),
+            ),
+            y: device.y,
+            w: device.w,
+            h: device.h,
+            age: 0,
+          });
         } else {
           state.player.vy = -260;
           state.player.jumps = 1;
@@ -1504,6 +1959,7 @@
           device.age += dt;
           const player = state.player;
           if (
+            device.role !== "exit" &&
             player.x + 13 > Math.min(previousX, device.x) &&
             player.x < Math.max(previousX, device.x) + device.w &&
             player.y + import_config4.default.playerHeight > device.y &&
@@ -1513,7 +1969,9 @@
             return;
           }
         }
-        state.traversals = state.traversals.filter((device) => device.x + device.w > -20);
+        state.traversals = state.traversals.filter(
+          (device) => device.x + device.w > -20 && !(device.role === "exit" && device.age > 1.4),
+        );
       }
       module.exports = { activate, update: update2 };
     },
@@ -1584,6 +2042,10 @@
           previousBiome: "city",
           biomeBlend: 1,
           biomeBag: [],
+          groupIndex: 0,
+          biomeIndex: 0,
+          bossActive: false,
+          parallax: 0,
           patternBag: [],
           coinBag: [],
           patternPool: "",
@@ -1659,7 +2121,7 @@
           state.hits++;
           state.combo = 0;
           state.invincible = import_config4.default.damageGrace;
-          object.dead = true;
+          if (object.variant !== "boss") object.dead = true;
           emit(state, "hit", state.player.x, state.player.y);
           if (state.hits >= state.health) {
             state.mode = "dead";
@@ -2034,7 +2496,6 @@
         });
       }
       formation(run, true);
-      if (run.checkpoint) run.checkpoint.x -= w.distance - beforeTravel;
     }
     for (const [i, m] of live.entries()) {
       const s = m.state;
@@ -2539,6 +3000,9 @@
             case "death":
               [260, 195, 130, 65].forEach((f, i) => tone(f, 0.3, "triangle", 0.1, 0, i * 0.13));
               break;
+            case "boss":
+              [90, 70, 50, 110].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.07, 20, i * 0.12));
+              break;
             case "sector":
               [330, 440, 660].forEach((f, i) => tone(f, 0.16, "triangle", 0.06, 0, i * 0.09));
               break;
@@ -2685,6 +3149,25 @@
             rect(x + 1, base - height, width - 6, 8, color);
             for (let i = 0; i < 3; i++) rect(x + 1 + i * 6, base - height - i * 3, 7, 5, color);
             triangle(x + 14, base, width - 17, height * 0.3, color);
+          } else if (type === "coast") {
+            rect(x + 4, base - 12, width - 10, 12, color);
+            rect(x + width / 2 - 2, base - height, 4, height, color);
+            triangle(x + 6, base - 18, width - 18, 16, color);
+            if (layer === 2) line(x + 2, base - 8, width - 12, palette.light);
+          } else if (type === "cavern") {
+            rect(x, base - height * 0.4, width - 4, height * 0.4, color);
+            for (let i = 0; i < 3; i++)
+              triangle(x + 4 + i * 18, base - height, 12, height * 0.7, color);
+            if (layer === 2) rect(x + width / 2, base - 16, 3, 8, palette.light);
+          } else if (type === "spire") {
+            rect(x + width / 2 - 5, base - height, 10, height, color);
+            triangle(x + width / 2 - 9, base - height, 18, 14, palette.detail);
+            rect(x + width / 2 - 1, base - height - 16, 3, 18, color);
+          } else if (type === "neon") {
+            rect(x, base - height, width - 8, height, color);
+            rect(x + 3, base - height + 7, width - 16, 3, palette.light);
+            rect(x + 3, base - height / 2, width - 16, 3, palette.detail);
+            if (layer === 2) rect(x + width - 18, base - height - 10, 5, 12, palette.light);
           } else {
             rect(x, base - height, width - 8, height, color);
             rect(x + 4, base - height - 3, width - 17, 4, color);
@@ -2749,8 +3232,15 @@
             const y = (i * 37 + time * (biome.weather === "snow" ? 15 : -4) + 2400) % 205;
             if (biome.weather === "snow") rect(x, y, i % 3 ? 1 : 2, 2, palette.light);
             else if (biome.weather === "sand") line(x, y, 3 + (i % 4), palette.detail);
-            else if (biome.weather === "fireflies")
-              rect(x, y + Math.sin(time * 2 + i) * 3, 1, 1, i % 3 ? palette.light : palette.near);
+            else if (biome.weather === "fireflies" || biome.weather === "spores")
+              rect(
+                x,
+                y + Math.sin(time * 2 + i) * 3,
+                biome.weather === "spores" ? 2 : 1,
+                2,
+                i % 3 ? palette.light : palette.near,
+              );
+            else if (biome.weather === "rain") rect(x, y, 1, 6, palette.light);
             else rect(x, y, 1, 1, i % 2 ? palette.light : palette.detail);
           }
         }
@@ -3117,6 +3607,18 @@
             for (let i = 0; i < 3; i++)
               rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
           },
+          boss(o, t) {
+            const pulse = reducedMotion ? 0 : Math.round(Math.sin(t * 6) * 2);
+            rect(o.x + 10, o.y + 18, 26, 34, "#241c22");
+            rect(o.x + 14, o.y + 8, 18, 16, "#c24b38");
+            rect(o.x + pulse, o.y + 24, 12, 18, "#d9c7a4");
+            rect(o.x + 34 - pulse, o.y + 24, 12, 18, "#d9c7a4");
+            rect(o.x + 16, o.y + 28, 5, 5, "#ffe0b0");
+            rect(o.x + 25, o.y + 28, 5, 5, "#ffe0b0");
+            for (let i = 0; i < 4; i++)
+              rect(o.x + 12 + i * 7, o.y + 2 - (i % 2) * 5, 5, 8, "#e2b15a");
+            rect(o.x + 18, o.y + 40, 10, 8, "#8a3a32");
+          },
           drone(o, t) {
             rect(o.x, o.y + 3, o.w, 7, "#b7b995");
             rect(o.x + 3, o.y, 13, 12, "#637c68");
@@ -3205,9 +3707,11 @@
           const { x, y, w, h } = device;
           const time = reducedMotion ? 0 : device.age;
           if (device.kind === "portal") {
+            const exit = device.role === "exit";
+            const open = exit ? Math.min(1, device.age / 0.35) : 1;
             ctx.save();
-            ctx.globalAlpha = 0.3;
-            rect(x + 5, y + 6, w - 10, h - 12, "#a5adff");
+            ctx.globalAlpha = 0.3 + (exit ? 0.35 * (1 - Math.min(1, device.age / 1.4)) : 0);
+            rect(x + 5, y + 6, (w - 10) * open, h - 12, exit ? "#b7f0d8" : "#a5adff");
             ctx.restore();
             for (let i = 0; i < 28; i++) {
               const phase = (i / 28) * Math.PI * 2;
@@ -3232,7 +3736,7 @@
           ctx.font = "5px monospace";
           ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
           ctx.fillText(
-            device.kind === "portal" ? "PORTAL" : "JUMP PAD",
+            device.role === "exit" ? "EXIT" : device.kind === "portal" ? "PORTAL" : "JUMP PAD",
             x - 2,
             y - (device.kind === "portal" ? 5 : 24),
           );
@@ -3294,7 +3798,11 @@
               Math.round((Math.random() - 0.5) * feedback.shake),
             );
           }
-          background.draw(state.mode === "menu" ? time * 24 : state.distance, time, state);
+          background.draw(
+            state.mode === "menu" ? time * 24 : state.distance - state.parallax,
+            time,
+            state,
+          );
           if (state.mode === "menu") {
             for (let i = 0; i < 5; i++)
               sprites.object(
@@ -3515,9 +4023,11 @@
           el.score.textContent = format(state.score);
           el.best.textContent = format(best);
           el.sector.textContent = "SECTOR " + String(state.sector).padStart(2, "0");
-          el.zone.textContent = import_content2.default.biomes.find(
-            (item) => item.id === state.biome,
-          ).name;
+          const biome = import_content2.default.biomes.find((item) => item.id === state.biome);
+          const group = import_content2.default.groups.find((item) =>
+            item.biomes.some((entry) => entry.id === biome.id),
+          );
+          el.zone.textContent = state.bossActive ? "BOSS / " + group.boss : biome.name;
           el.velocity.textContent = Math.round(state.runSpeed) + " PX/S";
           el.pace.textContent =
             import_content2.default.paces.find((item) => item.id === state.pace).name +
@@ -4898,12 +5408,13 @@
       refresh();
     }
     if (/^https?:$/.test(location.protocol))
-      void fetch("/desktop-info")
+      void fetch("/host-info")
         .then(async (response) => (response.ok ? response.json() : null))
         .then((info) => {
-          if (!info?.desktop || !Array.isArray(info.addresses)) return;
-          element(doc, "party-lan-instructions").textContent =
-            "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open.";
+          if (!info?.hosting || !Array.isArray(info.addresses)) return;
+          element(doc, "party-lan-instructions").textContent = info.desktop
+            ? "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open."
+            : "LAN hosting is running for this web page. Host a room, then share one of these addresses and its room code. Keep this tab open.";
           element(doc, "party-lan-addresses").textContent = info.addresses
             .filter((address) => typeof address === "string")
             .join(" \xB7 ");
@@ -5166,6 +5677,11 @@
                 feedback.shake = 10;
                 saveBest();
                 ui.showOverlay("dead", state);
+                break;
+              case "boss":
+                ui.announce("BOSS / " + (event.label || "APPROACHING"));
+                particles.burst(240, 40, 40, "#e2b15a", 70);
+                feedback.shake = 5;
                 break;
               case "sector":
                 ui.announce(

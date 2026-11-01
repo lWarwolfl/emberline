@@ -2,7 +2,7 @@
 
 ![EMBERLINE cover art: the wordmark on a dark grid, crossed by an ember filament](assets/og-image.png)
 
-An offline pixel runner with procedural encounters, five changing environments,
+An offline pixel runner with procedural encounters, five biome groups,
 original synthesized sound, and an endless score. UI direction follows the
 Hermes Claude Design skill used for the original game. The hosted build installs
 as an app and keeps playing with no network after the first load.
@@ -30,11 +30,13 @@ are separate from existing browser/public-site progress. No save import is inclu
 A second launch focuses the existing app. If port 4174 is occupied, startup reports
 an error instead of changing the save origin. Closing the app stops its LAN server.
 
-Development: `npm run desktop`. Build the Windows x64 installer:
-`npm run dist:desktop`. Output goes to ignored `release/`; the standalone app is
-`release/win-unpacked/EMBERLINE.exe`. Windows is the packaged target; macOS/Linux
-installers and automatic updates are not configured. Existing web/PWA playback
-remains available rather than deleting a working distribution channel.
+Development: `npm run desktop`. Build the Windows installer and Linux archive:
+`npm run dist:desktop`. Output goes to ignored `release/`. Windows is
+`EMBERLINE-Setup-<version>.exe`; Linux is `EMBERLINE-<version>-linux-x64.tar.gz`.
+Extract it and run `emberline`. The public static site cannot open a LAN port.
+`npm run host` or `Host-LAN.cmd` serves the same web build and shows its LAN
+addresses in the party panel, the same way the installed app does. Automatic
+updates are not configured.
 
 ## Publish a desktop update
 
@@ -76,7 +78,8 @@ Losing window focus pauses the run. Touch buttons are included.
 - **Four new skins:** Copper lynx (2,000), Lunar moth (2,800), Deep relay diver (3,500) and Signal specter (4,200). Each has a distinct head/helmet silhouette and the same player hitbox.
 - **Three new guns:** Needle repeater (3,600; fast single shots), Nova fan (4,400; five-bolt spread), and Prism railgun (5,200; pierces up to three targets). Steel hazards still stop every weapon.
 - **Level-10 progression:** Dash, Jump height and Attack damage now reach L10. Existing L0–L5 prices and stats are unchanged. L6–L10 cost 750 / 1,000 / 1,250 / 1,500 / 1,750 coins. Advanced tiers have smaller increments; damage caps at ×2.6 and dash stays below ×1.8. Triple Jump remains a one-time unlock.
-- **Rare shortcuts:** every generated encounter has a combined **5%** chance of a portal or jump pad, split equally. Walk into a portal to skip 650m; a pad launches you and skips 350m, followed by a short speed burst. Both clear the skipped dangers and bullets, protect the arrival, and award distance score. Skipped coins are not collected. Devices have animated pixel art, particles, sound and local action labels; reduced motion keeps a restrained cue, and the devices stay visible with particle effects disabled.
+- **Rare shortcuts:** every generated encounter has a combined **5%** chance of a portal or jump pad, split equally. Walk into a portal to skip 650m and come out through an exit portal; a pad launches you and skips 350m, followed by a short speed burst. The route already on screen stays. Both protect the arrival and award distance score. Skipped coins are not collected. Devices have animated pixel art, particles, sound and local action labels; reduced motion keeps a restrained cue, and the devices stay visible with particle effects disabled.
+- **Biome groups:** five groups of five biomes. After the fifth biome in a group, a boss holds the lane until it is destroyed, then the next group begins.
 
 Your wallet, owned equipment and existing upgrade levels carry over. Open the shop to buy new equipment or continue past level five. Purchases still apply to the next run's upgrade snapshot.
 

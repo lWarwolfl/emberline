@@ -189,6 +189,11 @@ function create(doc: Document) {
           saveBest();
           ui.showOverlay("dead", state);
           break;
+        case "boss":
+          ui.announce("BOSS / " + (event.label || "APPROACHING"));
+          particles.burst(240, 40, 40, "#e2b15a", 70);
+          feedback.shake = 5;
+          break;
         case "sector":
           ui.announce(
             "SECTOR " +

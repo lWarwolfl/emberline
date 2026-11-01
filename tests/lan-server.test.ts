@@ -77,6 +77,12 @@ test("LAN static server serves the build and blocks cross-site WebSocket clients
     const res = await fetch(`http://127.0.0.1:${address.port}/`);
     assert.equal(res.status, 200);
     assert.match(await res.text(), /party-dialog/);
+    const hostInfo = await fetch(`http://127.0.0.1:${address.port}/host-info`);
+    assert.equal(hostInfo.status, 200);
+    const info = await hostInfo.json();
+    assert.equal(info.hosting, true);
+    assert.equal(info.desktop, false);
+    assert(Array.isArray(info.addresses));
     const ws = new WebSocket(`ws://127.0.0.1:${address.port}/party?role=host`, {
       origin: "https://unrelated.example",
     });

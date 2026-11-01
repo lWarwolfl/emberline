@@ -21,7 +21,7 @@ export function createLanServer(root = path.resolve(__dirname, "../public"), des
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
-      if (desktop && url.pathname === "/desktop-info") {
+      if (url.pathname === "/host-info" || (desktop && url.pathname === "/desktop-info")) {
         const address = server.address();
         const port = address && typeof address !== "string" ? address.port : 4173;
         const addresses = Object.values(networkInterfaces()).flatMap((entries) =>
@@ -30,7 +30,7 @@ export function createLanServer(root = path.resolve(__dirname, "../public"), des
             .map((entry) => `http://${entry.address}:${port}/`),
         );
         res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-        res.end(JSON.stringify({ desktop: true, addresses }));
+        res.end(JSON.stringify({ desktop, hosting: true, addresses }));
         return;
       }
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, "") || "index.html";

@@ -258,7 +258,6 @@ function step(run: PartyRun, dt: number) {
       });
     }
     formation(run, true);
-    if (run.checkpoint) run.checkpoint.x -= w.distance - beforeTravel;
   }
   for (const [i, m] of live.entries()) {
     const s = m.state;

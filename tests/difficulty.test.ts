@@ -33,20 +33,33 @@ test("base difficulty rises indefinitely and speed phases include recovery", () 
   assert.equal(paces.size, Content.paces.length);
 });
 
-test("background shuffle visits all five biomes without immediate repeats", () => {
+test("each biome group has five biomes and ends in one boss", () => {
+  assert.equal(Content.groups.length, 5);
+  assert(Content.groups.every((group) => group.biomes.length === 5));
+  assert.equal(new Set(Content.biomes.map((biome) => biome.id)).size, 25);
   const state = run("biome-check");
-  const seen = new Set();
-  let previous = state.biome;
-  for (let sector = 2; sector <= 6; sector++) {
-    state.time = (sector - 1) * Config.sectorSeconds + 0.01;
+  const first = Content.groups[0].biomes.map((biome) => biome.id);
+  assert.equal(state.biome, first[0]);
+  for (let index = 1; index < 5; index++) {
+    state.time = index * Config.sectorSeconds + 0.01;
     Difficulty.update(state, 1 / 120);
-    assert.notEqual(state.biome, previous);
-    seen.add(state.biome);
-    previous = state.biome;
-    assert.equal(state.previousBiome === state.biome, false);
+    assert.equal(state.biome, first[index]);
+    assert.equal(state.bossActive, false);
     assert(state.biomeBlend < 0.01);
   }
-  assert.equal(seen.size, Content.biomes.length);
+  state.time = 5 * Config.sectorSeconds + 0.01;
+  Difficulty.update(state, 1 / 120);
+  assert.equal(state.bossActive, true);
+  assert.equal(state.biome, first[4]);
+  assert(state.objects.some((object) => object.variant === "boss" && !object.dead));
+  state.time = 8 * Config.sectorSeconds;
+  Difficulty.update(state, 1 / 120);
+  assert.equal(state.biome, first[4]);
+  state.objects = state.objects.filter((object) => object.variant !== "boss");
+  Difficulty.update(state, 1 / 120);
+  assert.equal(state.bossActive, false);
+  assert.equal(state.groupIndex, 1);
+  assert.equal(state.biome, Content.groups[1].biomes[0].id);
 });
 
 test("sector and pace events are emitted at transitions", () => {

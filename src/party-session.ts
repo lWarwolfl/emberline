@@ -317,12 +317,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     refresh();
   }
   if (/^https?:$/.test(location.protocol))
-    void fetch("/desktop-info")
+    void fetch("/host-info")
       .then(async (response) => (response.ok ? response.json() : null))
-      .then((info: { desktop?: boolean; addresses?: unknown } | null) => {
-        if (!info?.desktop || !Array.isArray(info.addresses)) return;
-        element(doc, "party-lan-instructions").textContent =
-          "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open.";
+      .then((info: { desktop?: boolean; hosting?: boolean; addresses?: unknown } | null) => {
+        if (!info?.hosting || !Array.isArray(info.addresses)) return;
+        element(doc, "party-lan-instructions").textContent = info.desktop
+          ? "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open."
+          : "LAN hosting is running for this web page. Host a room, then share one of these addresses and its room code. Keep this tab open.";
         element(doc, "party-lan-addresses").textContent = info.addresses
           .filter((address): address is string => typeof address === "string")
           .join(" · ");

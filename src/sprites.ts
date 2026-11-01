@@ -265,6 +265,17 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       for (let i = 0; i < 3; i++)
         rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
     },
+    boss(o: WorldObject, t: number) {
+      const pulse = reducedMotion ? 0 : Math.round(Math.sin(t * 6) * 2);
+      rect(o.x + 10, o.y + 18, 26, 34, "#241c22");
+      rect(o.x + 14, o.y + 8, 18, 16, "#c24b38");
+      rect(o.x + pulse, o.y + 24, 12, 18, "#d9c7a4");
+      rect(o.x + 34 - pulse, o.y + 24, 12, 18, "#d9c7a4");
+      rect(o.x + 16, o.y + 28, 5, 5, "#ffe0b0");
+      rect(o.x + 25, o.y + 28, 5, 5, "#ffe0b0");
+      for (let i = 0; i < 4; i++) rect(o.x + 12 + i * 7, o.y + 2 - (i % 2) * 5, 5, 8, "#e2b15a");
+      rect(o.x + 18, o.y + 40, 10, 8, "#8a3a32");
+    },
     drone(o: WorldObject, t: number) {
       rect(o.x, o.y + 3, o.w, 7, "#b7b995");
       rect(o.x + 3, o.y, 13, 12, "#637c68");
@@ -338,9 +349,11 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     const { x, y, w, h } = device;
     const time = reducedMotion ? 0 : device.age;
     if (device.kind === "portal") {
+      const exit = device.role === "exit";
+      const open = exit ? Math.min(1, device.age / 0.35) : 1;
       ctx.save();
-      ctx.globalAlpha = 0.3;
-      rect(x + 5, y + 6, w - 10, h - 12, "#a5adff");
+      ctx.globalAlpha = 0.3 + (exit ? 0.35 * (1 - Math.min(1, device.age / 1.4)) : 0);
+      rect(x + 5, y + 6, (w - 10) * open, h - 12, exit ? "#b7f0d8" : "#a5adff");
       ctx.restore();
       for (let i = 0; i < 28; i++) {
         const phase = (i / 28) * Math.PI * 2;
@@ -365,7 +378,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     ctx.font = "5px monospace";
     ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
     ctx.fillText(
-      device.kind === "portal" ? "PORTAL" : "JUMP PAD",
+      device.role === "exit" ? "EXIT" : device.kind === "portal" ? "PORTAL" : "JUMP PAD",
       x - 2,
       y - (device.kind === "portal" ? 5 : 24),
     );

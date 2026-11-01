@@ -185,29 +185,35 @@ test("portals and pads share a seeded 5% encounter chance and both appear", () =
   assert(portals > 250 && pads > 250);
 });
 
-test("portals skip once, clear dangers and bullets, and never credit skipped coins", () => {
+test("portals skip once, keep the route, open an exit, and never credit skipped coins", () => {
   const state = run();
-  state.objects = [{ kind: "ember", variant: "ground", x: 200, y: 181, w: 5, h: 6 }];
+  state.objects = [{ kind: "ember", variant: "ground", x: 400, y: 181, w: 5, h: 6 }];
   state.hostileProjectiles = [bolt()];
   state.traversals = [{ kind: "portal", x: 84, y: 153, w: 22, h: 43, age: 0 }];
   Engine.update(state, 0.001);
   assert(state.distance >= 650 && state.distance < 651);
+  assert(state.distance - state.parallax < 2);
   assert.equal(state.embers, 0);
-  assert.equal(state.objects.length, 0);
-  assert.equal(state.hostileProjectiles.length, 0);
-  assert.equal(state.traversals.length, 0);
+  assert.equal(state.objects.length, 1);
+  assert.equal(state.hostileProjectiles.length, 1);
+  assert.equal(state.traversals.filter((device) => device.role === "exit").length, 1);
   assert.equal(state.traversalEffect?.kind, "portal");
-  assert(state.invincible >= 1.49 && state.next > state.distance + 100);
-  advance(state, 0.9);
+  const skipped = state.distance;
+  advance(state, 0.2);
+  assert(state.distance - skipped < 40);
+  assert.equal(state.embers, 0);
+  advance(state, 0.7);
   assert.equal(state.traversalEffect, null);
-  assert(state.distance < 900);
 });
 
 test("jump pads launch, skip distance, boost travel, and leave a safe landing", () => {
   const state = run();
+  state.objects = [{ kind: "hazard", variant: "crate", x: 450, y: 180, w: 13, h: 14 }];
   state.traversals = [{ kind: "pad", x: 84, y: 191, w: 26, h: 5, age: 0 }];
   Engine.update(state, 0.001);
   assert(state.distance >= 350 && state.distance < 351);
+  assert(state.distance - state.parallax < 2);
+  assert(state.objects.some((object) => object.variant === "crate"));
   assert(state.player.vy < -250);
   assert.equal(state.player.jumps, 1);
   Engine.update(state, 0.01);

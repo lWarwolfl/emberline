@@ -43,6 +43,24 @@ function create(ctx: CanvasRenderingContext2D) {
       rect(x + 1, base - height, width - 6, 8, color);
       for (let i = 0; i < 3; i++) rect(x + 1 + i * 6, base - height - i * 3, 7, 5, color);
       triangle(x + 14, base, width - 17, height * 0.3, color);
+    } else if (type === "coast") {
+      rect(x + 4, base - 12, width - 10, 12, color);
+      rect(x + width / 2 - 2, base - height, 4, height, color);
+      triangle(x + 6, base - 18, width - 18, 16, color);
+      if (layer === 2) line(x + 2, base - 8, width - 12, palette.light);
+    } else if (type === "cavern") {
+      rect(x, base - height * 0.4, width - 4, height * 0.4, color);
+      for (let i = 0; i < 3; i++) triangle(x + 4 + i * 18, base - height, 12, height * 0.7, color);
+      if (layer === 2) rect(x + width / 2, base - 16, 3, 8, palette.light);
+    } else if (type === "spire") {
+      rect(x + width / 2 - 5, base - height, 10, height, color);
+      triangle(x + width / 2 - 9, base - height, 18, 14, palette.detail);
+      rect(x + width / 2 - 1, base - height - 16, 3, 18, color);
+    } else if (type === "neon") {
+      rect(x, base - height, width - 8, height, color);
+      rect(x + 3, base - height + 7, width - 16, 3, palette.light);
+      rect(x + 3, base - height / 2, width - 16, 3, palette.detail);
+      if (layer === 2) rect(x + width - 18, base - height - 10, 5, 12, palette.light);
     } else {
       rect(x, base - height, width - 8, height, color);
       rect(x + 4, base - height - 3, width - 17, 4, color);
@@ -107,8 +125,15 @@ function create(ctx: CanvasRenderingContext2D) {
       const y = (i * 37 + time * (biome.weather === "snow" ? 15 : -4) + 2400) % 205;
       if (biome.weather === "snow") rect(x, y, i % 3 ? 1 : 2, 2, palette.light);
       else if (biome.weather === "sand") line(x, y, 3 + (i % 4), palette.detail);
-      else if (biome.weather === "fireflies")
-        rect(x, y + Math.sin(time * 2 + i) * 3, 1, 1, i % 3 ? palette.light : palette.near);
+      else if (biome.weather === "fireflies" || biome.weather === "spores")
+        rect(
+          x,
+          y + Math.sin(time * 2 + i) * 3,
+          biome.weather === "spores" ? 2 : 1,
+          2,
+          i % 3 ? palette.light : palette.near,
+        );
+      else if (biome.weather === "rain") rect(x, y, 1, 6, palette.light);
       else rect(x, y, 1, 1, i % 2 ? palette.light : palette.detail);
     }
   }

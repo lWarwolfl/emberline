@@ -60,7 +60,9 @@ function create(doc: Document) {
     el.score.textContent = format(state.score);
     el.best.textContent = format(best);
     el.sector.textContent = "SECTOR " + String(state.sector).padStart(2, "0");
-    el.zone.textContent = Content.biomes.find((item) => item.id === state.biome)!.name;
+    const biome = Content.biomes.find((item) => item.id === state.biome)!;
+    const group = Content.groups.find((item) => item.biomes.some((entry) => entry.id === biome.id));
+    el.zone.textContent = state.bossActive ? "BOSS / " + group!.boss : biome.name;
     el.velocity.textContent = Math.round(state.runSpeed) + " PX/S";
     el.pace.textContent =
       Content.paces.find((item) => item.id === state.pace)!.name +

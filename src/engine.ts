@@ -61,6 +61,10 @@ function create(
     previousBiome: "city",
     biomeBlend: 1,
     biomeBag: [],
+    groupIndex: 0,
+    biomeIndex: 0,
+    bossActive: false,
+    parallax: 0,
     patternBag: [],
     coinBag: [],
     patternPool: "",
@@ -142,7 +146,7 @@ function hit(state: GameState, object: WorldObject) {
     state.hits++;
     state.combo = 0;
     state.invincible = Config.damageGrace;
-    object.dead = true;
+    if (object.variant !== "boss") object.dead = true;
     emit(state, "hit", state.player.x, state.player.y);
     if (state.hits >= state.health) {
       state.mode = "dead";

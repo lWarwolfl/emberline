@@ -74,6 +74,7 @@ export interface HostileProjectile extends Projectile {
 }
 export interface Traversal {
   kind: "portal" | "pad";
+  role?: "exit";
   x: number;
   y: number;
   w: number;
@@ -147,6 +148,10 @@ export interface GameState {
   previousBiome: string;
   biomeBlend: number;
   biomeBag: string[];
+  groupIndex: number;
+  biomeIndex: number;
+  bossActive: boolean;
+  parallax: number;
   patternBag: string[];
   coinBag: string[];
   patternPool: string;
