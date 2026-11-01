@@ -172,80 +172,131 @@
           <button id="party-close" class="close-button" aria-label="Close party">✕</button>
         </header>
         <div class="party-body">
-          <p>
-            One shared route. More couriers bring faster, denser encounters and tougher enemies. The
-            host starts, pauses and restarts the run.
-          </p>
-          <label class="party-field"
-            >YOUR NAME
-            <input id="party-name" value="Courier" maxlength="18" autocomplete="nickname"
-          /></label>
-          <div class="party-path">
-            <h3>DIRECT INVITES</h3>
-            <p>
-              Host a party, then generate a separate invite for each teammate. They return an answer
-              for you to accept. Keep the host tab open and visible.
+          <section class="party-connect" aria-label="Connection setup">
+            <div class="party-intro">
+              <h3>Bring your crew.</h3>
+              <p>One route. Up to four couriers. Equip your gear before connecting.</p>
+            </div>
+            <div class="party-field">
+              <label for="party-name">YOUR COURIER NAME</label>
+              <input id="party-name" value="Courier" maxlength="18" autocomplete="nickname" />
+            </div>
+            <details class="party-path" open>
+              <summary>
+                <span>LAN / SAME WI-FI</span><small>Room code · local network</small>
+              </summary>
+              <div class="party-path-body">
+                <p>
+                  Run <code>npm run host</code> or <code>Host-LAN.cmd</code> on one computer.
+                  Everyone opens its printed LAN address.
+                </p>
+                <button id="party-lan-host" class="secondary">HOST LAN ROOM</button>
+                <div class="party-divider">OR JOIN A ROOM</div>
+                <div class="party-buttons party-room-entry">
+                  <div class="party-field">
+                    <label for="party-room">SIX-CHARACTER ROOM CODE</label>
+                    <input
+                      id="party-room"
+                      maxlength="6"
+                      placeholder="A1B2C3"
+                      autocomplete="off"
+                      autocapitalize="characters"
+                      spellcheck="false"
+                    />
+                  </div>
+                  <button id="party-lan-join" class="secondary">JOIN LAN</button>
+                </div>
+                <small
+                  >The public website has no LAN relay. Use the address from the hosting terminal
+                  and keep it open.</small
+                >
+              </div>
+            </details>
+            <details class="party-path">
+              <summary>
+                <span>DIRECT INVITES</span><small>Browser to browser · exchange codes</small>
+              </summary>
+              <div class="party-path-body">
+                <p>
+                  No local server needed. Exchange a unique invite and answer with each teammate.
+                </p>
+                <h4>01 / HOST &amp; INVITE</h4>
+                <div class="party-buttons">
+                  <button id="party-host" class="secondary">HOST PARTY</button>
+                  <button id="party-invite" class="secondary" disabled>NEW INVITE</button>
+                </div>
+                <h4>02 / PASTE THEIR CODE</h4>
+                <div class="party-field">
+                  <label for="party-input">INVITE FROM HOST / ANSWER FROM TEAMMATE</label>
+                  <textarea
+                    id="party-input"
+                    rows="3"
+                    maxlength="32000"
+                    spellcheck="false"
+                    autocapitalize="off"
+                    autocomplete="off"
+                    placeholder="EMBER7.…"
+                  ></textarea>
+                </div>
+                <div class="party-buttons">
+                  <button id="party-answer" class="secondary">JOIN / CREATE ANSWER</button>
+                  <button id="party-accept" class="secondary">HOST / ACCEPT ANSWER</button>
+                </div>
+                <h4>03 / SHARE YOUR CODE</h4>
+                <div class="party-field">
+                  <label for="party-output">YOUR GENERATED INVITE OR ANSWER</label>
+                  <textarea
+                    id="party-output"
+                    rows="3"
+                    readonly
+                    spellcheck="false"
+                    placeholder="Your code appears here"
+                  ></textarea>
+                </div>
+                <div class="party-buttons">
+                  <button id="party-copy" class="secondary">COPY CODE</button>
+                  <button id="party-cancel-invites" class="secondary">
+                    CANCEL PENDING INVITES
+                  </button>
+                </div>
+                <small
+                  >One invite per teammate; unused invites expire after three minutes. Some routers
+                  and VPNs block direct connections. There is no internet relay—try LAN
+                  instead.</small
+                >
+              </div>
+            </details>
+          </section>
+          <aside class="party-lobby" aria-labelledby="party-lobby-heading">
+            <span class="label">SHARED SIGNAL / LOBBY</span>
+            <h3 id="party-lobby-heading">Your crew</h3>
+            <p id="party-message" role="status" aria-live="polite">
+              Host a room or join a teammate to assemble your crew.
             </p>
-            <div class="party-buttons">
-              <button id="party-host">HOST PARTY</button
-              ><button id="party-invite" disabled>NEW INVITE</button
-              ><button id="party-cancel-invites">CANCEL PENDING INVITES</button>
-            </div>
-            <label class="party-field"
-              >PASTE AN INVITE OR ANSWER<textarea
-                id="party-input"
-                rows="2"
-                maxlength="32000"
-                spellcheck="false"
-                placeholder="EMBER7.…"
-              ></textarea>
-            </label>
-            <div class="party-buttons">
-              <button id="party-answer">JOIN / CREATE ANSWER</button
-              ><button id="party-accept">HOST / ACCEPT ANSWER</button>
-            </div>
-            <label class="party-field"
-              >CODE TO SHARE<textarea
-                id="party-output"
-                rows="2"
-                readonly
-                spellcheck="false"
-                aria-label="Generated invite or answer"
-              ></textarea></label
-            ><button id="party-copy">COPY CODE</button>
-            <small
-              >Direct invites work on compatible networks. If a connection cannot be established,
-              use LAN hosting on the same network. There is no internet relay.</small
-            >
-          </div>
-          <div class="party-path">
-            <h3>LAN / SAME WI-FI</h3>
-            <p>
-              On one computer, run <code>npm run host</code>. Everyone opens the printed LAN
-              address. Host a LAN room and share its six-character code.
+            <div id="party-roster" aria-label="Party members"></div>
+            <p class="party-lobby-empty">
+              No couriers connected yet.<br />Your crew appears here when connected.
             </p>
-            <div class="party-buttons">
-              <button id="party-lan-host">HOST LAN ROOM</button
-              ><label class="party-field"
-                >ROOM CODE<input
-                  id="party-room"
-                  maxlength="6"
-                  placeholder="A1B2C3"
-                  autocomplete="off" /></label
-              ><button id="party-lan-join">JOIN LAN</button>
-            </div>
-          </div>
-          <p id="party-message" role="status" aria-live="polite">
-            Choose your gear and upgrades before joining a party. The host's difficulty applies to
-            everyone.
-          </p>
-          <div id="party-roster" aria-label="Party members"></div>
-          <p class="party-guide">
-            <kbd>T</kbd> / TAKE POINT jumps you to the front to protect teammates. Each courier
-            keeps their own health and upgrade levels. Downed couriers spectate. At each biome
-            entrance, <kbd>SHIFT</kbd> / DASH through the glowing beacon to revive them. Shared
-            pickups pay every connected courier once.
-          </p>
+            <p class="party-lobby-note">
+              The host sets difficulty and controls start, pause and restart. Keep the host tab open
+              and visible.
+            </p>
+            <details class="party-guide">
+              <summary>HOW TEAM RUNS WORK</summary>
+              <p>
+                <kbd>T</kbd> / TAKE POINT moves you to the front to shield teammates. Each courier
+                keeps their own health and upgrades.
+              </p>
+              <p>
+                Downed couriers spectate. <kbd>SHIFT</kbd> / DASH through a glowing biome beacon to
+                revive them.
+              </p>
+              <p>
+                More couriers mean tougher encounters. Shared pickups pay every connected courier
+                once.
+              </p>
+            </details>
+          </aside>
         </div>
         <footer class="setup-footer">
           <button id="party-leave" disabled>LEAVE PARTY</button

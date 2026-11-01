@@ -103,3 +103,23 @@ wash follows the scene's own light), no glass, no icon toppers, no centered
 marketing stack. The only accent remains ember orange on actions and coins.
 Portrait 390×844, landscape 844×390, the setup sheet and the offline reload were
 inspected in Edge with no console exceptions.
+
+## Hosting modal: shared Configure surface
+
+The party dialog reuses the outfitter's charcoal/parchment/ember tokens, Impact
+heading, Consolas body, square controls and native dialog semantics. Connection
+setup occupies the main column; a separate crew inspector shows connection status,
+roster and host responsibilities. The body scrolls while header and actions remain
+available. Phones use the same full-height sheet and safe-area footer as setup.
+
+LAN is expanded first. Direct WebRTC exchanges live in a second native disclosure,
+with host/invite, paste/accept and share steps. Network prerequisites and the
+no-relay limitation stay beside the relevant method. Team-play instructions are
+optional rather than competing with connection controls. All existing party IDs,
+transport behavior and host/guest permissions remain unchanged.
+
+Source-based design audit: 0/10 generic-design tells. The previous modal had an
+accent rail and competing ungrouped actions; the revised composition removes the
+rail, restores the shared amber start action and separates setup from lobby state.
+Static markup regression, lint, types, simulation/network tests and packaged build
+are the verification path; no browser or visual inspection was performed.

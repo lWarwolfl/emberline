@@ -207,6 +207,10 @@ async function main() {
     } else {
       // Real WebRTC data channels on the deployed-style static frontend, no LAN relay.
       const directHost = await courier("Direct host");
+      await directHost
+        .locator(".party-path > summary")
+        .filter({ hasText: "DIRECT INVITES" })
+        .click();
       await directHost.click("#party-host");
       const direct = [directHost];
       for (let i = 1; i <= 3; i++) {
@@ -218,6 +222,7 @@ async function main() {
         );
         const invite = await directHost.inputValue("#party-output");
         const guest = await courier(`Direct ${i}`);
+        await guest.locator(".party-path > summary").filter({ hasText: "DIRECT INVITES" }).click();
         await guest.fill("#party-input", invite);
         await guest.click("#party-answer");
         await guest.waitForFunction(() =>

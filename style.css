@@ -1708,99 +1708,190 @@ dialog::backdrop {
   display: none !important;
 }
 #party-dialog {
-  width: min(780px, calc(100vw - 24px));
-  max-height: 90dvh;
-  padding: 0;
-  color: var(--text, #d9dfc9);
-  background: #121d19;
-  border: 1px solid #456254;
-}
-#party-dialog::backdrop {
-  background: #06100dde;
-}
-#party-dialog button {
-  border: 1px solid #496759;
-  background: #23382e;
-  color: #e5efd6;
-  padding: 11px 14px;
-  cursor: pointer;
-  font: inherit;
-}
-#party-dialog button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-#party-dialog .setup-header {
-  position: sticky;
-  top: 0;
-  background: #14231c;
-  z-index: 1;
+  overflow: hidden;
 }
 #party-dialog .setup-footer {
-  padding: 20px 24px;
-  gap: 16px;
-  border-top: 1px solid #3e5749;
+  display: flex;
+}
+#party-dialog button {
+  min-height: 44px;
+}
+#party-dialog button:disabled {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: default;
+  transform: none;
+}
+#party-leave {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 12px 16px;
+}
+#party-leave:not(:disabled):hover {
+  border-color: var(--ember);
+  color: var(--ember);
+}
+#party-start {
+  margin-left: auto;
 }
 .party-body {
-  padding: 20px 24px;
-  font-size: 13px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 28px;
+  padding: 24px 26px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 11px;
   line-height: 1.7;
 }
+.party-connect,
+.party-lobby {
+  min-width: 0;
+}
+.party-body h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: normal;
+}
 .party-body p {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
+  color: var(--muted);
 }
 .party-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
-  letter-spacing: 0.07em;
-  flex: 1;
-  min-width: 110px;
+  gap: 8px;
+  min-width: 0;
+}
+.party-field label,
+.party-path h4,
+.party-divider {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
 }
 .party-field input,
 .party-field textarea {
   width: 100%;
-  box-sizing: border-box;
-  background: #0c1712;
-  border: 1px solid #4c6958;
-  color: #e4f4dc;
-  padding: 10px;
-  font: 13px monospace;
-  border-radius: 3px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 12px;
+  font: inherit;
+  min-height: 44px;
 }
 .party-field textarea {
   resize: vertical;
-  margin-bottom: 10px;
+  max-height: 180px;
+  overflow-wrap: anywhere;
+}
+.party-field input:focus-visible,
+.party-field textarea:focus-visible,
+.party-body summary:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+#party-room {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 16px;
 }
 .party-path {
-  border-top: 1px solid #395345;
+  border-top: 1px solid var(--line);
   margin-top: 20px;
-  padding-top: 14px;
 }
-.party-path h3 {
-  font-size: 13px;
-  color: #c9e7c1;
-  letter-spacing: 0.12em;
+.party-path > summary {
+  min-height: 62px;
+  padding: 14px 0;
+  cursor: pointer;
+  color: var(--ember);
 }
-.party-path small {
+.party-path > summary span {
+  letter-spacing: 1px;
+}
+.party-path > summary small {
   display: block;
-  color: #9fb6a7;
-  margin-top: 10px;
+  margin-left: 16px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.party-path > summary:hover,
+.party-guide > summary:hover {
+  color: var(--ink);
+}
+.party-path-body > small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.party-path h4 {
+  margin: 20px 0 10px;
+  color: var(--mint);
+  font-weight: normal;
+}
+.party-divider {
+  margin: 20px 0 12px;
 }
 .party-buttons {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 10px;
-  margin-bottom: 14px;
+  margin: 12px 0;
+}
+.party-buttons > button {
+  flex: 1 1 150px;
+}
+.party-room-entry .party-field {
+  flex: 1 1 180px;
+}
+.party-room-entry > button {
+  flex: 0 1 auto;
+}
+.party-lobby {
+  border-left: 1px solid var(--line);
+  padding-left: 25px;
+}
+.party-lobby h3 {
+  margin-top: 9px;
 }
 #party-message {
-  color: #c8f3d0;
-  border-left: 2px solid #81b896;
-  padding-left: 12px;
-  margin-top: 20px;
-  min-height: 2em;
+  color: var(--mint);
+  overflow-wrap: anywhere;
+  margin: 16px 0;
+}
+#party-dialog #party-roster {
+  grid-template-columns: minmax(0, 1fr);
+}
+#party-roster .party-member {
+  background: var(--panel);
+  border-color: var(--line);
+  border-radius: 0;
+  padding: 12px;
+}
+#party-roster .party-member.local {
+  border-color: var(--mint);
+}
+#party-roster .party-member.down {
+  border-color: #75505b;
+}
+.party-lobby-empty {
+  padding: 18px 0;
+  border-block: 1px solid var(--line);
+  font-size: 10px;
+}
+#party-roster:not(:empty) + .party-lobby-empty {
+  display: none;
+}
+.party-lobby-note {
+  margin-top: 18px !important;
+  font-size: 10px;
 }
 #party-roster,
 #party-hud {
@@ -1852,8 +1943,36 @@ dialog::backdrop {
   color: #f4b4b6;
 }
 .party-guide {
-  margin-top: 20px !important;
-  color: #b6c7b7;
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.party-guide summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  color: var(--mint);
+}
+@media (max-width: 700px) {
+  .party-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 16px;
+  }
+  .party-lobby {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 20px 0 0;
+  }
+  #party-dialog .setup-footer {
+    gap: 12px;
+  }
+  #party-dialog .setup-footer .primary {
+    flex: 1;
+    width: auto;
+    letter-spacing: 1px;
+  }
 }
 #take-front {
   color: #b9ebcf;
@@ -1865,10 +1984,6 @@ dialog::backdrop {
   }
   .party-body {
     padding: 16px;
-  }
-  #party-dialog .setup-footer {
-    padding: 16px;
-    flex-wrap: wrap;
   }
   .party-buttons > button {
     flex: 1;
