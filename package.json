@@ -1,6 +1,6 @@
 {
   "name": "emberline",
-  "version": "7.1.0",
+  "version": "7.1.1",
   "private": true,
   "main": ".build/desktop.cjs",
   "author": "Mohammad Sina Kheiri",
@@ -49,6 +49,7 @@
     "host": "npm run build:site && node --import tsx scripts/lan-server.ts",
     "build:desktop": "npm run build:site && esbuild desktop/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=.build/desktop.cjs",
     "desktop": "npm run build:desktop && electron .",
+    "release": "node --import tsx scripts/release.ts",
     "dist:desktop": "npm run build:desktop && electron-builder --win nsis --x64 --publish never"
   },
   "engines": {

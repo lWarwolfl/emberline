@@ -36,6 +36,15 @@ Development: `npm run desktop`. Build the Windows x64 installer:
 installers and automatic updates are not configured. Existing web/PWA playback
 remains available rather than deleting a working distribution channel.
 
+## Publish a desktop update
+
+Preview: `npm run release -- 7.1.1 --dry-run`.
+Publish: `npm run release -- 7.1.1 --publish`.
+Start with committed changes on the desktop branch; the script bumps the version,
+checks, builds, commits release metadata, pushes and verifies the uploaded installer.
+Requires authenticated GitHub CLI. See [the release guide](docs/RELEASING.md)
+for one-time setup, the full workflow and failure recovery.
+
 ## Play
 
 Double-click **Play.cmd** for a dedicated Edge window, or open **index.html** in a
