@@ -69,6 +69,7 @@
         damageGrace: 1.6,
         pickupRecharge: 0.06,
         sectorSeconds: 18,
+        beaconInterval: 2500,
         speed: {
           start: 98,
           growth: 34,
@@ -1783,12 +1784,27 @@
     disconnect: () => disconnect,
     encode: () => encode,
     profile: () => profile,
+    progress: () => progress,
     scaling: () => scaling,
     sorted: () => sorted,
     start: () => start,
     update: () => update,
     view: () => view,
   });
+  function progress(run) {
+    return {
+      value: Math.max(
+        0,
+        Math.min(
+          1,
+          (run.world.distance - run.beaconDistance + import_config.default.beaconInterval) /
+            import_config.default.beaconInterval,
+        ),
+      ),
+      remaining: Math.max(0, run.beaconDistance - run.world.distance),
+      distance: run.beaconDistance,
+    };
+  }
   function profile(value) {
     const p = value && typeof value === "object" ? value : {};
     return {
@@ -1810,6 +1826,7 @@
       members: [],
       order: [],
       checkpoint: null,
+      beaconDistance: import_config.default.beaconInterval,
       started: false,
       earned: 0,
       revision: 0,
@@ -1849,8 +1866,15 @@
       const target =
         import_config.default.playerX +
         (run.members.filter((m2) => m2.connected).length - i - 1) * 32;
-      const delta = target - m.state.player.x;
-      m.state.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * 220);
+      const s = m.state;
+      const delta = target + (!instant && s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
+      const speed =
+        s.dash > 0
+          ? s.stats.dashLungeSpeed
+          : delta < 0
+            ? import_config.default.dashReturnSpeed
+            : 220;
+      s.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
     }
   }
   function start(run) {
@@ -1879,7 +1903,8 @@
     }
     run.started = true;
     run.revision++;
-    run.checkpoint = { x: 355, age: 0, used: false, flash: 0 };
+    run.checkpoint = null;
+    run.beaconDistance = import_config.default.beaconInterval;
     formation(run, true);
   }
   function disconnect(run, id) {
@@ -1949,16 +1974,8 @@
   }
   function step(run, dt) {
     const w = run.world;
-    const previousSector = w.sector;
     w.time += dt;
     import_difficulty.default.update(w, dt);
-    if (previousSector !== w.sector) {
-      run.checkpoint = { x: import_config.default.width + 36, age: 0, used: false, flash: 0 };
-      w.objects = [];
-      w.hostileProjectiles = [];
-      w.traversals = [];
-      w.next = w.distance + Math.max(260, w.speed * 3);
-    }
     const live = sorted(run).filter(alive);
     if (!live.length) {
       w.mode = "dead";
@@ -2017,7 +2034,7 @@
         });
       }
       formation(run, true);
-      if (run.checkpoint && !run.checkpoint.used) run.checkpoint.x = 355;
+      if (run.checkpoint) run.checkpoint.x -= w.distance - beforeTravel;
     }
     for (const [i, m] of live.entries()) {
       const s = m.state;
@@ -2056,7 +2073,7 @@
     }
     w.hostileProjectiles = w.hostileProjectiles.filter((b) => b.life > 0);
     for (const object of w.objects) {
-      if (object.dead) continue;
+      if (object.dead || object.passed) continue;
       const target = live.find(
         (m) =>
           alive(m) &&
@@ -2080,6 +2097,23 @@
         object.passed = true;
         w.score += 25n;
       }
+    }
+    const anchor =
+      import_config.default.playerX + (run.members.filter((m) => m.connected).length - 1) * 32;
+    if (
+      !run.checkpoint &&
+      run.beaconDistance - w.distance <= import_config.default.width + 36 - anchor
+    ) {
+      run.checkpoint = {
+        x: Math.max(anchor + 30, anchor + run.beaconDistance - w.distance + distance),
+        age: 0,
+        used: false,
+        flash: 0,
+      };
+      w.objects = [];
+      w.hostileProjectiles = [];
+      w.traversals = [];
+      w.next = w.distance + Math.max(260, w.speed * 3);
     }
     const beacon = run.checkpoint;
     if (beacon) {
@@ -2117,7 +2151,10 @@
         });
         run.revision++;
       }
-      if (beacon.x < -80) run.checkpoint = null;
+      if (beacon.x < -80) {
+        run.checkpoint = null;
+        run.beaconDistance += import_config.default.beaconInterval;
+      }
     }
     for (const m of live) {
       m.state.dash = Math.max(0, m.state.dash - dt);
@@ -3738,12 +3775,12 @@
                   : "ONE-TIME UNLOCK \xB7 0 / 1"
                 : "LEVEL " + level + " / " + track.maxLevel,
             );
-            const progress = element2("div", "level-meter");
-            progress.setAttribute("role", "img");
-            progress.setAttribute("aria-label", "Level " + level + " of " + track.maxLevel);
+            const progress2 = element2("div", "level-meter");
+            progress2.setAttribute("role", "img");
+            progress2.setAttribute("aria-label", "Level " + level + " of " + track.maxLevel);
             for (let i = 0; i < track.maxLevel; i++)
-              progress.append(element2("i", i < level ? "filled" : ""));
-            identity.append(name, levelText, progress);
+              progress2.append(element2("i", i < level ? "filled" : ""));
+            identity.append(name, levelText, progress2);
             const improvement = element2("div", "upgrade-improvement");
             const current = element2("div", "benefit-value");
             current.append(
@@ -4433,14 +4470,17 @@
           );
       }, 2e4);
     }
-    function lan(host2, room) {
+    function lan(host2, room, address = "") {
       if (!/^https?:$/.test(location.protocol))
         throw new Error("Start npm run host and open its LAN address first.");
+      const target = address.trim() ? new URL(address.trim()) : new URL(location.href);
+      if (!/^https?:$/.test(target.protocol) || target.username || target.password)
+        throw new Error("Use the host's http:// LAN address without login details.");
       close();
       role = host2 ? "host" : "guest";
       const epoch = generation;
-      const url = new URL("/party", location.href);
-      url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const url = new URL("/party", target);
+      url.protocol = target.protocol === "https:" ? "wss:" : "ws:";
       url.search = new URLSearchParams({
         role: host2 ? "host" : "guest",
         room: room.trim().toUpperCase(),
@@ -4551,6 +4591,8 @@
     const room = element(doc, "party-room", "input");
     const roster = element(doc, "party-roster");
     const hud = element(doc, "party-hud");
+    const beaconProgress = element(doc, "beacon-progress", "progress");
+    const beaconDistance = element(doc, "beacon-distance", "span");
     const startButton = element(doc, "party-start", "button");
     const front = element(doc, "touch-front", "button");
     let run = null;
@@ -4583,6 +4625,12 @@
         element(doc, key, "button").disabled = active;
       front.hidden = !active;
       hud.hidden = !active;
+      element(doc, "beacon-trail").hidden = !active;
+      const progress2 = run ? progress(run) : null;
+      beaconProgress.value = progress2?.value ?? 0;
+      beaconDistance.textContent = progress2
+        ? `${Math.ceil(progress2.remaining)}m TO BEACON \xB7 ${progress2.distance}m`
+        : "2500m TO BEACON";
       element(doc, "party", "button").textContent = active
         ? `PARTY ${members.length}/4`
         : "PARTY / LAN";
@@ -4802,7 +4850,8 @@
       "party-lan-join": () => {
         if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
           throw new Error("Enter the six-character LAN room code.");
-        network.lan(false, room.value);
+        const address = element(doc, "party-address", "input").value;
+        network.lan(false, room.value, address);
       },
       "party-copy": async () => {
         if (!output.value) return;
@@ -4843,6 +4892,18 @@
       publish();
       refresh();
     }
+    if (/^https?:$/.test(location.protocol))
+      void fetch("/desktop-info")
+        .then(async (response) => (response.ok ? response.json() : null))
+        .then((info) => {
+          if (!info?.desktop || !Array.isArray(info.addresses)) return;
+          element(doc, "party-lan-instructions").textContent =
+            "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open.";
+          element(doc, "party-lan-addresses").textContent = info.addresses
+            .filter((address) => typeof address === "string")
+            .join(" \xB7 ");
+        })
+        .catch(() => {});
     refresh();
     return {
       get active() {
@@ -5293,6 +5354,7 @@
   // src/pwa.ts
   (() => {
     "use strict";
+    if (new URLSearchParams(location.search).has("desktop")) return;
     if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});

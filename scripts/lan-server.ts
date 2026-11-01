@@ -6,7 +6,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 
 /** A small LAN-only static host and room relay. Game simulation stays in the host browser. */
-export function createLanServer(root = path.resolve(__dirname, "../public")) {
+export function createLanServer(root = path.resolve(__dirname, "../public"), desktop = false) {
   const rooms = new Map<string, { host: string; peers: Map<string, WebSocket>; locked: boolean }>();
   const mime: Record<string, string> = {
     ".html": "text/html",
@@ -21,6 +21,18 @@ export function createLanServer(root = path.resolve(__dirname, "../public")) {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
+      if (desktop && url.pathname === "/desktop-info") {
+        const address = server.address();
+        const port = address && typeof address !== "string" ? address.port : 4173;
+        const addresses = Object.values(networkInterfaces()).flatMap((entries) =>
+          (entries || [])
+            .filter((entry) => entry.family === "IPv4" && !entry.internal)
+            .map((entry) => `http://${entry.address}:${port}/`),
+        );
+        res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+        res.end(JSON.stringify({ desktop: true, addresses }));
+        return;
+      }
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, "") || "index.html";
       const file = path.resolve(root, relative);
       if (!file.startsWith(path.resolve(root) + path.sep)) {
@@ -44,7 +56,12 @@ export function createLanServer(root = path.resolve(__dirname, "../public")) {
     // Only browsers loading this LAN host may connect. Reject cross-site requests.
     let sameOrigin = true;
     try {
-      if (req.headers.origin) sameOrigin = new URL(req.headers.origin).host === req.headers.host;
+      if (req.headers.origin) {
+        const origin = new URL(req.headers.origin);
+        sameOrigin =
+          origin.host === req.headers.host ||
+          (desktop && origin.protocol === "http:" && origin.hostname === "127.0.0.1");
+      }
     } catch {
       sameOrigin = false;
     }
@@ -131,7 +148,7 @@ export function createLanServer(root = path.resolve(__dirname, "../public")) {
     },
   };
 }
-if (require.main === module) {
+if (require.main === module && !process.versions.electron) {
   const port = Number(process.env.PORT || 4173);
   const { server } = createLanServer();
   server.listen(port, "0.0.0.0", () => {

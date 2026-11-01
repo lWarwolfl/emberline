@@ -220,14 +220,17 @@ export function create(callbacks: Callbacks) {
         );
     }, 20000);
   }
-  function lan(host: boolean, room: string) {
+  function lan(host: boolean, room: string, address = "") {
     if (!/^https?:$/.test(location.protocol))
       throw new Error("Start npm run host and open its LAN address first.");
+    const target = address.trim() ? new URL(address.trim()) : new URL(location.href);
+    if (!/^https?:$/.test(target.protocol) || target.username || target.password)
+      throw new Error("Use the host's http:// LAN address without login details.");
     close();
     role = host ? "host" : "guest";
     const epoch = generation;
-    const url = new URL("/party", location.href);
-    url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const url = new URL("/party", target);
+    url.protocol = target.protocol === "https:" ? "wss:" : "ws:";
     url.search = new URLSearchParams({
       role: host ? "host" : "guest",
       room: room.trim().toUpperCase(),

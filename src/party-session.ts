@@ -12,6 +12,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   const room = element(doc, "party-room", "input");
   const roster = element(doc, "party-roster");
   const hud = element(doc, "party-hud");
+  const beaconProgress = element(doc, "beacon-progress", "progress");
+  const beaconDistance = element(doc, "beacon-distance", "span");
   const startButton = element(doc, "party-start", "button");
   const front = element(doc, "touch-front", "button");
   let run: Party.PartyRun | null = null;
@@ -44,6 +46,12 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       element(doc, key, "button").disabled = active;
     front.hidden = !active;
     hud.hidden = !active;
+    element(doc, "beacon-trail").hidden = !active;
+    const progress = run ? Party.progress(run) : null;
+    beaconProgress.value = progress?.value ?? 0;
+    beaconDistance.textContent = progress
+      ? `${Math.ceil(progress.remaining)}m TO BEACON · ${progress.distance}m`
+      : "2500m TO BEACON";
     element(doc, "party", "button").textContent = active
       ? `PARTY ${members.length}/4`
       : "PARTY / LAN";
@@ -263,7 +271,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     "party-lan-join": () => {
       if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
         throw new Error("Enter the six-character LAN room code.");
-      network.lan(false, room.value);
+      const address = element(doc, "party-address", "input").value;
+      network.lan(false, room.value, address);
     },
     "party-copy": async () => {
       if (!output.value) return;
@@ -304,6 +313,18 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     publish();
     refresh();
   }
+  if (/^https?:$/.test(location.protocol))
+    void fetch("/desktop-info")
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((info: { desktop?: boolean; addresses?: unknown } | null) => {
+        if (!info?.desktop || !Array.isArray(info.addresses)) return;
+        element(doc, "party-lan-instructions").textContent =
+          "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open.";
+        element(doc, "party-lan-addresses").textContent = info.addresses
+          .filter((address): address is string => typeof address === "string")
+          .join(" · ");
+      })
+      .catch(() => {});
   refresh();
   return {
     get active() {

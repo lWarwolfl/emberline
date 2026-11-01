@@ -10,6 +10,32 @@ as an app and keeps playing with no network after the first load.
 The game source uses strict TypeScript. ESLint and Prettier cover the project,
 and the checked-in browser bundle keeps offline and double-click launching available.
 
+## Windows desktop app
+
+Install `release/EMBERLINE-Setup-7.1.0.exe`, then launch EMBERLINE from the desktop
+or Start menu. The installer includes Chromium and Node; players do not need a
+browser, Node installation, terminal, or internet connection for solo play.
+The build is unsigned; Windows may show a publisher/SmartScreen warning.
+
+The desktop app starts its LAN server automatically on port 4174. In PARTY / LAN,
+choose HOST LAN ROOM and share a displayed LAN address plus the room code. On
+another installed copy, enter that host address and room code, then JOIN LAN.
+A teammate can also open the shared address in a browser. Keep the host app open.
+Allow the app through Windows Firewall on private networks if prompted. Guest
+Wi-Fi isolation or VPN routing can still prevent connections. This is a trusted
+local-network service, not an authenticated public internet server.
+
+Desktop saves live in the app's Chromium profile under `%APPDATA%/emberline` and
+are separate from existing browser/public-site progress. No save import is included.
+A second launch focuses the existing app. If port 4174 is occupied, startup reports
+an error instead of changing the save origin. Closing the app stops its LAN server.
+
+Development: `npm run desktop`. Build the Windows x64 installer:
+`npm run dist:desktop`. Output goes to ignored `release/`; the standalone app is
+`release/win-unpacked/EMBERLINE.exe`. Windows is the packaged target; macOS/Linux
+installers and automatic updates are not configured. Existing web/PWA playback
+remains available rather than deleting a working distribution channel.
+
 ## Play
 
 Double-click **Play.cmd** for a dedicated Edge window, or open **index.html** in a

@@ -4,13 +4,23 @@ import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["node_modules/**", ".build/**", "dist/**", "public/**", "sw.js", "test-results/**"] },
+  {
+    ignores: [
+      "node_modules/**",
+      ".build/**",
+      "dist/**",
+      "public/**",
+      "release/**",
+      "sw.js",
+      "test-results/**",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { files: ["src/**/*.ts"], languageOptions: { globals: globals.browser } },
   { files: ["src/service-worker.ts"], languageOptions: { globals: globals.serviceworker } },
   {
-    files: ["scripts/**/*.ts", "tests/**/*.ts", "**/*.mjs"],
+    files: ["scripts/**/*.ts", "tests/**/*.ts", "desktop/**/*.ts", "**/*.mjs"],
     languageOptions: {
       globals: {
         ...globals.node,

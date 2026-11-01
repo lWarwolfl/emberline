@@ -181,13 +181,10 @@ async function main() {
     );
     await host.evaluate(() => {
       const r = EmberlineDebug.app.session.run!;
-      r.world.time = 17.999;
+      r.checkpoint = null;
+      r.world.distance = r.beaconDistance - 280;
     });
-    await host.waitForFunction(
-      () =>
-        EmberlineDebug.app.session.run!.world.sector === 2 &&
-        !!EmberlineDebug.app.session.run!.checkpoint,
-    );
+    await host.waitForFunction(() => !!EmberlineDebug.app.session.run!.checkpoint);
     await host.waitForFunction(
       () =>
         !!EmberlineDebug.app.session.run!.checkpoint &&

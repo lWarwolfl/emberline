@@ -117,33 +117,40 @@
         aria-label="Party health, formation order and upgrade levels"
         hidden
       ></section>
-      <section id="stage" aria-label="Emberline arcade game">
-        <canvas
-          id="game"
-          width="480"
-          height="240"
-          tabindex="-1"
-          aria-label="Pixel courier runner. Jump over ground hazards and dash through enemies."
-        ></canvas>
-        <div class="scanlines" aria-hidden="true"></div>
-        <div id="overlay" class="overlay">
-          <div class="eyebrow" id="eyebrow"><span></span> ONE COURIER. NO FINISH LINE.</div>
-          <h1 id="heading">KEEP THE<br /><em>SIGNAL ALIVE.</em></h1>
-          <p id="description">
-            The city went dark. You kept running.<br />Carry the last ember as far as you can.
-          </p>
-          <div class="menu-actions">
-            <button id="start" class="primary">START RUN <span>↗</span></button
-            ><button id="menu-setup" class="secondary">SHOP &amp; UPGRADES</button>
+      <div class="beacon-trail" id="beacon-trail" hidden>
+        <label for="beacon-progress">NEXT REVIVE BEACON</label>
+        <progress id="beacon-progress" max="1" value="0"></progress>
+        <span id="beacon-distance">2500 M</span>
+      </div>
+      <div class="playfield">
+        <section id="stage" aria-label="Emberline arcade game">
+          <canvas
+            id="game"
+            width="480"
+            height="240"
+            tabindex="-1"
+            aria-label="Pixel courier runner. Jump over ground hazards and dash through enemies."
+          ></canvas>
+          <div class="scanlines" aria-hidden="true"></div>
+          <div id="overlay" class="overlay">
+            <div class="eyebrow" id="eyebrow"><span></span> ONE COURIER. NO FINISH LINE.</div>
+            <h1 id="heading">KEEP THE<br /><em>SIGNAL ALIVE.</em></h1>
+            <p id="description">
+              The city went dark. You kept running.<br />Carry the last ember as far as you can.
+            </p>
+            <div class="menu-actions">
+              <button id="start" class="primary">START RUN <span>↗</span></button
+              ><button id="menu-setup" class="secondary">SHOP &amp; UPGRADES</button>
+            </div>
+            <div id="prompt">or press <kbd>ENTER</kbd></div>
           </div>
-          <div id="prompt">or press <kbd>ENTER</kbd></div>
-        </div>
-        <div id="announce" aria-live="polite"></div>
-        <div class="stage-bottom">
-          <span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
-          ><span id="dash-state">DASH READY <i></i></span>
-        </div>
-      </section>
+          <div id="announce" aria-live="polite"></div>
+          <div class="stage-bottom">
+            <span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
+            ><span id="dash-state">DASH READY <i></i></span>
+          </div>
+        </section>
+      </div>
       <footer>
         <div class="instructions">
           <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
@@ -186,12 +193,23 @@
                 <span>LAN / SAME WI-FI</span><small>Room code · local network</small>
               </summary>
               <div class="party-path-body">
-                <p>
-                  Run <code>npm run host</code> or <code>Host-LAN.cmd</code> on one computer.
-                  Everyone opens its printed LAN address.
+                <p id="party-lan-instructions">
+                  On desktop, LAN hosting starts with the app. For the web version, run
+                  <code>npm run host</code> and open its printed address.
                 </p>
+                <p id="party-lan-addresses" class="setup-note"></p>
                 <button id="party-lan-host" class="secondary">HOST LAN ROOM</button>
                 <div class="party-divider">OR JOIN A ROOM</div>
+                <div class="party-field">
+                  <label for="party-address">HOST LAN ADDRESS / LEAVE EMPTY FOR THIS SERVER</label>
+                  <input
+                    id="party-address"
+                    type="url"
+                    placeholder="http://192.168.1.10:4174/"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
                 <div class="party-buttons party-room-entry">
                   <div class="party-field">
                     <label for="party-room">SIX-CHARACTER ROOM CODE</label>

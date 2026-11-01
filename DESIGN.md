@@ -104,6 +104,21 @@ marketing stack. The only accent remains ember orange on actions and coins.
 Portrait 390×844, landscape 844×390, the setup sheet and the offline reload were
 inspected in Edge with no console exceptions.
 
+## Monitor-fit play cabinet
+
+Primary surface: Command / Inspect. The shell uses the full available dynamic
+viewport height in both windowed and fullscreen modes. Header, readouts, party
+health, beacon trail and controls keep their own space; a size-contained flex
+region gives the remaining height to the playfield. Container units preserve
+the 2:1 desktop scene without pushing controls below the monitor. Portrait
+keeps the existing approach-lane crop; short landscape hides secondary copy.
+Buttons retain 44px targets and the existing square charcoal/ember styling.
+A mint native progress trail shows distance to the next 2500m revive beacon.
+
+Design audit: 0/10 generic-design tells; no new cards, decorative gradients,
+fonts, icons or dependencies. Verified with static markup checks and builds;
+rendered layout was not inspected under the no-live-browser constraint.
+
 ## Hosting modal: shared Configure surface
 
 The party dialog reuses the outfitter's charcoal/parchment/ember tokens, Impact

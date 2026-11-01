@@ -1,6 +1,7 @@
 /* PWA: file:// launches have no service worker scope, so register only over HTTP. */
 (() => {
   "use strict";
+  if (new URLSearchParams(location.search).has("desktop")) return;
   if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {

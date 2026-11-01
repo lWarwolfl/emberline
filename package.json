@@ -1,7 +1,36 @@
 {
   "name": "emberline",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "private": true,
+  "main": ".build/desktop.cjs",
+  "author": "Mohammad Sina Kheiri",
+  "license": "MIT",
+  "build": {
+    "appId": "dev.sinakheiri.emberline",
+    "productName": "EMBERLINE",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      ".build/desktop.cjs",
+      "public/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon-512.png",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "artifactName": "EMBERLINE-Setup-${version}.${ext}"
+  },
   "description": "Offline procedural pixel runner with strict TypeScript source",
   "scripts": {
     "test": "npm run build && node --import tsx --test tests/*.test.ts",
@@ -17,7 +46,10 @@
     "format:check": "prettier --check .",
     "pretest:browser": "npm run build:site",
     "build:site": "npm run build && node --import tsx scripts/package-site.ts",
-    "host": "npm run build:site && node --import tsx scripts/lan-server.ts"
+    "host": "npm run build:site && node --import tsx scripts/lan-server.ts",
+    "build:desktop": "npm run build:site && esbuild desktop/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=.build/desktop.cjs",
+    "desktop": "npm run build:desktop && electron .",
+    "dist:desktop": "npm run build:desktop && electron-builder --win nsis --x64 --publish never"
   },
   "engines": {
     "node": "24.x"
@@ -26,6 +58,8 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/ws": "^8.18.2",
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0",
     "esbuild": "^0.25.12",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",

@@ -32,11 +32,25 @@ export interface PartyRun {
   members: Member[];
   order: string[];
   checkpoint: Checkpoint | null;
+  beaconDistance: number;
   started: boolean;
   earned: number;
   revision: number;
 }
 export type Action = "jump" | "dash" | "attack" | "front";
+export function progress(run: PartyRun) {
+  return {
+    value: Math.max(
+      0,
+      Math.min(
+        1,
+        (run.world.distance - run.beaconDistance + Config.beaconInterval) / Config.beaconInterval,
+      ),
+    ),
+    remaining: Math.max(0, run.beaconDistance - run.world.distance),
+    distance: run.beaconDistance,
+  };
+}
 export function profile(value: unknown): Profile {
   const p = (value && typeof value === "object" ? value : {}) as Partial<Profile>;
   return {
@@ -58,6 +72,7 @@ export function create(id: string, p: Profile, seed?: Seed): PartyRun {
     members: [],
     order: [],
     checkpoint: null,
+    beaconDistance: Config.beaconInterval,
     started: false,
     earned: 0,
     revision: 0,
@@ -95,8 +110,10 @@ function formation(run: PartyRun, instant = false, dt = 0) {
   const members = sorted(run).filter(alive);
   for (const [i, m] of members.entries()) {
     const target = Config.playerX + (run.members.filter((m) => m.connected).length - i - 1) * 32;
-    const delta = target - m.state.player.x;
-    m.state.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * 220);
+    const s = m.state;
+    const delta = target + (!instant && s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
+    const speed = s.dash > 0 ? s.stats.dashLungeSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
+    s.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
   }
 }
 export function start(run: PartyRun) {
@@ -121,7 +138,8 @@ export function start(run: PartyRun) {
   }
   run.started = true;
   run.revision++;
-  run.checkpoint = { x: 355, age: 0, used: false, flash: 0 };
+  run.checkpoint = null;
+  run.beaconDistance = Config.beaconInterval;
   formation(run, true);
 }
 export function disconnect(run: PartyRun, id: string) {
@@ -183,17 +201,8 @@ function revive(run: PartyRun) {
 }
 function step(run: PartyRun, dt: number) {
   const w = run.world;
-  const previousSector = w.sector;
   w.time += dt;
   Difficulty.update(w, dt);
-  if (previousSector !== w.sector) {
-    run.checkpoint = { x: Config.width + 36, age: 0, used: false, flash: 0 };
-    // A clear biome entrance gives survivors a fair opportunity to reach the beacon.
-    w.objects = [];
-    w.hostileProjectiles = [];
-    w.traversals = [];
-    w.next = w.distance + Math.max(260, w.speed * 3);
-  }
   const live = sorted(run).filter(alive);
   if (!live.length) {
     w.mode = "dead";
@@ -249,7 +258,7 @@ function step(run: PartyRun, dt: number) {
       });
     }
     formation(run, true);
-    if (run.checkpoint && !run.checkpoint.used) run.checkpoint.x = 355;
+    if (run.checkpoint) run.checkpoint.x -= w.distance - beforeTravel;
   }
   for (const [i, m] of live.entries()) {
     const s = m.state;
@@ -287,7 +296,7 @@ function step(run: PartyRun, dt: number) {
   }
   w.hostileProjectiles = w.hostileProjectiles.filter((b) => b.life > 0);
   for (const object of w.objects) {
-    if (object.dead) continue;
+    if (object.dead || object.passed) continue;
     const target = live.find(
       (m) => alive(m) && Engine.collides(m.state.player, object, previous.get(object) ?? object.x),
     );
@@ -310,6 +319,19 @@ function step(run: PartyRun, dt: number) {
       object.passed = true;
       w.score += 25n;
     }
+  }
+  const anchor = Config.playerX + (run.members.filter((m) => m.connected).length - 1) * 32;
+  if (!run.checkpoint && run.beaconDistance - w.distance <= Config.width + 36 - anchor) {
+    run.checkpoint = {
+      x: Math.max(anchor + 30, anchor + run.beaconDistance - w.distance + distance),
+      age: 0,
+      used: false,
+      flash: 0,
+    };
+    w.objects = [];
+    w.hostileProjectiles = [];
+    w.traversals = [];
+    w.next = w.distance + Math.max(260, w.speed * 3);
   }
   const beacon = run.checkpoint;
   if (beacon) {
@@ -340,7 +362,10 @@ function step(run: PartyRun, dt: number) {
       });
       run.revision++;
     }
-    if (beacon.x < -80) run.checkpoint = null;
+    if (beacon.x < -80) {
+      run.checkpoint = null;
+      run.beaconDistance += Config.beaconInterval;
+    }
   }
   for (const m of live) {
     m.state.dash = Math.max(0, m.state.dash - dt);
