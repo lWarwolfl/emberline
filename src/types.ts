@@ -93,6 +93,7 @@ export interface GameEvent {
   points?: number;
   coins?: number;
   label?: string;
+  playerId?: string;
 }
 export interface Encounter {
   pattern: string;
@@ -189,4 +190,5 @@ export interface Actions {
   enter: () => void;
   escape: () => void;
   effects: (enabled: boolean) => void;
+  front: () => void;
 }

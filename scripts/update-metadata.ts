@@ -26,7 +26,7 @@ async function main() {
       genre: ["Arcade", "Endless runner"],
       gamePlatform: "Web browser",
       operatingSystem: "Any",
-      playMode: "https://schema.org/SinglePlayer",
+      playMode: ["https://schema.org/SinglePlayer", "https://schema.org/MultiPlayer"],
       inLanguage: "en",
       isAccessibleForFree: true,
     },

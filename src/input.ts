@@ -11,6 +11,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     pause: actions.pause,
     sound: actions.sound,
     fullscreen: actions.fullscreen,
+    "take-front": actions.front,
   };
   for (const [id, action] of Object.entries(clicks)) {
     byId(id).addEventListener("click", (event) => {
@@ -26,6 +27,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     ["touch-jump", actions.jump],
     ["touch-dash", actions.dash],
     ["touch-attack", actions.attack],
+    ["touch-front", actions.front],
   ] as [string, () => void][]) {
     byId(id).addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -42,6 +44,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     KeyX: actions.attack,
     KeyJ: actions.attack,
     KeyL: actions.setup,
+    KeyT: actions.front,
     KeyP: actions.pause,
     Escape: actions.escape,
     KeyF: actions.fullscreen,
@@ -52,7 +55,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     // Keep standard keyboard activation when deliberately tabbing through UI.
     if (
       event.target instanceof Element &&
-      event.target.matches("button,input,a") &&
+      event.target.matches("button,input,textarea,select,a") &&
       ["Enter", " "].includes(event.key)
     )
       return;

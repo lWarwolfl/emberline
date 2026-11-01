@@ -98,7 +98,7 @@ function attack(state: GameState) {
   return true;
 }
 
-function update(state: GameState, dt: number) {
+function update(state: GameState, dt: number, moveProjectiles = true) {
   const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon);
   if (state.attackTime > 0 && weapon.id === "punch") {
     for (const object of state.objects) {
@@ -114,6 +114,7 @@ function update(state: GameState, dt: number) {
       }
     }
   }
+  if (!moveProjectiles) return;
   for (const bolt of state.projectiles) {
     const previousX = bolt.x,
       previousY = bolt.y;

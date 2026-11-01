@@ -68,7 +68,7 @@
         "genre": ["Arcade", "Endless runner"],
         "gamePlatform": "Web browser",
         "operatingSystem": "Any",
-        "playMode": "https://schema.org/SinglePlayer",
+        "playMode": ["https://schema.org/SinglePlayer", "https://schema.org/MultiPlayer"],
         "inLanguage": "en",
         "isAccessibleForFree": true
       }
@@ -88,7 +88,7 @@
           <span class="wallet" title="Spendable earned coins"
             >COINS <strong id="coin-total">0000</strong></span
           >
-          <span class="led"></span> OFFLINE READY <span class="version">V.06</span>
+          <span class="led"></span> OFFLINE READY <span class="version">V.07</span>
         </div>
       </header>
       <section class="instrument" aria-label="Run statistics">
@@ -105,12 +105,18 @@
           <span class="label" id="pace">CRUISE</span><strong id="velocity">98 PX/S</strong>
         </div>
         <div class="toolbar">
+          <button id="party" title="Host or join up to four players">PARTY / LAN</button>
           <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP / SETUP</button>
           <button id="sound" title="Toggle sound (M)" aria-pressed="true">SOUND ON</button
           ><button id="pause" title="Pause (P)">Ⅱ PAUSE</button
           ><button id="fullscreen" title="Toggle fullscreen (F)">⛶ FULLSCREEN</button>
         </div>
       </section>
+      <section
+        id="party-hud"
+        aria-label="Party health, formation order and upgrade levels"
+        hidden
+      ></section>
       <section id="stage" aria-label="Emberline arcade game">
         <canvas
           id="game"
@@ -144,6 +150,7 @@
           ><span><kbd>SHIFT</kbd> DASH</span><span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span
           ><span><kbd>P</kbd> PAUSE</span><span><kbd>F</kbd> FULLSCREEN</span>
         </div>
+        <button id="take-front" class="attack-button" hidden>T / TAKE POINT</button>
         <button id="attack" class="attack-button" disabled>X / PUNCH</button>
       </footer>
       <div class="subfooter">
@@ -152,13 +159,103 @@
       </div>
       <div class="touch-controls">
         <button id="touch-jump">JUMP / DOUBLE JUMP</button><button id="touch-dash">DASH</button
-        ><button id="touch-attack">PUNCH</button>
+        ><button id="touch-attack">PUNCH</button
+        ><button id="touch-front" hidden>T / TAKE POINT</button>
       </div>
 
+      <dialog id="party-dialog" aria-labelledby="party-heading">
+        <header class="setup-header">
+          <div>
+            <span class="label">SHARED SIGNAL / 01–04 COURIERS</span>
+            <h2 id="party-heading">RUN TOGETHER</h2>
+          </div>
+          <button id="party-close" class="close-button" aria-label="Close party">✕</button>
+        </header>
+        <div class="party-body">
+          <p>
+            One shared route. More couriers bring faster, denser encounters and tougher enemies. The
+            host starts, pauses and restarts the run.
+          </p>
+          <label class="party-field"
+            >YOUR NAME
+            <input id="party-name" value="Courier" maxlength="18" autocomplete="nickname"
+          /></label>
+          <div class="party-path">
+            <h3>DIRECT INVITES</h3>
+            <p>
+              Host a party, then generate a separate invite for each teammate. They return an answer
+              for you to accept. Keep the host tab open and visible.
+            </p>
+            <div class="party-buttons">
+              <button id="party-host">HOST PARTY</button
+              ><button id="party-invite" disabled>NEW INVITE</button
+              ><button id="party-cancel-invites">CANCEL PENDING INVITES</button>
+            </div>
+            <label class="party-field"
+              >PASTE AN INVITE OR ANSWER<textarea
+                id="party-input"
+                rows="2"
+                maxlength="32000"
+                spellcheck="false"
+                placeholder="EMBER7.…"
+              ></textarea>
+            </label>
+            <div class="party-buttons">
+              <button id="party-answer">JOIN / CREATE ANSWER</button
+              ><button id="party-accept">HOST / ACCEPT ANSWER</button>
+            </div>
+            <label class="party-field"
+              >CODE TO SHARE<textarea
+                id="party-output"
+                rows="2"
+                readonly
+                spellcheck="false"
+                aria-label="Generated invite or answer"
+              ></textarea></label
+            ><button id="party-copy">COPY CODE</button>
+            <small
+              >Direct invites work on compatible networks. If a connection cannot be established,
+              use LAN hosting on the same network. There is no internet relay.</small
+            >
+          </div>
+          <div class="party-path">
+            <h3>LAN / SAME WI-FI</h3>
+            <p>
+              On one computer, run <code>npm run host</code>. Everyone opens the printed LAN
+              address. Host a LAN room and share its six-character code.
+            </p>
+            <div class="party-buttons">
+              <button id="party-lan-host">HOST LAN ROOM</button
+              ><label class="party-field"
+                >ROOM CODE<input
+                  id="party-room"
+                  maxlength="6"
+                  placeholder="A1B2C3"
+                  autocomplete="off" /></label
+              ><button id="party-lan-join">JOIN LAN</button>
+            </div>
+          </div>
+          <p id="party-message" role="status" aria-live="polite">
+            Choose your gear and upgrades before joining a party. The host's difficulty applies to
+            everyone.
+          </p>
+          <div id="party-roster" aria-label="Party members"></div>
+          <p class="party-guide">
+            <kbd>T</kbd> / TAKE POINT jumps you to the front to protect teammates. Each courier
+            keeps their own health and upgrade levels. Downed couriers spectate. At each biome
+            entrance, <kbd>SHIFT</kbd> / DASH through the glowing beacon to revive them. Shared
+            pickups pay every connected courier once.
+          </p>
+        </div>
+        <footer class="setup-footer">
+          <button id="party-leave" disabled>LEAVE PARTY</button
+          ><button id="party-start" class="primary" disabled>START PARTY RUN ↗</button>
+        </footer>
+      </dialog>
       <dialog id="setup-dialog" aria-labelledby="setup-heading">
         <header class="setup-header">
           <div>
-            <span class="label">COURIER OUTFITTER / 06</span>
+            <span class="label">COURIER OUTFITTER / 07</span>
             <h2 id="setup-heading">SHOP &amp; UPGRADES</h2>
           </div>
           <button id="setup-close" class="close-button" aria-label="Close setup">✕</button>

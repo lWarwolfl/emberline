@@ -100,3 +100,13 @@ weapon penetration, progression, device rate, safe arrivals and group growth.
 All 85 regression tests and eight browser suites passed locally. New gear was
 purchased, fired and reloaded through the real shop. Shooter/device scenes and
 mobile level-10 screens were rendered and visually inspected.
+
+
+2026-11-01 / v7 shared signal
+- Strict TypeScript host-authoritative cooperative simulation, maximum four couriers.
+- LAN room relay, four-client LAN browser coverage and Windows LAN launcher.
+- Direct WebRTC invite/answer flow has mandatory four-client coverage in CI.
+- Local sandbox blocks NETLINK network-interface discovery; local browser runs explicitly skip direct WebRTC only, with no skip set in CI.
+- Shared formation/order, take-point protection, party health/upgrade HUD, team rewards, spectators and host-controlled pause/restart.
+- Dash-contact revive beacons at the start of every biome, safe entrances, glow/sparks/audio and reduced-motion handling.
+- 103 regression tests cover the new party simulation/relay as well as existing solo behavior.

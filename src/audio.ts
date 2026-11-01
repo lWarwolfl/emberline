@@ -44,6 +44,17 @@ function create(initialMuted = false) {
   }
   function sound(type: string, combo = 0) {
     switch (type) {
+      case "revive":
+        [330, 440, 660, 880].forEach((freq, i) =>
+          tone(freq, 0.3, "sine", 0.04, freq * 1.1, i * 0.09),
+        );
+        break;
+      case "front":
+        tone(260, 0.2, "triangle", 0.03, 700);
+        break;
+      case "down":
+        tone(220, 0.35, "triangle", 0.04, 65);
+        break;
       case "portal":
         [220, 440, 880, 1320].forEach((freq, i) =>
           tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),

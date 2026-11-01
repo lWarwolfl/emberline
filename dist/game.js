@@ -18,6 +18,9 @@
         mod.exports
       );
     };
+  var __export = (target, all) => {
+    for (var name in all) __defProp(target, name, { get: all[name], enumerable: true });
+  };
   var __copyProps = (to, from, except, desc) => {
     if ((from && typeof from === "object") || typeof from === "function") {
       for (let key of __getOwnPropNames(from))
@@ -42,6 +45,703 @@
       mod,
     )
   );
+
+  // src/config.ts
+  var require_config = __commonJS({
+    "src/config.ts"(exports, module) {
+      "use strict";
+      module.exports = {
+        width: 480,
+        height: 240,
+        floor: 196,
+        playerX: 82,
+        playerHeight: 18,
+        gravity: 560,
+        jumpVelocity: -180,
+        doubleJumpVelocity: -155,
+        maxJumps: 2,
+        dashDuration: 0.18,
+        dashCooldown: 2.8,
+        dashWorldMultiplier: 1.18,
+        dashLungeSpeed: 150,
+        dashLungeMax: 18,
+        dashReturnSpeed: 95,
+        damageGrace: 1.6,
+        pickupRecharge: 0.06,
+        sectorSeconds: 18,
+        speed: {
+          start: 98,
+          growth: 34,
+          growthSeconds: 16,
+          acceleration: 21,
+          deceleration: 17,
+          phaseMinSeconds: 12,
+          phaseMaxSeconds: 19,
+        },
+        generation: {
+          spawnX: 510,
+          initialDistance: 190,
+          minimumGapSeconds: 0.95,
+          initialGapSeconds: 1.55,
+          gapVariationSeconds: 0.35,
+          coinClearance: 7,
+          themeFadeSeconds: 2.2,
+        },
+        traversal: { spawnChance: 0.05, portalSkip: 650, padSkip: 350, arrivalGrace: 1.5 },
+        enemyFire: { warningSeconds: 0.65, maxProjectiles: 24, maxCharging: 2 },
+        simulationStep: 1 / 120,
+        maxFrameSeconds: 0.1,
+        particleLimit: 550,
+      };
+    },
+  });
+
+  // src/random.ts
+  var require_random = __commonJS({
+    "src/random.ts"(exports, module) {
+      "use strict";
+      function hash(value) {
+        let result = 2166136261;
+        for (const character of String(value)) {
+          result = Math.imul(result ^ character.charCodeAt(0), 16777619);
+        }
+        return result >>> 0 || 1;
+      }
+      function create4(seed) {
+        return { seed: hash(seed) };
+      }
+      function next(rng) {
+        let value = rng.seed;
+        value ^= value << 13;
+        value ^= value >>> 17;
+        value ^= value << 5;
+        rng.seed = value >>> 0;
+        return rng.seed / 4294967296;
+      }
+      function range(rng, min, max) {
+        return min + next(rng) * (max - min);
+      }
+      function pick(rng, items) {
+        return items[Math.floor(next(rng) * items.length)];
+      }
+      function shuffled(rng, items) {
+        const result = [...items];
+        for (let i = result.length - 1; i > 0; i--) {
+          const j = Math.floor(next(rng) * (i + 1));
+          [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+      }
+      function drawBag(rng, bag, items, previous) {
+        if (!bag.length) {
+          bag.push(...shuffled(rng, items));
+          if (bag.length > 1 && bag[bag.length - 1] === previous) {
+            [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+          }
+        }
+        return bag.pop();
+      }
+      function weighted(rng, items, previous) {
+        const pool = items.length > 1 ? items.filter((item) => item.id !== previous) : items;
+        const total = pool.reduce((sum, item) => sum + (item.weight || 1), 0);
+        let roll = next(rng) * total;
+        for (const item of pool) {
+          roll -= item.weight || 1;
+          if (roll < 0) return item;
+        }
+        return pool[pool.length - 1];
+      }
+      module.exports = { hash, create: create4, next, range, pick, shuffled, drawBag, weighted };
+    },
+  });
+
+  // src/content.ts
+  var require_content = __commonJS({
+    "src/content.ts"(exports, module) {
+      "use strict";
+      var obstacles = [
+        { id: "crate", w: 13, h: 14, unlock: 1, weight: 3 },
+        { id: "spikes", w: 23, h: 11, unlock: 1, weight: 2 },
+        { id: "barrier", w: 25, h: 18, unlock: 2, weight: 2 },
+        { id: "stack", w: 15, h: 27, unlock: 2, weight: 2 },
+        { id: "pipe", w: 22, h: 22, unlock: 3, weight: 2 },
+        { id: "reactor", w: 19, h: 31, unlock: 4, weight: 1 },
+      ];
+      var enemies = [
+        {
+          id: "drone",
+          w: 19,
+          h: 12,
+          altitude: 42,
+          amplitude: 3,
+          frequency: 2.5,
+          extraSpeed: 0,
+          unlock: 1,
+          weight: 3,
+        },
+        {
+          id: "crawler",
+          w: 20,
+          h: 12,
+          altitude: 12,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 12,
+          unlock: 2,
+          weight: 2,
+        },
+        {
+          id: "jelly",
+          w: 16,
+          h: 18,
+          altitude: 45,
+          amplitude: 12,
+          frequency: 2,
+          extraSpeed: 0,
+          unlock: 3,
+          weight: 2,
+        },
+        {
+          id: "bat",
+          w: 22,
+          h: 10,
+          altitude: 61,
+          amplitude: 8,
+          frequency: 3.6,
+          extraSpeed: 15,
+          unlock: 4,
+          weight: 2,
+        },
+        {
+          id: "sentry",
+          w: 21,
+          h: 19,
+          altitude: 19,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 0,
+          unlock: 3,
+          weight: 2,
+        },
+        {
+          id: "beetle",
+          w: 24,
+          h: 15,
+          altitude: 15,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 8,
+          unlock: 4,
+          weight: 2,
+        },
+        {
+          id: "wasp",
+          w: 22,
+          h: 14,
+          altitude: 53,
+          amplitude: 6,
+          frequency: 3.2,
+          extraSpeed: 7,
+          unlock: 5,
+          weight: 2,
+        },
+        {
+          id: "wisp",
+          w: 17,
+          h: 17,
+          altitude: 45,
+          amplitude: 15,
+          frequency: 2.8,
+          extraSpeed: 18,
+          unlock: 6,
+          weight: 2,
+        },
+      ];
+      var patterns = [
+        { id: "hurdle", unlock: 1 },
+        { id: "patrol", unlock: 1 },
+        { id: "escort", unlock: 2 },
+        { id: "coin-break", unlock: 1 },
+        { id: "steps", unlock: 2 },
+        { id: "mixed", unlock: 3 },
+        { id: "convoy", unlock: 4 },
+        { id: "squad", unlock: 5 },
+        { id: "crossfire", unlock: 7 },
+      ];
+      var coinPatterns = [
+        "ground",
+        "arc",
+        "staircase",
+        "high",
+        "wave",
+        "split",
+        "scatter",
+        "zigzag",
+        "double-arc",
+        "diamond",
+        "helix",
+        "ripple",
+        "ladder",
+      ];
+      var paces = [
+        { id: "cruise", name: "CRUISE", multiplier: 1 },
+        { id: "surge", name: "SURGE", multiplier: 1.19 },
+        { id: "recovery", name: "BREATHER", multiplier: 0.89 },
+      ];
+      var biomes = [
+        {
+          id: "city",
+          name: "THE OUTSKIRTS",
+          architecture: "city",
+          weather: "embers",
+          palette: {
+            sky: "#192b27",
+            horizon: "#172823",
+            far: "#243b31",
+            mid: "#294437",
+            near: "#31493a",
+            detail: "#627354",
+            light: "#c0a96e",
+            ground: "#172820",
+            rail: "#a2a074",
+            floor: "#78805a",
+          },
+        },
+        {
+          id: "foundry",
+          name: "COPPER FOUNDRY",
+          architecture: "factory",
+          weather: "ash",
+          palette: {
+            sky: "#302323",
+            horizon: "#392b28",
+            far: "#48302d",
+            mid: "#593a2e",
+            near: "#674737",
+            detail: "#9c6244",
+            light: "#ffb461",
+            ground: "#302421",
+            rail: "#d2a06c",
+            floor: "#9b7551",
+          },
+        },
+        {
+          id: "forest",
+          name: "OVERGROWN SIGNAL",
+          architecture: "forest",
+          weather: "fireflies",
+          palette: {
+            sky: "#122d2c",
+            horizon: "#153c34",
+            far: "#1c493c",
+            mid: "#245b44",
+            near: "#38684c",
+            detail: "#749869",
+            light: "#c6d688",
+            ground: "#183b2b",
+            rail: "#b7ba76",
+            floor: "#668353",
+          },
+        },
+        {
+          id: "frost",
+          name: "FROST RELAY",
+          architecture: "mountains",
+          weather: "snow",
+          palette: {
+            sky: "#1e2d3c",
+            horizon: "#2b4050",
+            far: "#354e60",
+            mid: "#426177",
+            near: "#537a8b",
+            detail: "#8eabb2",
+            light: "#d0e6d7",
+            ground: "#253e4d",
+            rail: "#d5e0cd",
+            floor: "#94b8bc",
+          },
+        },
+        {
+          id: "dunes",
+          name: "THE GLASS WASTES",
+          architecture: "ruins",
+          weather: "sand",
+          palette: {
+            sky: "#352d36",
+            horizon: "#514037",
+            far: "#63503f",
+            mid: "#7a6048",
+            near: "#8f7354",
+            detail: "#b6976d",
+            light: "#f4cf8a",
+            ground: "#45362d",
+            rail: "#edc48a",
+            floor: "#b18b60",
+          },
+        },
+      ];
+      module.exports = { obstacles, enemies, patterns, coinPatterns, paces, biomes };
+    },
+  });
+
+  // src/difficulty.ts
+  var require_difficulty = __commonJS({
+    "src/difficulty.ts"(exports, module) {
+      "use strict";
+      var import_config3 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var import_content2 = __toESM(require_content());
+      function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
+        const speed = import_config3.default.speed;
+        return (
+          speed.start * rules.speed +
+          speed.growth * rules.growth * Math.log2(1 + time / speed.growthSeconds)
+        );
+      }
+      function update2(state, dt) {
+        const sector = 1 + Math.floor(state.time / import_config3.default.sectorSeconds);
+        if (sector !== state.sector) {
+          state.sector = sector;
+          state.previousBiome = state.biome;
+          const ids = import_content2.default.biomes.map((biome) => biome.id);
+          state.biome = import_random2.default.drawBag(
+            state.sceneryRng,
+            state.biomeBag,
+            ids,
+            state.biome,
+          );
+          state.biomeBlend = 0;
+          state.events.push({ type: "sector", x: 240, y: 60 });
+        }
+        state.biomeBlend = Math.min(
+          1,
+          state.biomeBlend + dt / import_config3.default.generation.themeFadeSeconds,
+        );
+        if (state.time >= state.nextPaceTime) {
+          const ids = import_content2.default.paces.map((pace2) => pace2.id);
+          state.pace = import_random2.default.drawBag(
+            state.paceRng,
+            state.paceBag,
+            ids,
+            state.pace,
+          );
+          state.nextPaceTime =
+            state.time +
+            import_random2.default.range(
+              state.paceRng,
+              import_config3.default.speed.phaseMinSeconds,
+              import_config3.default.speed.phaseMaxSeconds,
+            );
+          state.events.push({ type: "pace", x: 240, y: 60 });
+        }
+        const pace = import_content2.default.paces.find((item) => item.id === state.pace);
+        state.targetSpeed = baseSpeed(state.time, state.rules) * pace.multiplier;
+        const difference = state.targetSpeed - state.speed;
+        const rate =
+          difference > 0
+            ? import_config3.default.speed.acceleration
+            : import_config3.default.speed.deceleration;
+        state.speed += Math.sign(difference) * Math.min(Math.abs(difference), rate * dt);
+      }
+      function gapSeconds(sector, rules = { gap: 1 }) {
+        const settings = import_config3.default.generation;
+        return Math.max(
+          settings.minimumGapSeconds,
+          (settings.initialGapSeconds - 0.16 * Math.log2(sector + 1)) * rules.gap,
+        );
+      }
+      function safetySpeed(state) {
+        const fastestPace = Math.max(
+          ...import_content2.default.paces.map((pace) => pace.multiplier),
+        );
+        const fastestEnemy = Math.max(
+          0,
+          ...import_content2.default.enemies.map((enemy) => enemy.extraSpeed),
+        );
+        return (
+          Math.max(state.speed, baseSpeed(state.time + 6, state.rules) * fastestPace) + fastestEnemy
+        );
+      }
+      module.exports = { baseSpeed, update: update2, gapSeconds, safetySpeed };
+    },
+  });
+
+  // src/generator.ts
+  var require_generator = __commonJS({
+    "src/generator.ts"(exports, module) {
+      "use strict";
+      var import_config3 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var import_content2 = __toESM(require_content());
+      var import_difficulty3 = __toESM(require_difficulty());
+      function choose(state, type) {
+        const definitions = import_content2.default[type].filter(
+          (item) => item.unlock <= state.sector,
+        );
+        const chosen = import_random2.default.weighted(
+          state.rng,
+          definitions,
+          state.lastVariant[type],
+        );
+        state.lastVariant[type] = chosen.id;
+        return chosen;
+      }
+      function obstacle(state, x) {
+        const definition = choose(state, "obstacles");
+        return {
+          kind: "hazard",
+          variant: definition.id,
+          x,
+          y: import_config3.default.floor - definition.h,
+          w: definition.w,
+          h: definition.h,
+          passed: false,
+        };
+      }
+      function enemy(state, x, variant) {
+        const definition =
+          import_content2.default.enemies.find(
+            (item) => item.id === variant && item.unlock <= state.sector,
+          ) ?? choose(state, "enemies");
+        state.lastVariant.enemies = definition.id;
+        const altitudeJitter =
+          definition.altitude === definition.h && definition.amplitude === 0
+            ? 0
+            : import_random2.default.range(state.rng, -4, 4);
+        const baseY = import_config3.default.floor - definition.altitude + altitudeJitter;
+        return {
+          kind: "enemy",
+          variant: definition.id,
+          x,
+          y: baseY,
+          baseY,
+          w: definition.w,
+          h: definition.h,
+          amplitude: definition.amplitude,
+          frequency: definition.frequency,
+          extraSpeed: definition.extraSpeed,
+          phase: import_random2.default.range(state.rng, 0, Math.PI * 2),
+          age: 0,
+          passed: false,
+        };
+      }
+      function coinPath(state, pattern, startX, width) {
+        const points = [];
+        const count = [
+          "scatter",
+          "zigzag",
+          "double-arc",
+          "diamond",
+          "helix",
+          "ripple",
+          "ladder",
+        ].includes(pattern)
+          ? 13
+          : 7;
+        const yShift = import_random2.default.range(state.rng, -3, 3);
+        for (let i = 0; i < count; i++) {
+          const fraction = i / (count - 1);
+          let x = startX + fraction * width;
+          let height;
+          switch (pattern) {
+            case "ground":
+              height = 12;
+              break;
+            case "arc":
+              height = 28 + Math.sin(fraction * Math.PI) * 40;
+              break;
+            case "staircase":
+              height = 18 + Math.floor(fraction * 4) * 13;
+              break;
+            case "high":
+              height = 67;
+              break;
+            case "wave":
+              height = 37 + Math.sin(fraction * Math.PI * 2) * 22;
+              break;
+            case "split":
+              height = i < count / 2 ? 15 : 65;
+              break;
+            case "zigzag":
+              height = 15 + (i % 2) * 42;
+              break;
+            case "double-arc":
+              height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
+              break;
+            case "diamond":
+              height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
+              break;
+            case "helix":
+              height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
+              break;
+            case "ripple":
+              height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
+              break;
+            case "ladder":
+              height = 12 + (i % 4) * 17;
+              break;
+            case "scatter":
+              height = import_random2.default.range(state.rng, 12, 70);
+              x += import_random2.default.range(state.rng, -5, 5);
+              break;
+            default:
+              throw new Error("Unknown coin pattern: " + pattern);
+          }
+          points.push({
+            kind: "ember",
+            variant: pattern,
+            x,
+            y: Math.max(
+              import_config3.default.floor - 70,
+              Math.min(
+                import_config3.default.floor - 10,
+                import_config3.default.floor - height + yShift,
+              ),
+            ),
+            w: 5,
+            h: 6,
+          });
+          if (pattern === "diamond" && i > 0 && i < count - 1) {
+            points.push({
+              ...points[points.length - 1],
+              y: import_config3.default.floor - (78 - height) + yShift,
+            });
+          }
+        }
+        return points;
+      }
+      function overlapsDanger(coin, object) {
+        const clearance = import_config3.default.generation.coinClearance;
+        const amplitude = object.amplitude || 0;
+        return (
+          coin.x + coin.w + clearance > object.x &&
+          coin.x - clearance < object.x + object.w &&
+          coin.y + coin.h + clearance > object.y - amplitude &&
+          coin.y - clearance < object.y + object.h + amplitude
+        );
+      }
+      function spawn(state) {
+        const eligible = import_content2.default.patterns
+          .filter((pattern2) => pattern2.unlock <= state.sector)
+          .map((pattern2) => pattern2.id);
+        const key = eligible.join(",");
+        if (key !== state.patternPool) {
+          state.patternBag.length = 0;
+          state.patternPool = key;
+        }
+        const pattern = import_random2.default.drawBag(
+          state.rng,
+          state.patternBag,
+          eligible,
+          state.lastPattern,
+        );
+        const coinPattern = import_random2.default.drawBag(
+          state.rng,
+          state.coinBag,
+          import_content2.default.coinPatterns,
+          state.lastCoinPattern,
+        );
+        state.lastPattern = pattern;
+        state.lastCoinPattern = coinPattern;
+        const x = import_config3.default.generation.spawnX;
+        const safetySpeed = import_difficulty3.default.safetySpeed(state);
+        const separation = Math.max(155, safetySpeed * 1.25);
+        const dangers = [];
+        switch (pattern) {
+          case "hurdle":
+            dangers.push(obstacle(state, x));
+            break;
+          case "escort":
+          case "patrol":
+            dangers.push(enemy(state, x));
+            if (
+              state.sector >= 4 &&
+              import_random2.default.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035)
+            )
+              dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
+            break;
+          case "steps":
+            dangers.push(obstacle(state, x), obstacle(state, x + separation));
+            break;
+          case "mixed":
+            if (import_random2.default.next(state.rng) < 0.5)
+              dangers.push(obstacle(state, x), enemy(state, x + separation));
+            else dangers.push(enemy(state, x), obstacle(state, x + separation));
+            break;
+          case "squad": {
+            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
+            for (let i = 0; i < count; i++)
+              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+            break;
+          }
+          case "crossfire":
+            dangers.push(
+              enemy(state, x, "sentry"),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
+              enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
+            );
+            break;
+          case "convoy":
+            dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
+            break;
+          case "coin-break":
+            break;
+          default:
+            throw new Error("Unknown encounter: " + pattern);
+        }
+        const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
+        const coins = coinPath(state, coinPattern, x - 24, Math.max(115, end - x + 95));
+        const safeCoins = coins.filter(
+          (coin) => !dangers.some((danger) => overlapsDanger(coin, danger)),
+        );
+        if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
+        state.objects.push(...dangers, ...safeCoins);
+        let travelEnd = end;
+        if (import_random2.default.next(state.rng) < import_config3.default.traversal.spawnChance) {
+          const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
+          const device = {
+            kind,
+            x: end + Math.max(95, safetySpeed * 0.65),
+            y: import_config3.default.floor - (kind === "portal" ? 43 : 5),
+            w: kind === "portal" ? 22 : 26,
+            h: kind === "portal" ? 43 : 5,
+            age: 0,
+          };
+          state.traversals.push(device);
+          if (state.traversals.length > 4) state.traversals.shift();
+          travelEnd = device.x + device.w;
+        }
+        const gap =
+          import_difficulty3.default.gapSeconds(state.sector, state.rules) +
+          import_random2.default.range(
+            state.rng,
+            0,
+            import_config3.default.generation.gapVariationSeconds,
+          );
+        const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
+        state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
+        state.encounterCount++;
+        state.lastEncounter = {
+          pattern,
+          coinPattern,
+          variants: dangers.map((item) => item.variant),
+          gap,
+          width: occupiedWidth,
+        };
+        return state.lastEncounter;
+      }
+      function move(object, speed, dt) {
+        object.x -= (speed + (object.extraSpeed || 0)) * dt;
+        if (object.kind === "enemy") {
+          object.age = (object.age ?? 0) + dt;
+          object.y =
+            object.baseY +
+            Math.sin(object.age * object.frequency + object.phase) * object.amplitude;
+        }
+      }
+      module.exports = { spawn, obstacle, enemy, coinPath, overlapsDanger, move };
+    },
+  });
 
   // src/loadout.ts
   var require_loadout = __commonJS({
@@ -373,53 +1073,163 @@
     },
   });
 
-  // src/config.ts
-  var require_config = __commonJS({
-    "src/config.ts"(exports, module) {
+  // src/combat.ts
+  var require_combat = __commonJS({
+    "src/combat.ts"(exports, module) {
       "use strict";
-      module.exports = {
-        width: 480,
-        height: 240,
-        floor: 196,
-        playerX: 82,
-        playerHeight: 18,
-        gravity: 560,
-        jumpVelocity: -180,
-        doubleJumpVelocity: -155,
-        maxJumps: 2,
-        dashDuration: 0.18,
-        dashCooldown: 2.8,
-        dashWorldMultiplier: 1.18,
-        dashLungeSpeed: 150,
-        dashLungeMax: 18,
-        dashReturnSpeed: 95,
-        damageGrace: 1.6,
-        pickupRecharge: 0.06,
-        sectorSeconds: 18,
-        speed: {
-          start: 98,
-          growth: 34,
-          growthSeconds: 16,
-          acceleration: 21,
-          deceleration: 17,
-          phaseMinSeconds: 12,
-          phaseMaxSeconds: 19,
-        },
-        generation: {
-          spawnX: 510,
-          initialDistance: 190,
-          minimumGapSeconds: 0.95,
-          initialGapSeconds: 1.55,
-          gapVariationSeconds: 0.35,
-          coinClearance: 7,
-          themeFadeSeconds: 2.2,
-        },
-        traversal: { spawnChance: 0.05, portalSkip: 650, padSkip: 350, arrivalGrace: 1.5 },
-        enemyFire: { warningSeconds: 0.65, maxProjectiles: 24, maxCharging: 2 },
-        simulationStep: 1 / 120,
-        maxFrameSeconds: 0.1,
-        particleLimit: 550,
-      };
+      var import_config3 = __toESM(require_config());
+      var import_loadout3 = __toESM(require_loadout());
+      var armor = { crate: 1, barrier: 1, stack: 2.6 };
+      function durability(object) {
+        if (object.kind === "enemy")
+          return (
+            {
+              drone: 1.2,
+              crawler: 2.4,
+              jelly: 1.5,
+              bat: 1,
+              sentry: 2.2,
+              beetle: 3.2,
+              wasp: 1.8,
+              wisp: 1.4,
+            }[object.variant] || 1
+          );
+        return armor[object.variant] || 0;
+      }
+      function breakable(object) {
+        return object.kind !== "ember" && durability(object) > 0;
+      }
+      function damage(state, object, amount, method) {
+        if (object.dead || !breakable(object)) return false;
+        object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1e3) / 1e3;
+        if (object.hp > 0) {
+          state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
+          return false;
+        }
+        object.dead = true;
+        const points = object.kind === "enemy" ? 150 : 100;
+        state.score += BigInt(points);
+        state.events.push({
+          type: "smash",
+          x: object.x,
+          y: object.y,
+          points,
+          label: method === "dash" ? "DASH" : object.kind === "enemy" ? "ENEMY" : "BREAK",
+        });
+        return true;
+      }
+      function attack(state) {
+        if (state.mode !== "playing" || state.attackCooldown > 0) return false;
+        const weapon = import_loadout3.default.find(
+          import_loadout3.default.weapons,
+          state.loadout.weapon,
+        );
+        state.attackCooldown = weapon.cooldown;
+        state.attackTime = weapon.duration || 0.12;
+        state.attackId++;
+        state.events.push({
+          type: weapon.id === "punch" ? "punch" : "shoot",
+          x: state.player.x + 15,
+          y: state.player.y + 9,
+        });
+        if (weapon.id === "punch") return true;
+        const x = state.player.x + 15,
+          y = state.player.y + 9;
+        const target = state.objects
+          .filter(
+            (object) =>
+              !object.dead &&
+              breakable(object) &&
+              object.x > x &&
+              object.x - x < 270 &&
+              Math.abs(object.y + object.h / 2 - y) < 70,
+          )
+          .sort((a, b) => a.x - b.x)[0];
+        let angle = 0;
+        if (target) {
+          const travelTime = Math.max(
+            0.05,
+            (target.x - x) / (weapon.speed + state.runSpeed + (target.extraSpeed || 0)),
+          );
+          angle = Math.atan2((target.y + target.h / 2 - y) / travelTime, weapon.speed);
+        }
+        const spread =
+          weapon.id === "nova"
+            ? [-0.24, -0.12, 0, 0.12, 0.24]
+            : weapon.id === "scatter"
+              ? [-0.16, 0, 0.16]
+              : [0];
+        for (const offset of spread)
+          state.projectiles.push({
+            x,
+            y,
+            vx: Math.cos(angle + offset) * weapon.speed,
+            vy: Math.sin(angle + offset) * weapon.speed,
+            life: weapon.life,
+            damage: weapon.damage * state.stats.damageMultiplier,
+            color: weapon.color,
+            pierce: weapon.pierce ?? 0,
+            hitTargets: [],
+          });
+        return true;
+      }
+      function update2(state, dt, moveProjectiles = true) {
+        const weapon = import_loadout3.default.find(
+          import_loadout3.default.weapons,
+          state.loadout.weapon,
+        );
+        if (state.attackTime > 0 && weapon.id === "punch") {
+          for (const object of state.objects) {
+            if (object.dead || object.lastPunch === state.attackId) continue;
+            if (
+              object.x < state.player.x + 13 + weapon.range &&
+              object.x + object.w > state.player.x + 9 &&
+              object.y + object.h > state.player.y + 1 &&
+              object.y < state.player.y + 21
+            ) {
+              object.lastPunch = state.attackId;
+              damage(state, object, weapon.damage * state.stats.damageMultiplier, "punch");
+            }
+          }
+        }
+        if (!moveProjectiles) return;
+        for (const bolt of state.projectiles) {
+          const previousX = bolt.x,
+            previousY = bolt.y;
+          bolt.x += bolt.vx * dt;
+          bolt.y += bolt.vy * dt;
+          bolt.life -= dt;
+          for (const object of state.objects) {
+            if (object.dead || object.kind === "ember" || bolt.hitTargets?.includes(object))
+              continue;
+            if (
+              Math.max(bolt.x, previousX) + 3 >= object.x &&
+              Math.min(bolt.x, previousX) <= object.x + object.w &&
+              Math.max(bolt.y, previousY) + 2 >= object.y &&
+              Math.min(bolt.y, previousY) <= object.y + object.h
+            ) {
+              damage(state, object, bolt.damage, "shot");
+              if (!breakable(object))
+                state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
+              if (breakable(object) && (bolt.pierce ?? 0) > 0) {
+                bolt.pierce--;
+                (bolt.hitTargets ??= []).push(object);
+              } else {
+                bolt.life = 0;
+                break;
+              }
+            }
+          }
+        }
+        state.projectiles = state.projectiles.filter(
+          (bolt) =>
+            bolt.life > 0 &&
+            bolt.x < import_config3.default.width + 30 &&
+            bolt.y > 0 &&
+            bolt.y < import_config3.default.floor + 10,
+        );
+      }
+      module.exports = { armor, durability, breakable, damage, attack, update: update2 };
     },
   });
 
@@ -427,7 +1237,7 @@
   var require_upgrades = __commonJS({
     "src/upgrades.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var tracks = [
         {
           id: "dash",
@@ -495,23 +1305,23 @@
         };
         return {
           levels,
-          maxJumps: import_config2.default.maxJumps + levels.triple,
-          jumpVelocity: import_config2.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
+          maxJumps: import_config3.default.maxJumps + levels.triple,
+          jumpVelocity: import_config3.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
           doubleJumpVelocity:
-            import_config2.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
+            import_config3.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
           thirdJumpVelocity:
-            (import_config2.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) *
+            (import_config3.default.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3)) *
             0.85,
           dashDuration:
-            import_config2.default.dashDuration + (basic.dash * 0.016 + advanced.dash * 8e-3),
+            import_config3.default.dashDuration + (basic.dash * 0.016 + advanced.dash * 8e-3),
           dashCooldown:
-            import_config2.default.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
+            import_config3.default.dashCooldown - (basic.dash * 0.16 + advanced.dash * 0.07),
           dashWorldMultiplier:
-            import_config2.default.dashWorldMultiplier +
+            import_config3.default.dashWorldMultiplier +
             (basic.dash * 0.07 + advanced.dash * 0.035),
-          dashLungeMax: import_config2.default.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
+          dashLungeMax: import_config3.default.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
           dashLungeSpeed:
-            import_config2.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
+            import_config3.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
           damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
         };
       }
@@ -530,9 +1340,9 @@
           case "jump":
             return (
               "First jump ~" +
-              Math.round(result.jumpVelocity ** 2 / (2 * import_config2.default.gravity)) +
+              Math.round(result.jumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
               "px \xB7 second jump adds ~" +
-              Math.round(result.doubleJumpVelocity ** 2 / (2 * import_config2.default.gravity)) +
+              Math.round(result.doubleJumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
               "px"
             );
           case "damage":
@@ -547,943 +1357,16 @@
     },
   });
 
-  // src/economy.ts
-  var require_economy = __commonJS({
-    "src/economy.ts"(exports, module) {
-      "use strict";
-      var import_loadout2 = __toESM(require_loadout());
-      var import_upgrades2 = __toESM(require_upgrades());
-      var prices = {
-        character: {
-          fox: 0,
-          bot: 500,
-          hare: 900,
-          ranger: 1500,
-          lynx: 2e3,
-          moth: 2800,
-          diver: 3500,
-          specter: 4200,
-        },
-        cape: { ember: 0, signal: 250, storm: 600, none: 0 },
-        jetpack: { ember: 0, twin: 400, coil: 800, none: 0 },
-        weapon: { punch: 0, pulse: 1200, scatter: 2400, repeater: 3600, rail: 5200, nova: 4400 },
-      };
-      var keyOf = (group, id) => group + ":" + id;
-      function price(group, id) {
-        return Object.hasOwn(prices, group) && Object.hasOwn(prices[group], id)
-          ? prices[group][id]
-          : null;
-      }
-      function amount(value) {
-        try {
-          const result = BigInt(value);
-          return result >= 0n ? result : 0n;
-        } catch {
-          return 0n;
-        }
-      }
-      function create(saves) {
-        const raw = saves.economy();
-        const saved = raw?.version === 1 || raw?.version === 2 ? raw : null;
-        let balance = saved ? amount(saved.balance) : saves.coins();
-        const levels = import_upgrades2.default.sanitize(
-          saved?.version === 2 ? saved.upgrades : {},
-        );
-        const owned = /* @__PURE__ */ new Set();
-        for (const [group, items] of Object.entries(prices)) {
-          for (const [id, cost] of Object.entries(items)) {
-            const key = keyOf(group, id);
-            if (cost === 0 || (Array.isArray(saved?.owned) && saved.owned.includes(key)))
-              owned.add(key);
-          }
-        }
-        function save() {
-          saves.write(
-            "economy",
-            JSON.stringify({
-              version: 2,
-              balance: balance.toString(),
-              owned: [...owned],
-              upgrades: levels,
-            }),
-          );
-        }
-        function owns(group, id) {
-          if (group === "difficulty")
-            return import_loadout2.default.difficulties.some((item) => item.id === id);
-          return owned.has(keyOf(group, id));
-        }
-        function enforce(value) {
-          const result = import_loadout2.default.sanitize(value);
-          for (const group of Object.keys(prices))
-            if (!owns(group, result[group]))
-              result[group] = import_loadout2.default.defaults[group];
-          return result;
-        }
-        function buy(group, id) {
-          const cost = price(group, id);
-          if (cost === null) return { ok: false, reason: "unknown" };
-          if (owns(group, id)) return { ok: true, reason: "owned" };
-          if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
-          balance -= BigInt(cost);
-          owned.add(keyOf(group, id));
-          save();
-          return { ok: true, reason: "purchased" };
-        }
-        function upgrade(id, expectedLevel) {
-          const track = import_upgrades2.default.definition(id);
-          if (!track) return { ok: false, reason: "unknown" };
-          if (levels[track.id] >= track.maxLevel) return { ok: false, reason: "maxed" };
-          if (expectedLevel !== levels[track.id]) return { ok: false, reason: "stale" };
-          const cost = import_upgrades2.default.cost(id, levels);
-          if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
-          balance -= BigInt(cost);
-          levels[track.id]++;
-          save();
-          return { ok: true, reason: "upgraded", level: levels[track.id] };
-        }
-        function credit(value) {
-          const coins = amount(value);
-          if (!coins) return;
-          balance += coins;
-          save();
-        }
-        if (!saved || saved.version !== 2) save();
-        return {
-          buy,
-          upgrade,
-          get levels() {
-            return { ...levels };
-          },
-          owns,
-          enforce,
-          credit,
-          price,
-          get balance() {
-            return balance;
-          },
-        };
-      }
-      module.exports = { prices, price, create };
-    },
-  });
-
-  // src/content.ts
-  var require_content = __commonJS({
-    "src/content.ts"(exports, module) {
-      "use strict";
-      var obstacles = [
-        { id: "crate", w: 13, h: 14, unlock: 1, weight: 3 },
-        { id: "spikes", w: 23, h: 11, unlock: 1, weight: 2 },
-        { id: "barrier", w: 25, h: 18, unlock: 2, weight: 2 },
-        { id: "stack", w: 15, h: 27, unlock: 2, weight: 2 },
-        { id: "pipe", w: 22, h: 22, unlock: 3, weight: 2 },
-        { id: "reactor", w: 19, h: 31, unlock: 4, weight: 1 },
-      ];
-      var enemies = [
-        {
-          id: "drone",
-          w: 19,
-          h: 12,
-          altitude: 42,
-          amplitude: 3,
-          frequency: 2.5,
-          extraSpeed: 0,
-          unlock: 1,
-          weight: 3,
-        },
-        {
-          id: "crawler",
-          w: 20,
-          h: 12,
-          altitude: 12,
-          amplitude: 0,
-          frequency: 0,
-          extraSpeed: 12,
-          unlock: 2,
-          weight: 2,
-        },
-        {
-          id: "jelly",
-          w: 16,
-          h: 18,
-          altitude: 45,
-          amplitude: 12,
-          frequency: 2,
-          extraSpeed: 0,
-          unlock: 3,
-          weight: 2,
-        },
-        {
-          id: "bat",
-          w: 22,
-          h: 10,
-          altitude: 61,
-          amplitude: 8,
-          frequency: 3.6,
-          extraSpeed: 15,
-          unlock: 4,
-          weight: 2,
-        },
-        {
-          id: "sentry",
-          w: 21,
-          h: 19,
-          altitude: 19,
-          amplitude: 0,
-          frequency: 0,
-          extraSpeed: 0,
-          unlock: 3,
-          weight: 2,
-        },
-        {
-          id: "beetle",
-          w: 24,
-          h: 15,
-          altitude: 15,
-          amplitude: 0,
-          frequency: 0,
-          extraSpeed: 8,
-          unlock: 4,
-          weight: 2,
-        },
-        {
-          id: "wasp",
-          w: 22,
-          h: 14,
-          altitude: 53,
-          amplitude: 6,
-          frequency: 3.2,
-          extraSpeed: 7,
-          unlock: 5,
-          weight: 2,
-        },
-        {
-          id: "wisp",
-          w: 17,
-          h: 17,
-          altitude: 45,
-          amplitude: 15,
-          frequency: 2.8,
-          extraSpeed: 18,
-          unlock: 6,
-          weight: 2,
-        },
-      ];
-      var patterns = [
-        { id: "hurdle", unlock: 1 },
-        { id: "patrol", unlock: 1 },
-        { id: "escort", unlock: 2 },
-        { id: "coin-break", unlock: 1 },
-        { id: "steps", unlock: 2 },
-        { id: "mixed", unlock: 3 },
-        { id: "convoy", unlock: 4 },
-        { id: "squad", unlock: 5 },
-        { id: "crossfire", unlock: 7 },
-      ];
-      var coinPatterns = [
-        "ground",
-        "arc",
-        "staircase",
-        "high",
-        "wave",
-        "split",
-        "scatter",
-        "zigzag",
-        "double-arc",
-        "diamond",
-        "helix",
-        "ripple",
-        "ladder",
-      ];
-      var paces = [
-        { id: "cruise", name: "CRUISE", multiplier: 1 },
-        { id: "surge", name: "SURGE", multiplier: 1.19 },
-        { id: "recovery", name: "BREATHER", multiplier: 0.89 },
-      ];
-      var biomes = [
-        {
-          id: "city",
-          name: "THE OUTSKIRTS",
-          architecture: "city",
-          weather: "embers",
-          palette: {
-            sky: "#192b27",
-            horizon: "#172823",
-            far: "#243b31",
-            mid: "#294437",
-            near: "#31493a",
-            detail: "#627354",
-            light: "#c0a96e",
-            ground: "#172820",
-            rail: "#a2a074",
-            floor: "#78805a",
-          },
-        },
-        {
-          id: "foundry",
-          name: "COPPER FOUNDRY",
-          architecture: "factory",
-          weather: "ash",
-          palette: {
-            sky: "#302323",
-            horizon: "#392b28",
-            far: "#48302d",
-            mid: "#593a2e",
-            near: "#674737",
-            detail: "#9c6244",
-            light: "#ffb461",
-            ground: "#302421",
-            rail: "#d2a06c",
-            floor: "#9b7551",
-          },
-        },
-        {
-          id: "forest",
-          name: "OVERGROWN SIGNAL",
-          architecture: "forest",
-          weather: "fireflies",
-          palette: {
-            sky: "#122d2c",
-            horizon: "#153c34",
-            far: "#1c493c",
-            mid: "#245b44",
-            near: "#38684c",
-            detail: "#749869",
-            light: "#c6d688",
-            ground: "#183b2b",
-            rail: "#b7ba76",
-            floor: "#668353",
-          },
-        },
-        {
-          id: "frost",
-          name: "FROST RELAY",
-          architecture: "mountains",
-          weather: "snow",
-          palette: {
-            sky: "#1e2d3c",
-            horizon: "#2b4050",
-            far: "#354e60",
-            mid: "#426177",
-            near: "#537a8b",
-            detail: "#8eabb2",
-            light: "#d0e6d7",
-            ground: "#253e4d",
-            rail: "#d5e0cd",
-            floor: "#94b8bc",
-          },
-        },
-        {
-          id: "dunes",
-          name: "THE GLASS WASTES",
-          architecture: "ruins",
-          weather: "sand",
-          palette: {
-            sky: "#352d36",
-            horizon: "#514037",
-            far: "#63503f",
-            mid: "#7a6048",
-            near: "#8f7354",
-            detail: "#b6976d",
-            light: "#f4cf8a",
-            ground: "#45362d",
-            rail: "#edc48a",
-            floor: "#b18b60",
-          },
-        },
-      ];
-      module.exports = { obstacles, enemies, patterns, coinPatterns, paces, biomes };
-    },
-  });
-
-  // src/random.ts
-  var require_random = __commonJS({
-    "src/random.ts"(exports, module) {
-      "use strict";
-      function hash(value) {
-        let result = 2166136261;
-        for (const character of String(value)) {
-          result = Math.imul(result ^ character.charCodeAt(0), 16777619);
-        }
-        return result >>> 0 || 1;
-      }
-      function create(seed) {
-        return { seed: hash(seed) };
-      }
-      function next(rng) {
-        let value = rng.seed;
-        value ^= value << 13;
-        value ^= value >>> 17;
-        value ^= value << 5;
-        rng.seed = value >>> 0;
-        return rng.seed / 4294967296;
-      }
-      function range(rng, min, max) {
-        return min + next(rng) * (max - min);
-      }
-      function pick(rng, items) {
-        return items[Math.floor(next(rng) * items.length)];
-      }
-      function shuffled(rng, items) {
-        const result = [...items];
-        for (let i = result.length - 1; i > 0; i--) {
-          const j = Math.floor(next(rng) * (i + 1));
-          [result[i], result[j]] = [result[j], result[i]];
-        }
-        return result;
-      }
-      function drawBag(rng, bag, items, previous) {
-        if (!bag.length) {
-          bag.push(...shuffled(rng, items));
-          if (bag.length > 1 && bag[bag.length - 1] === previous) {
-            [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
-          }
-        }
-        return bag.pop();
-      }
-      function weighted(rng, items, previous) {
-        const pool = items.length > 1 ? items.filter((item) => item.id !== previous) : items;
-        const total = pool.reduce((sum, item) => sum + (item.weight || 1), 0);
-        let roll = next(rng) * total;
-        for (const item of pool) {
-          roll -= item.weight || 1;
-          if (roll < 0) return item;
-        }
-        return pool[pool.length - 1];
-      }
-      module.exports = { hash, create, next, range, pick, shuffled, drawBag, weighted };
-    },
-  });
-
-  // src/difficulty.ts
-  var require_difficulty = __commonJS({
-    "src/difficulty.ts"(exports, module) {
-      "use strict";
-      var import_config2 = __toESM(require_config());
-      var import_random2 = __toESM(require_random());
-      var import_content2 = __toESM(require_content());
-      function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
-        const speed = import_config2.default.speed;
-        return (
-          speed.start * rules.speed +
-          speed.growth * rules.growth * Math.log2(1 + time / speed.growthSeconds)
-        );
-      }
-      function update(state, dt) {
-        const sector = 1 + Math.floor(state.time / import_config2.default.sectorSeconds);
-        if (sector !== state.sector) {
-          state.sector = sector;
-          state.previousBiome = state.biome;
-          const ids = import_content2.default.biomes.map((biome) => biome.id);
-          state.biome = import_random2.default.drawBag(
-            state.sceneryRng,
-            state.biomeBag,
-            ids,
-            state.biome,
-          );
-          state.biomeBlend = 0;
-          state.events.push({ type: "sector", x: 240, y: 60 });
-        }
-        state.biomeBlend = Math.min(
-          1,
-          state.biomeBlend + dt / import_config2.default.generation.themeFadeSeconds,
-        );
-        if (state.time >= state.nextPaceTime) {
-          const ids = import_content2.default.paces.map((pace2) => pace2.id);
-          state.pace = import_random2.default.drawBag(
-            state.paceRng,
-            state.paceBag,
-            ids,
-            state.pace,
-          );
-          state.nextPaceTime =
-            state.time +
-            import_random2.default.range(
-              state.paceRng,
-              import_config2.default.speed.phaseMinSeconds,
-              import_config2.default.speed.phaseMaxSeconds,
-            );
-          state.events.push({ type: "pace", x: 240, y: 60 });
-        }
-        const pace = import_content2.default.paces.find((item) => item.id === state.pace);
-        state.targetSpeed = baseSpeed(state.time, state.rules) * pace.multiplier;
-        const difference = state.targetSpeed - state.speed;
-        const rate =
-          difference > 0
-            ? import_config2.default.speed.acceleration
-            : import_config2.default.speed.deceleration;
-        state.speed += Math.sign(difference) * Math.min(Math.abs(difference), rate * dt);
-      }
-      function gapSeconds(sector, rules = { gap: 1 }) {
-        const settings = import_config2.default.generation;
-        return Math.max(
-          settings.minimumGapSeconds,
-          (settings.initialGapSeconds - 0.16 * Math.log2(sector + 1)) * rules.gap,
-        );
-      }
-      function safetySpeed(state) {
-        const fastestPace = Math.max(
-          ...import_content2.default.paces.map((pace) => pace.multiplier),
-        );
-        const fastestEnemy = Math.max(
-          0,
-          ...import_content2.default.enemies.map((enemy) => enemy.extraSpeed),
-        );
-        return (
-          Math.max(state.speed, baseSpeed(state.time + 6, state.rules) * fastestPace) + fastestEnemy
-        );
-      }
-      module.exports = { baseSpeed, update, gapSeconds, safetySpeed };
-    },
-  });
-
-  // src/generator.ts
-  var require_generator = __commonJS({
-    "src/generator.ts"(exports, module) {
-      "use strict";
-      var import_config2 = __toESM(require_config());
-      var import_random2 = __toESM(require_random());
-      var import_content2 = __toESM(require_content());
-      var import_difficulty2 = __toESM(require_difficulty());
-      function choose(state, type) {
-        const definitions = import_content2.default[type].filter(
-          (item) => item.unlock <= state.sector,
-        );
-        const chosen = import_random2.default.weighted(
-          state.rng,
-          definitions,
-          state.lastVariant[type],
-        );
-        state.lastVariant[type] = chosen.id;
-        return chosen;
-      }
-      function obstacle(state, x) {
-        const definition = choose(state, "obstacles");
-        return {
-          kind: "hazard",
-          variant: definition.id,
-          x,
-          y: import_config2.default.floor - definition.h,
-          w: definition.w,
-          h: definition.h,
-          passed: false,
-        };
-      }
-      function enemy(state, x, variant) {
-        const definition =
-          import_content2.default.enemies.find(
-            (item) => item.id === variant && item.unlock <= state.sector,
-          ) ?? choose(state, "enemies");
-        state.lastVariant.enemies = definition.id;
-        const altitudeJitter =
-          definition.altitude === definition.h && definition.amplitude === 0
-            ? 0
-            : import_random2.default.range(state.rng, -4, 4);
-        const baseY = import_config2.default.floor - definition.altitude + altitudeJitter;
-        return {
-          kind: "enemy",
-          variant: definition.id,
-          x,
-          y: baseY,
-          baseY,
-          w: definition.w,
-          h: definition.h,
-          amplitude: definition.amplitude,
-          frequency: definition.frequency,
-          extraSpeed: definition.extraSpeed,
-          phase: import_random2.default.range(state.rng, 0, Math.PI * 2),
-          age: 0,
-          passed: false,
-        };
-      }
-      function coinPath(state, pattern, startX, width) {
-        const points = [];
-        const count = [
-          "scatter",
-          "zigzag",
-          "double-arc",
-          "diamond",
-          "helix",
-          "ripple",
-          "ladder",
-        ].includes(pattern)
-          ? 13
-          : 7;
-        const yShift = import_random2.default.range(state.rng, -3, 3);
-        for (let i = 0; i < count; i++) {
-          const fraction = i / (count - 1);
-          let x = startX + fraction * width;
-          let height;
-          switch (pattern) {
-            case "ground":
-              height = 12;
-              break;
-            case "arc":
-              height = 28 + Math.sin(fraction * Math.PI) * 40;
-              break;
-            case "staircase":
-              height = 18 + Math.floor(fraction * 4) * 13;
-              break;
-            case "high":
-              height = 67;
-              break;
-            case "wave":
-              height = 37 + Math.sin(fraction * Math.PI * 2) * 22;
-              break;
-            case "split":
-              height = i < count / 2 ? 15 : 65;
-              break;
-            case "zigzag":
-              height = 15 + (i % 2) * 42;
-              break;
-            case "double-arc":
-              height = 18 + Math.abs(Math.sin(fraction * Math.PI * 2)) * 48;
-              break;
-            case "diamond":
-              height = 39 + (1 - Math.abs(fraction * 2 - 1)) * 26;
-              break;
-            case "helix":
-              height = 39 + Math.sin(fraction * Math.PI * 3) * (i % 2 ? -25 : 25);
-              break;
-            case "ripple":
-              height = 36 + Math.sin(fraction * Math.PI * 4) * 21;
-              break;
-            case "ladder":
-              height = 12 + (i % 4) * 17;
-              break;
-            case "scatter":
-              height = import_random2.default.range(state.rng, 12, 70);
-              x += import_random2.default.range(state.rng, -5, 5);
-              break;
-            default:
-              throw new Error("Unknown coin pattern: " + pattern);
-          }
-          points.push({
-            kind: "ember",
-            variant: pattern,
-            x,
-            y: Math.max(
-              import_config2.default.floor - 70,
-              Math.min(
-                import_config2.default.floor - 10,
-                import_config2.default.floor - height + yShift,
-              ),
-            ),
-            w: 5,
-            h: 6,
-          });
-          if (pattern === "diamond" && i > 0 && i < count - 1) {
-            points.push({
-              ...points[points.length - 1],
-              y: import_config2.default.floor - (78 - height) + yShift,
-            });
-          }
-        }
-        return points;
-      }
-      function overlapsDanger(coin, object) {
-        const clearance = import_config2.default.generation.coinClearance;
-        const amplitude = object.amplitude || 0;
-        return (
-          coin.x + coin.w + clearance > object.x &&
-          coin.x - clearance < object.x + object.w &&
-          coin.y + coin.h + clearance > object.y - amplitude &&
-          coin.y - clearance < object.y + object.h + amplitude
-        );
-      }
-      function spawn(state) {
-        const eligible = import_content2.default.patterns
-          .filter((pattern2) => pattern2.unlock <= state.sector)
-          .map((pattern2) => pattern2.id);
-        const key = eligible.join(",");
-        if (key !== state.patternPool) {
-          state.patternBag.length = 0;
-          state.patternPool = key;
-        }
-        const pattern = import_random2.default.drawBag(
-          state.rng,
-          state.patternBag,
-          eligible,
-          state.lastPattern,
-        );
-        const coinPattern = import_random2.default.drawBag(
-          state.rng,
-          state.coinBag,
-          import_content2.default.coinPatterns,
-          state.lastCoinPattern,
-        );
-        state.lastPattern = pattern;
-        state.lastCoinPattern = coinPattern;
-        const x = import_config2.default.generation.spawnX;
-        const safetySpeed = import_difficulty2.default.safetySpeed(state);
-        const separation = Math.max(155, safetySpeed * 1.25);
-        const dangers = [];
-        switch (pattern) {
-          case "hurdle":
-            dangers.push(obstacle(state, x));
-            break;
-          case "escort":
-          case "patrol":
-            dangers.push(enemy(state, x));
-            if (
-              state.sector >= 4 &&
-              import_random2.default.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035)
-            )
-              dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
-            break;
-          case "steps":
-            dangers.push(obstacle(state, x), obstacle(state, x + separation));
-            break;
-          case "mixed":
-            if (import_random2.default.next(state.rng) < 0.5)
-              dangers.push(obstacle(state, x), enemy(state, x + separation));
-            else dangers.push(enemy(state, x), obstacle(state, x + separation));
-            break;
-          case "squad": {
-            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
-            for (let i = 0; i < count; i++)
-              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
-            break;
-          }
-          case "crossfire":
-            dangers.push(
-              enemy(state, x, "sentry"),
-              enemy(state, x + Math.max(separation, safetySpeed * 1.9)),
-              enemy(state, x + Math.max(separation, safetySpeed * 1.9) * 2, "wasp"),
-            );
-            break;
-          case "convoy":
-            dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
-            break;
-          case "coin-break":
-            break;
-          default:
-            throw new Error("Unknown encounter: " + pattern);
-        }
-        const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
-        const coins = coinPath(state, coinPattern, x - 24, Math.max(115, end - x + 95));
-        const safeCoins = coins.filter(
-          (coin) => !dangers.some((danger) => overlapsDanger(coin, danger)),
-        );
-        if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
-        state.objects.push(...dangers, ...safeCoins);
-        let travelEnd = end;
-        if (import_random2.default.next(state.rng) < import_config2.default.traversal.spawnChance) {
-          const kind = import_random2.default.next(state.rng) < 0.5 ? "portal" : "pad";
-          const device = {
-            kind,
-            x: end + Math.max(95, safetySpeed * 0.65),
-            y: import_config2.default.floor - (kind === "portal" ? 43 : 5),
-            w: kind === "portal" ? 22 : 26,
-            h: kind === "portal" ? 43 : 5,
-            age: 0,
-          };
-          state.traversals.push(device);
-          if (state.traversals.length > 4) state.traversals.shift();
-          travelEnd = device.x + device.w;
-        }
-        const gap =
-          import_difficulty2.default.gapSeconds(state.sector, state.rules) +
-          import_random2.default.range(
-            state.rng,
-            0,
-            import_config2.default.generation.gapVariationSeconds,
-          );
-        const occupiedWidth = Math.max(travelEnd, ...safeCoins.map((coin) => coin.x + coin.w)) - x;
-        state.next = state.distance + occupiedWidth + safetySpeed * gap + 35;
-        state.encounterCount++;
-        state.lastEncounter = {
-          pattern,
-          coinPattern,
-          variants: dangers.map((item) => item.variant),
-          gap,
-          width: occupiedWidth,
-        };
-        return state.lastEncounter;
-      }
-      function move(object, speed, dt) {
-        object.x -= (speed + (object.extraSpeed || 0)) * dt;
-        if (object.kind === "enemy") {
-          object.age = (object.age ?? 0) + dt;
-          object.y =
-            object.baseY +
-            Math.sin(object.age * object.frequency + object.phase) * object.amplitude;
-        }
-      }
-      module.exports = { spawn, obstacle, enemy, coinPath, overlapsDanger, move };
-    },
-  });
-
-  // src/combat.ts
-  var require_combat = __commonJS({
-    "src/combat.ts"(exports, module) {
-      "use strict";
-      var import_config2 = __toESM(require_config());
-      var import_loadout2 = __toESM(require_loadout());
-      var armor = { crate: 1, barrier: 1, stack: 2.6 };
-      function durability(object) {
-        if (object.kind === "enemy")
-          return (
-            {
-              drone: 1.2,
-              crawler: 2.4,
-              jelly: 1.5,
-              bat: 1,
-              sentry: 2.2,
-              beetle: 3.2,
-              wasp: 1.8,
-              wisp: 1.4,
-            }[object.variant] || 1
-          );
-        return armor[object.variant] || 0;
-      }
-      function breakable(object) {
-        return object.kind !== "ember" && durability(object) > 0;
-      }
-      function damage(state, object, amount, method) {
-        if (object.dead || !breakable(object)) return false;
-        object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1e3) / 1e3;
-        if (object.hp > 0) {
-          state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
-          return false;
-        }
-        object.dead = true;
-        const points = object.kind === "enemy" ? 150 : 100;
-        state.score += BigInt(points);
-        state.events.push({
-          type: "smash",
-          x: object.x,
-          y: object.y,
-          points,
-          label: method === "dash" ? "DASH" : object.kind === "enemy" ? "ENEMY" : "BREAK",
-        });
-        return true;
-      }
-      function attack(state) {
-        if (state.mode !== "playing" || state.attackCooldown > 0) return false;
-        const weapon = import_loadout2.default.find(
-          import_loadout2.default.weapons,
-          state.loadout.weapon,
-        );
-        state.attackCooldown = weapon.cooldown;
-        state.attackTime = weapon.duration || 0.12;
-        state.attackId++;
-        state.events.push({
-          type: weapon.id === "punch" ? "punch" : "shoot",
-          x: state.player.x + 15,
-          y: state.player.y + 9,
-        });
-        if (weapon.id === "punch") return true;
-        const x = state.player.x + 15,
-          y = state.player.y + 9;
-        const target = state.objects
-          .filter(
-            (object) =>
-              !object.dead &&
-              breakable(object) &&
-              object.x > x &&
-              object.x - x < 270 &&
-              Math.abs(object.y + object.h / 2 - y) < 70,
-          )
-          .sort((a, b) => a.x - b.x)[0];
-        let angle = 0;
-        if (target) {
-          const travelTime = Math.max(
-            0.05,
-            (target.x - x) / (weapon.speed + state.runSpeed + (target.extraSpeed || 0)),
-          );
-          angle = Math.atan2((target.y + target.h / 2 - y) / travelTime, weapon.speed);
-        }
-        const spread =
-          weapon.id === "nova"
-            ? [-0.24, -0.12, 0, 0.12, 0.24]
-            : weapon.id === "scatter"
-              ? [-0.16, 0, 0.16]
-              : [0];
-        for (const offset of spread)
-          state.projectiles.push({
-            x,
-            y,
-            vx: Math.cos(angle + offset) * weapon.speed,
-            vy: Math.sin(angle + offset) * weapon.speed,
-            life: weapon.life,
-            damage: weapon.damage * state.stats.damageMultiplier,
-            color: weapon.color,
-            pierce: weapon.pierce ?? 0,
-            hitTargets: [],
-          });
-        return true;
-      }
-      function update(state, dt) {
-        const weapon = import_loadout2.default.find(
-          import_loadout2.default.weapons,
-          state.loadout.weapon,
-        );
-        if (state.attackTime > 0 && weapon.id === "punch") {
-          for (const object of state.objects) {
-            if (object.dead || object.lastPunch === state.attackId) continue;
-            if (
-              object.x < state.player.x + 13 + weapon.range &&
-              object.x + object.w > state.player.x + 9 &&
-              object.y + object.h > state.player.y + 1 &&
-              object.y < state.player.y + 21
-            ) {
-              object.lastPunch = state.attackId;
-              damage(state, object, weapon.damage * state.stats.damageMultiplier, "punch");
-            }
-          }
-        }
-        for (const bolt of state.projectiles) {
-          const previousX = bolt.x,
-            previousY = bolt.y;
-          bolt.x += bolt.vx * dt;
-          bolt.y += bolt.vy * dt;
-          bolt.life -= dt;
-          for (const object of state.objects) {
-            if (object.dead || object.kind === "ember" || bolt.hitTargets?.includes(object))
-              continue;
-            if (
-              Math.max(bolt.x, previousX) + 3 >= object.x &&
-              Math.min(bolt.x, previousX) <= object.x + object.w &&
-              Math.max(bolt.y, previousY) + 2 >= object.y &&
-              Math.min(bolt.y, previousY) <= object.y + object.h
-            ) {
-              damage(state, object, bolt.damage, "shot");
-              if (!breakable(object))
-                state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
-              if (breakable(object) && (bolt.pierce ?? 0) > 0) {
-                bolt.pierce--;
-                (bolt.hitTargets ??= []).push(object);
-              } else {
-                bolt.life = 0;
-                break;
-              }
-            }
-          }
-        }
-        state.projectiles = state.projectiles.filter(
-          (bolt) =>
-            bolt.life > 0 &&
-            bolt.x < import_config2.default.width + 30 &&
-            bolt.y > 0 &&
-            bolt.y < import_config2.default.floor + 10,
-        );
-      }
-      module.exports = { armor, durability, breakable, damage, attack, update };
-    },
-  });
-
   // src/enemy-fire.ts
   var require_enemy_fire = __commonJS({
     "src/enemy-fire.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var shooters = {
         sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
         wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
       };
-      function update(state, dt) {
+      function update2(state, dt) {
         if (state.mode !== "playing") return;
         for (const object of state.objects) {
           const gun = shooters[object.variant];
@@ -1494,7 +1377,7 @@
           }
           if (
             object.x <= state.player.x + Math.max(70, state.runSpeed * 0.35) ||
-            object.x > import_config2.default.width - 12
+            object.x > import_config3.default.width - 12
           ) {
             object.charge = 0;
             continue;
@@ -1506,7 +1389,7 @@
               y = object.y + object.h / 2;
             const angle = Math.atan2(object.aimY - y, object.aimX - x);
             const speed = gun.speed + state.runSpeed * 0.3;
-            if (state.hostileProjectiles.length < import_config2.default.enemyFire.maxProjectiles) {
+            if (state.hostileProjectiles.length < import_config3.default.enemyFire.maxProjectiles) {
               state.hostileProjectiles.push({
                 x,
                 y,
@@ -1529,9 +1412,9 @@
             if (
               object.shotCooldown <= 0 &&
               object.x - state.player.x > 170 &&
-              charging < import_config2.default.enemyFire.maxCharging
+              charging < import_config3.default.enemyFire.maxCharging
             ) {
-              object.charge = import_config2.default.enemyFire.warningSeconds;
+              object.charge = import_config3.default.enemyFire.warningSeconds;
               object.aimX = state.player.x + 7;
               object.aimY = state.player.y + 9;
               state.events.push({ type: "charge", x: object.x, y: object.y });
@@ -1549,9 +1432,9 @@
           (bolt) =>
             bolt.life > 0 &&
             bolt.x > -20 &&
-            bolt.x < import_config2.default.width + 20 &&
+            bolt.x < import_config3.default.width + 20 &&
             bolt.y > -10 &&
-            bolt.y < import_config2.default.floor + 10,
+            bolt.y < import_config3.default.floor + 10,
         );
       }
       function hitsPlayer(bolt, player) {
@@ -1562,7 +1445,7 @@
           Math.max(bolt.y, bolt.previousY) + 4 > player.y + 1
         );
       }
-      module.exports = { shooters, update, hitsPlayer };
+      module.exports = { shooters, update: update2, hitsPlayer };
     },
   });
 
@@ -1570,12 +1453,12 @@
   var require_traversal = __commonJS({
     "src/traversal.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       function activate(state, device) {
         const distance =
           device.kind === "portal"
-            ? import_config2.default.traversal.portalSkip
-            : import_config2.default.traversal.padSkip;
+            ? import_config3.default.traversal.portalSkip
+            : import_config3.default.traversal.padSkip;
         state.distance += distance;
         state.score += BigInt(distance);
         state.time += Math.min(6, distance / Math.max(98, state.speed));
@@ -1585,14 +1468,14 @@
         state.traversals = [];
         state.next =
           state.distance +
-          Math.max(import_config2.default.generation.initialDistance, state.runSpeed * 2);
+          Math.max(import_config3.default.generation.initialDistance, state.runSpeed * 2);
         state.invincible = Math.max(
           state.invincible,
-          import_config2.default.traversal.arrivalGrace,
+          import_config3.default.traversal.arrivalGrace,
         );
-        state.player.x = import_config2.default.playerX;
+        state.player.x = import_config3.default.playerX;
         if (device.kind === "portal") {
-          state.player.y = import_config2.default.floor - import_config2.default.playerHeight;
+          state.player.y = import_config3.default.floor - import_config3.default.playerHeight;
           state.player.vy = 0;
           state.player.jumps = 0;
         } else {
@@ -1609,7 +1492,7 @@
           label: `${device.kind === "portal" ? "WARP" : "LAUNCH"} / ${distance}m`,
         });
       }
-      function update(state, dt) {
+      function update2(state, dt) {
         if (state.traversalEffect) {
           state.traversalEffect.life -= dt;
           if (state.traversalEffect.life <= 0) state.traversalEffect = null;
@@ -1622,7 +1505,7 @@
           if (
             player.x + 13 > Math.min(previousX, device.x) &&
             player.x < Math.max(previousX, device.x) + device.w &&
-            player.y + import_config2.default.playerHeight > device.y &&
+            player.y + import_config3.default.playerHeight > device.y &&
             player.y < device.y + device.h
           ) {
             activate(state, device);
@@ -1631,7 +1514,7 @@
         }
         state.traversals = state.traversals.filter((device) => device.x + device.w > -20);
       }
-      module.exports = { activate, update };
+      module.exports = { activate, update: update2 };
     },
   });
 
@@ -1639,23 +1522,23 @@
   var require_engine = __commonJS({
     "src/engine.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
-      var import_difficulty2 = __toESM(require_difficulty());
-      var import_generator2 = __toESM(require_generator());
-      var import_loadout2 = __toESM(require_loadout());
-      var import_combat2 = __toESM(require_combat());
-      var import_upgrades2 = __toESM(require_upgrades());
-      var import_enemy_fire2 = __toESM(require_enemy_fire());
-      var import_traversal2 = __toESM(require_traversal());
-      function create(seed = Math.floor(Math.random() * 4294967295), equipment, upgradeLevels) {
-        const loadout = import_loadout2.default.sanitize(equipment);
-        const rules = import_loadout2.default.rules(loadout);
+      var import_difficulty3 = __toESM(require_difficulty());
+      var import_generator3 = __toESM(require_generator());
+      var import_loadout3 = __toESM(require_loadout());
+      var import_combat3 = __toESM(require_combat());
+      var import_upgrades3 = __toESM(require_upgrades());
+      var import_enemy_fire3 = __toESM(require_enemy_fire());
+      var import_traversal3 = __toESM(require_traversal());
+      function create4(seed = Math.floor(Math.random() * 4294967295), equipment, upgradeLevels) {
+        const loadout = import_loadout3.default.sanitize(equipment);
+        const rules = import_loadout3.default.rules(loadout);
         return {
           seed,
           loadout,
           rules,
-          stats: import_upgrades2.default.stats(upgradeLevels),
+          stats: import_upgrades3.default.stats(upgradeLevels),
           dashId: 0,
           health: rules.health,
           mode: "menu",
@@ -1678,21 +1561,21 @@
           hostileProjectiles: [],
           traversals: [],
           traversalEffect: null,
-          next: import_config2.default.generation.initialDistance,
+          next: import_config3.default.generation.initialDistance,
           rng: import_random2.default.create(seed),
           sceneryRng: import_random2.default.create(seed + ":scenery"),
           paceRng: import_random2.default.create(seed + ":pace"),
           player: {
-            x: import_config2.default.playerX,
-            y: import_config2.default.floor - import_config2.default.playerHeight,
+            x: import_config3.default.playerX,
+            y: import_config3.default.floor - import_config3.default.playerHeight,
             vy: 0,
             jumps: 0,
           },
           objects: [],
           events: [],
-          speed: import_config2.default.speed.start * rules.speed,
-          runSpeed: import_config2.default.speed.start * rules.speed,
-          targetSpeed: import_config2.default.speed.start * rules.speed,
+          speed: import_config3.default.speed.start * rules.speed,
+          runSpeed: import_config3.default.speed.start * rules.speed,
+          targetSpeed: import_config3.default.speed.start * rules.speed,
           pace: "cruise",
           nextPaceTime: 12,
           paceBag: [],
@@ -1740,10 +1623,10 @@
         player,
         object,
         previousX,
-        previousPlayerX = player.x ?? import_config2.default.playerX,
+        previousPlayerX = player.x ?? import_config3.default.playerX,
       ) {
         const relativeStart = previousX - previousPlayerX;
-        const relativeEnd = object.x - (player.x ?? import_config2.default.playerX);
+        const relativeEnd = object.x - (player.x ?? import_config3.default.playerX);
         return (
           11 > Math.min(relativeStart, relativeEnd) + 2 &&
           2 < Math.max(relativeStart, relativeEnd) + object.w - 2 &&
@@ -1758,7 +1641,7 @@
         state.combo++;
         const points = 50 + Math.min(state.combo, 20) * 5;
         addScore(state, points);
-        state.cooldown = Math.max(0, state.cooldown - import_config2.default.pickupRecharge);
+        state.cooldown = Math.max(0, state.cooldown - import_config3.default.pickupRecharge);
         emit(state, "pickup", object.x, object.y, {
           points,
           coins: state.rules.coinReward,
@@ -1769,12 +1652,12 @@
         if (state.dash > 0 && object.kind === "enemy") {
           if (object.lastDash !== state.dashId) {
             object.lastDash = state.dashId;
-            import_combat2.default.damage(state, object, state.stats.damageMultiplier, "dash");
+            import_combat3.default.damage(state, object, state.stats.damageMultiplier, "dash");
           }
         } else if (state.invincible <= 0) {
           state.hits++;
           state.combo = 0;
-          state.invincible = import_config2.default.damageGrace;
+          state.invincible = import_config3.default.damageGrace;
           object.dead = true;
           emit(state, "hit", state.player.x, state.player.y);
           if (state.hits >= state.health) {
@@ -1783,9 +1666,9 @@
           }
         }
       }
-      function step(state, dt) {
+      function step2(state, dt) {
         state.time += dt;
-        import_difficulty2.default.update(state, dt);
+        import_difficulty3.default.update(state, dt);
         const dashing = state.dash > 0;
         state.runSpeed =
           state.speed *
@@ -1808,31 +1691,31 @@
         const previousPlayerX = player.x;
         player.x = dashing
           ? Math.min(
-              import_config2.default.playerX + state.stats.dashLungeMax,
+              import_config3.default.playerX + state.stats.dashLungeMax,
               player.x + state.stats.dashLungeSpeed * dt,
             )
           : Math.max(
-              import_config2.default.playerX,
-              player.x - import_config2.default.dashReturnSpeed * dt,
+              import_config3.default.playerX,
+              player.x - import_config3.default.dashReturnSpeed * dt,
             );
-        player.vy += import_config2.default.gravity * dt;
+        player.vy += import_config3.default.gravity * dt;
         player.y += player.vy * dt;
-        if (player.y >= import_config2.default.floor - import_config2.default.playerHeight) {
-          player.y = import_config2.default.floor - import_config2.default.playerHeight;
+        if (player.y >= import_config3.default.floor - import_config3.default.playerHeight) {
+          player.y = import_config3.default.floor - import_config3.default.playerHeight;
           player.vy = 0;
           player.jumps = 0;
         }
-        if (state.distance >= state.next) import_generator2.default.spawn(state);
+        if (state.distance >= state.next) import_generator3.default.spawn(state);
         const previousPositions = /* @__PURE__ */ new Map();
         for (const object of state.objects) {
           previousPositions.set(object, object.x);
-          import_generator2.default.move(object, state.runSpeed, dt);
+          import_generator3.default.move(object, state.runSpeed, dt);
         }
-        import_traversal2.default.update(state, dt);
-        import_combat2.default.update(state, dt);
-        import_enemy_fire2.default.update(state, dt);
+        import_traversal3.default.update(state, dt);
+        import_combat3.default.update(state, dt);
+        import_enemy_fire3.default.update(state, dt);
         for (const bolt of state.hostileProjectiles) {
-          if (!import_enemy_fire2.default.hitsPlayer(bolt, state.player)) continue;
+          if (!import_enemy_fire3.default.hitsPlayer(bolt, state.player)) continue;
           bolt.life = 0;
           if (state.dash > 0) {
             addScore(state, 25);
@@ -1867,23 +1750,580 @@
         state.attackTime = Math.max(0, state.attackTime - dt);
         state.objects = state.objects.filter((object) => !object.dead && object.x > -40);
       }
-      function update(state, seconds) {
+      function update2(state, seconds) {
         if (state.mode !== "playing" || !Number.isFinite(seconds)) return;
-        let remaining = Math.min(import_config2.default.maxFrameSeconds, Math.max(0, seconds));
+        let remaining = Math.min(import_config3.default.maxFrameSeconds, Math.max(0, seconds));
         while (remaining > 1e-9 && state.mode === "playing") {
-          const dt = Math.min(import_config2.default.simulationStep, remaining);
-          step(state, dt);
+          const dt = Math.min(import_config3.default.simulationStep, remaining);
+          step2(state, dt);
           remaining -= dt;
         }
       }
       module.exports = {
-        create,
-        update,
+        create: create4,
+        update: update2,
         jump,
         dash,
-        attack: import_combat2.default.attack,
+        attack: import_combat3.default.attack,
         collides,
+        hit,
+        collect,
       };
+    },
+  });
+
+  // src/party.ts
+  var party_exports = {};
+  __export(party_exports, {
+    action: () => action,
+    add: () => add,
+    alive: () => alive,
+    create: () => create,
+    decode: () => decode,
+    disconnect: () => disconnect,
+    encode: () => encode,
+    profile: () => profile,
+    scaling: () => scaling,
+    sorted: () => sorted,
+    start: () => start,
+    update: () => update,
+    view: () => view,
+  });
+  function profile(value) {
+    const p = value && typeof value === "object" ? value : {};
+    return {
+      name:
+        String(p.name || "Courier")
+          .split("")
+          .filter((char) => char.charCodeAt(0) >= 32)
+          .join("")
+          .trim()
+          .slice(0, 18) || "Courier",
+      loadout: import_loadout.default.sanitize(p.loadout),
+      levels: import_upgrades.default.sanitize(p.levels),
+    };
+  }
+  function create(id, p, seed) {
+    const world = import_engine.default.create(seed, p.loadout);
+    const run = {
+      world,
+      members: [],
+      order: [],
+      checkpoint: null,
+      started: false,
+      earned: 0,
+      revision: 0,
+    };
+    add(run, id, p);
+    return run;
+  }
+  function add(run, id, value) {
+    if (run.started || run.members.length >= 4 || run.members.some((m) => m.id === id))
+      return false;
+    const p = profile(value);
+    const state = import_engine.default.create(run.world.seed, p.loadout, p.levels);
+    state.attackId = state.dashId = run.members.length * 1e6;
+    run.members.push({ id, name: p.name, state, connected: true, frontCooldown: 0 });
+    run.order.push(id);
+    formation(run, true);
+    return true;
+  }
+  function sorted(run) {
+    return run.order.map((id) => run.members.find((m) => m.id === id)).filter(Boolean);
+  }
+  function alive(member) {
+    return member.connected && member.state.hits < member.state.health;
+  }
+  function scaling(count) {
+    const extra = Math.max(0, Math.min(3, count - 1));
+    return {
+      speed: 1 + extra * 0.06,
+      growth: 1 + extra * 0.12,
+      density: 1 + extra * 0.22,
+      armor: 1 + extra * 0.2,
+    };
+  }
+  function formation(run, instant = false, dt = 0) {
+    const members = sorted(run).filter(alive);
+    for (const [i, m] of members.entries()) {
+      const target =
+        import_config.default.playerX +
+        (run.members.filter((m2) => m2.connected).length - i - 1) * 32;
+      const delta = target - m.state.player.x;
+      m.state.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * 220);
+    }
+  }
+  function start(run) {
+    const base = import_loadout.default.rules(run.world.loadout);
+    run.world = import_engine.default.create(run.world.seed, run.world.loadout);
+    const scale = scaling(run.members.filter((m) => m.connected).length);
+    run.world.rules = {
+      ...base,
+      speed: base.speed * scale.speed,
+      growth: base.growth * scale.growth,
+      gap: base.gap / scale.density,
+    };
+    run.world.mode = "playing";
+    for (const [i, m] of run.members.entries()) {
+      const previous = m.state;
+      m.state = import_engine.default.create(
+        run.world.seed,
+        previous.loadout,
+        previous.stats.levels,
+      );
+      m.state.rules = { ...run.world.rules };
+      m.state.health = base.health;
+      m.state.attackId = m.state.dashId = i * 1e6;
+      m.state.mode = "playing";
+      m.frontCooldown = 0;
+    }
+    run.started = true;
+    run.revision++;
+    run.checkpoint = { x: 355, age: 0, used: false, flash: 0 };
+    formation(run, true);
+  }
+  function disconnect(run, id) {
+    const m = run.members.find((m2) => m2.id === id);
+    if (!m) return;
+    if (!run.started) {
+      run.members = run.members.filter((m2) => m2.id !== id);
+      run.order = run.order.filter((p) => p !== id);
+    } else {
+      m.connected = false;
+      m.state.mode = "dead";
+      if (!run.members.some(alive)) run.world.mode = "dead";
+      const base = import_loadout.default.rules(run.world.loadout);
+      const scale = scaling(run.members.filter((m2) => m2.connected).length);
+      run.world.rules = {
+        ...base,
+        speed: base.speed * scale.speed,
+        growth: base.growth * scale.growth,
+        gap: base.gap / scale.density,
+      };
+    }
+    formation(run, true);
+  }
+  function action(run, id, action2) {
+    const m = run.members.find((m2) => m2.id === id);
+    if (!m || !alive(m) || run.world.mode !== "playing") return false;
+    const s = m.state;
+    s.objects = run.world.objects;
+    s.projectiles = run.world.projectiles;
+    s.runSpeed = run.world.runSpeed;
+    if (action2 === "front") {
+      if (sorted(run).find(alive)?.id === id || m.frontCooldown > 0) return false;
+      run.order = [id, ...run.order.filter((p) => p !== id)];
+      m.frontCooldown = 3;
+      if (!import_engine.default.jump(s)) s.player.vy = Math.min(s.player.vy, -100);
+      formation(run, true);
+      s.events.push({
+        type: "front",
+        x: s.player.x,
+        y: s.player.y,
+        label: `${m.name} TAKES POINT`,
+      });
+      run.revision++;
+      return true;
+    }
+    return import_engine.default[action2](s);
+  }
+  function drain(run, m) {
+    for (const event of m.state.events.splice(0)) {
+      if (event.type === "death") event.type = "down";
+      event.playerId = m.id;
+      run.earned += event.coins || 0;
+      run.world.events.push(event);
+    }
+  }
+  function revive(run) {
+    for (const m of run.members) {
+      if (!m.connected || alive(m)) continue;
+      Object.assign(m.state, { hits: 0, invincible: 2, mode: "playing", dash: 0 });
+      Object.assign(m.state.player, {
+        y: import_config.default.floor - import_config.default.playerHeight,
+        vy: 0,
+        jumps: 0,
+      });
+    }
+    formation(run, true);
+  }
+  function step(run, dt) {
+    const w = run.world;
+    const previousSector = w.sector;
+    w.time += dt;
+    import_difficulty.default.update(w, dt);
+    if (previousSector !== w.sector) {
+      run.checkpoint = { x: import_config.default.width + 36, age: 0, used: false, flash: 0 };
+      w.objects = [];
+      w.hostileProjectiles = [];
+      w.traversals = [];
+      w.next = w.distance + Math.max(260, w.speed * 3);
+    }
+    const live = sorted(run).filter(alive);
+    if (!live.length) {
+      w.mode = "dead";
+      return;
+    }
+    w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
+    const distance = w.runSpeed * dt;
+    w.distance += distance;
+    w.scoreRemainder += distance;
+    const points = Math.floor(w.scoreRemainder);
+    w.score += BigInt(points);
+    w.scoreRemainder -= points;
+    formation(run, false, dt);
+    for (const m of live) {
+      const s = m.state;
+      s.mode = "playing";
+      s.time = w.time;
+      s.distance = w.distance;
+      s.runSpeed = w.runSpeed;
+      s.rules = w.rules;
+      s.objects = w.objects;
+      s.projectiles = w.projectiles;
+      s.cooldown = Math.max(0, s.cooldown - dt);
+      s.invincible = Math.max(0, s.invincible - dt);
+      s.attackCooldown = Math.max(0, s.attackCooldown - dt);
+      m.frontCooldown = Math.max(0, m.frontCooldown - dt);
+      s.player.vy += import_config.default.gravity * dt;
+      s.player.y += s.player.vy * dt;
+      if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
+        Object.assign(s.player, {
+          y: import_config.default.floor - import_config.default.playerHeight,
+          vy: 0,
+          jumps: 0,
+        });
+    }
+    if (w.distance >= w.next) {
+      const before = w.objects.length;
+      import_generator.default.spawn(w);
+      const scale = scaling(run.members.filter((m) => m.connected).length);
+      for (const object of w.objects.slice(before))
+        if (object.kind === "enemy")
+          object.hp = import_combat.default.durability(object) * scale.armor;
+    }
+    const previous = new Map(w.objects.map((o) => [o, o.x]));
+    for (const object of w.objects) import_generator.default.move(object, w.runSpeed, dt);
+    w.player = live[0].state.player;
+    const beforeTravel = w.distance;
+    import_traversal.default.update(w, dt);
+    if (w.distance !== beforeTravel) {
+      for (const m of live) {
+        m.state.invincible = import_config.default.traversal.arrivalGrace;
+        Object.assign(m.state.player, {
+          y: import_config.default.floor - import_config.default.playerHeight,
+          jumps: w.traversalEffect?.kind === "pad" ? 1 : 0,
+          vy: w.traversalEffect?.kind === "pad" ? -260 : 0,
+        });
+      }
+      formation(run, true);
+      if (run.checkpoint && !run.checkpoint.used) run.checkpoint.x = 355;
+    }
+    for (const [i, m] of live.entries()) {
+      const s = m.state;
+      s.objects = w.objects;
+      s.projectiles = w.projectiles;
+      const score = s.score;
+      import_combat.default.update(s, dt, i === 0);
+      w.projectiles = s.projectiles;
+      w.score += s.score - score;
+    }
+    import_enemy_fire.default.update(w, dt);
+    for (const bolt of w.hostileProjectiles) {
+      const target = live.find(
+        (m) => alive(m) && import_enemy_fire.default.hitsPlayer(bolt, m.state.player),
+      );
+      if (!target) continue;
+      bolt.life = 0;
+      if (target.state.dash > 0) {
+        w.score += 25n;
+        target.state.events.push({
+          type: "deflect",
+          x: bolt.x,
+          y: bolt.y,
+          points: 25,
+          label: "DEFLECT",
+        });
+      } else
+        import_engine.default.hit(target.state, {
+          kind: "hazard",
+          variant: "shot",
+          x: bolt.x,
+          y: bolt.y,
+          w: 4,
+          h: 4,
+        });
+    }
+    w.hostileProjectiles = w.hostileProjectiles.filter((b) => b.life > 0);
+    for (const object of w.objects) {
+      if (object.dead) continue;
+      const target = live.find(
+        (m) =>
+          alive(m) &&
+          import_engine.default.collides(m.state.player, object, previous.get(object) ?? object.x),
+      );
+      if (target) {
+        const s = target.state,
+          score = s.score;
+        if (object.kind === "ember") {
+          import_engine.default.collect(s, object);
+          w.embers += s.rules.coinReward;
+        } else import_engine.default.hit(s, object);
+        w.score += s.score - score;
+      }
+      if (
+        !object.dead &&
+        !object.passed &&
+        object.kind !== "ember" &&
+        object.x + object.w < Math.min(...live.filter(alive).map((m) => m.state.player.x))
+      ) {
+        object.passed = true;
+        w.score += 25n;
+      }
+    }
+    const beacon = run.checkpoint;
+    if (beacon) {
+      const oldX = beacon.x;
+      beacon.x -= w.runSpeed * dt;
+      beacon.age += dt;
+      beacon.flash = Math.max(0, beacon.flash - dt);
+      const activator = live.find(
+        (m) =>
+          alive(m) &&
+          m.state.dash > 0 &&
+          import_engine.default.collides(
+            m.state.player,
+            {
+              kind: "hazard",
+              variant: "beacon",
+              x: beacon.x,
+              y: import_config.default.floor - 52,
+              w: 22,
+              h: 52,
+            },
+            oldX,
+          ),
+      );
+      if (!beacon.used && activator) {
+        const count = run.members.filter((m) => m.connected && !alive(m)).length;
+        beacon.used = true;
+        beacon.flash = 1;
+        revive(run);
+        w.events.push({
+          type: "revive",
+          x: beacon.x,
+          y: import_config.default.floor - 30,
+          label: count ? `${count} COURIER${count === 1 ? "" : "S"} REVIVED` : "BEACON ACTIVATED",
+        });
+        run.revision++;
+      }
+      if (beacon.x < -80) run.checkpoint = null;
+    }
+    for (const m of live) {
+      m.state.dash = Math.max(0, m.state.dash - dt);
+      m.state.attackTime = Math.max(0, m.state.attackTime - dt);
+      drain(run, m);
+    }
+    w.objects = w.objects.filter((o) => !o.dead && o.x > -40);
+    if (!run.members.some(alive)) {
+      w.mode = "dead";
+      w.events.push({ type: "death", x: w.player.x, y: w.player.y });
+    }
+  }
+  function update(run, seconds) {
+    if (run.world.mode !== "playing" || !Number.isFinite(seconds)) return;
+    let remaining = Math.min(import_config.default.maxFrameSeconds, Math.max(0, seconds));
+    while (remaining > 1e-9 && run.world.mode === "playing") {
+      const dt = Math.min(import_config.default.simulationStep, remaining);
+      step(run, dt);
+      remaining -= dt;
+    }
+  }
+  function encode(run) {
+    const snapshot = {
+      ...run,
+      members: run.members.map((m) => ({
+        ...m,
+        state: {
+          ...m.state,
+          objects: [],
+          projectiles: [],
+          hostileProjectiles: [],
+          traversals: [],
+          events: [],
+        },
+      })),
+    };
+    return JSON.stringify(snapshot, (key, value) => {
+      if (["hitTargets", "events"].includes(key)) return [];
+      return typeof value === "bigint" ? value.toString() : value;
+    });
+  }
+  function decode(text) {
+    const run = JSON.parse(text);
+    run.world.score = BigInt(run.world.score);
+    for (const m of run.members) m.state.score = BigInt(m.state.score);
+    return run;
+  }
+  function view(run, id) {
+    const local = run.members.find((m) => m.id === id)?.state;
+    return local
+      ? {
+          ...run.world,
+          player: local.player,
+          health: local.health,
+          hits: local.hits,
+          dash: local.dash,
+          cooldown: local.cooldown,
+          attackCooldown: local.attackCooldown,
+          attackTime: local.attackTime,
+          loadout: local.loadout,
+          stats: local.stats,
+        }
+      : run.world;
+  }
+  var import_engine,
+    import_config,
+    import_difficulty,
+    import_generator,
+    import_combat,
+    import_enemy_fire,
+    import_traversal,
+    import_loadout,
+    import_upgrades;
+  var init_party = __esm({
+    "src/party.ts"() {
+      "use strict";
+      import_engine = __toESM(require_engine());
+      import_config = __toESM(require_config());
+      import_difficulty = __toESM(require_difficulty());
+      import_generator = __toESM(require_generator());
+      import_combat = __toESM(require_combat());
+      import_enemy_fire = __toESM(require_enemy_fire());
+      import_traversal = __toESM(require_traversal());
+      import_loadout = __toESM(require_loadout());
+      import_upgrades = __toESM(require_upgrades());
+    },
+  });
+
+  // src/economy.ts
+  var require_economy = __commonJS({
+    "src/economy.ts"(exports, module) {
+      "use strict";
+      var import_loadout3 = __toESM(require_loadout());
+      var import_upgrades3 = __toESM(require_upgrades());
+      var prices = {
+        character: {
+          fox: 0,
+          bot: 500,
+          hare: 900,
+          ranger: 1500,
+          lynx: 2e3,
+          moth: 2800,
+          diver: 3500,
+          specter: 4200,
+        },
+        cape: { ember: 0, signal: 250, storm: 600, none: 0 },
+        jetpack: { ember: 0, twin: 400, coil: 800, none: 0 },
+        weapon: { punch: 0, pulse: 1200, scatter: 2400, repeater: 3600, rail: 5200, nova: 4400 },
+      };
+      var keyOf = (group, id) => group + ":" + id;
+      function price(group, id) {
+        return Object.hasOwn(prices, group) && Object.hasOwn(prices[group], id)
+          ? prices[group][id]
+          : null;
+      }
+      function amount(value) {
+        try {
+          const result = BigInt(value);
+          return result >= 0n ? result : 0n;
+        } catch {
+          return 0n;
+        }
+      }
+      function create4(saves) {
+        const raw = saves.economy();
+        const saved = raw?.version === 1 || raw?.version === 2 ? raw : null;
+        let balance = saved ? amount(saved.balance) : saves.coins();
+        const levels = import_upgrades3.default.sanitize(
+          saved?.version === 2 ? saved.upgrades : {},
+        );
+        const owned = /* @__PURE__ */ new Set();
+        for (const [group, items] of Object.entries(prices)) {
+          for (const [id, cost] of Object.entries(items)) {
+            const key = keyOf(group, id);
+            if (cost === 0 || (Array.isArray(saved?.owned) && saved.owned.includes(key)))
+              owned.add(key);
+          }
+        }
+        function save() {
+          saves.write(
+            "economy",
+            JSON.stringify({
+              version: 2,
+              balance: balance.toString(),
+              owned: [...owned],
+              upgrades: levels,
+            }),
+          );
+        }
+        function owns(group, id) {
+          if (group === "difficulty")
+            return import_loadout3.default.difficulties.some((item) => item.id === id);
+          return owned.has(keyOf(group, id));
+        }
+        function enforce(value) {
+          const result = import_loadout3.default.sanitize(value);
+          for (const group of Object.keys(prices))
+            if (!owns(group, result[group]))
+              result[group] = import_loadout3.default.defaults[group];
+          return result;
+        }
+        function buy(group, id) {
+          const cost = price(group, id);
+          if (cost === null) return { ok: false, reason: "unknown" };
+          if (owns(group, id)) return { ok: true, reason: "owned" };
+          if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
+          balance -= BigInt(cost);
+          owned.add(keyOf(group, id));
+          save();
+          return { ok: true, reason: "purchased" };
+        }
+        function upgrade(id, expectedLevel) {
+          const track = import_upgrades3.default.definition(id);
+          if (!track) return { ok: false, reason: "unknown" };
+          if (levels[track.id] >= track.maxLevel) return { ok: false, reason: "maxed" };
+          if (expectedLevel !== levels[track.id]) return { ok: false, reason: "stale" };
+          const cost = import_upgrades3.default.cost(id, levels);
+          if (balance < BigInt(cost)) return { ok: false, reason: "insufficient" };
+          balance -= BigInt(cost);
+          levels[track.id]++;
+          save();
+          return { ok: true, reason: "upgraded", level: levels[track.id] };
+        }
+        function credit(value) {
+          const coins = amount(value);
+          if (!coins) return;
+          balance += coins;
+          save();
+        }
+        if (!saved || saved.version !== 2) save();
+        return {
+          buy,
+          upgrade,
+          get levels() {
+            return { ...levels };
+          },
+          owns,
+          enforce,
+          credit,
+          price,
+          get balance() {
+            return balance;
+          },
+        };
+      }
+      module.exports = { prices, price, create: create4 };
     },
   });
 
@@ -1891,7 +2331,7 @@
   var require_storage = __commonJS({
     "src/storage.ts"(exports, module) {
       "use strict";
-      function create(storage) {
+      function create4(storage) {
         function read(key, fallback) {
           try {
             return storage.getItem("emberline." + key) ?? fallback;
@@ -1959,7 +2399,7 @@
           write,
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -1967,7 +2407,7 @@
   var require_audio = __commonJS({
     "src/audio.ts"(exports, module) {
       "use strict";
-      function create(initialMuted = false) {
+      function create4(initialMuted = false) {
         let muted = initialMuted;
         let audio;
         function bootAudio() {
@@ -2006,6 +2446,17 @@
         }
         function sound(type, combo = 0) {
           switch (type) {
+            case "revive":
+              [330, 440, 660, 880].forEach((freq, i) =>
+                tone(freq, 0.3, "sine", 0.04, freq * 1.1, i * 0.09),
+              );
+              break;
+            case "front":
+              tone(260, 0.2, "triangle", 0.03, 700);
+              break;
+            case "down":
+              tone(220, 0.35, "triangle", 0.04, 65);
+              break;
             case "portal":
               [220, 440, 880, 1320].forEach((freq, i) =>
                 tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),
@@ -2073,7 +2524,7 @@
           },
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -2081,8 +2532,8 @@
   var require_particles = __commonJS({
     "src/particles.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
-      function create() {
+      var import_config3 = __toESM(require_config());
+      function create4() {
         let particles = [];
         let enabled = true;
         function burst(x, y, count, color, power = 50) {
@@ -2098,10 +2549,10 @@
               size: Math.random() > 0.7 ? 2 : 1,
             });
           }
-          if (particles.length > import_config2.default.particleLimit)
-            particles.splice(0, particles.length - import_config2.default.particleLimit);
+          if (particles.length > import_config3.default.particleLimit)
+            particles.splice(0, particles.length - import_config3.default.particleLimit);
         }
-        function update(dt) {
+        function update2(dt) {
           for (const particle of particles) {
             particle.x += particle.vx * dt;
             particle.y += particle.vy * dt;
@@ -2112,7 +2563,7 @@
         }
         return {
           burst,
-          update,
+          update: update2,
           clear() {
             particles = [];
           },
@@ -2128,7 +2579,7 @@
           },
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -2136,7 +2587,7 @@
   var require_pixel = __commonJS({
     "src/pixel.ts"(exports, module) {
       "use strict";
-      function create(ctx) {
+      function create4(ctx) {
         function rect(x, y, w, h, color) {
           ctx.fillStyle = color;
           ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
@@ -2160,7 +2611,7 @@
         );
         return "#" + channels.map((value) => value.toString(16).padStart(2, "0")).join("");
       }
-      module.exports = { create, mix };
+      module.exports = { create: create4, mix };
     },
   });
 
@@ -2168,11 +2619,11 @@
   var require_backgrounds = __commonJS({
     "src/backgrounds.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var import_content2 = __toESM(require_content());
       var import_pixel2 = __toESM(require_pixel());
       var import_random2 = __toESM(require_random());
-      function create(ctx) {
+      function create4(ctx) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function structure(type, x, base, width, height, palette, layer, world) {
           const color = [palette.far, palette.mid, palette.near][layer];
@@ -2229,7 +2680,7 @@
             const width = architecture === "mountains" ? 105 : [43, 56, 75][layer];
             const base = [149, 175, 197][layer];
             const offset = distance * [0.12, 0.28, 0.48][layer];
-            for (let i = -2; i < Math.ceil(import_config2.default.width / width) + 2; i++) {
+            for (let i = -2; i < Math.ceil(import_config3.default.width / width) + 2; i++) {
               const world = i + Math.floor(offset / width);
               const noise = import_random2.default.hash(
                 seed + ":" + layer + ":" + world + ":" + biome.id,
@@ -2282,8 +2733,8 @@
               import_pixel2.default.mix(previous.palette[key], current.palette[key], blend),
             ]),
           );
-          rect(0, 0, import_config2.default.width, import_config2.default.height, palette.horizon);
-          rect(0, 0, import_config2.default.width, 100, palette.sky);
+          rect(0, 0, import_config3.default.width, import_config3.default.height, palette.horizon);
+          rect(0, 0, import_config3.default.width, 100, palette.sky);
           rect(355, 25, 27, 27, palette.detail);
           rect(351, 31, 5, 15, palette.detail);
           rect(361, 22, 15, 3, palette.detail);
@@ -2302,12 +2753,12 @@
           }
           landscape(current, distance, time, palette, state.seed);
           ctx.globalAlpha = 1;
-          rect(0, import_config2.default.floor, import_config2.default.width, 5, palette.floor);
-          line(0, import_config2.default.floor, import_config2.default.width, palette.rail);
+          rect(0, import_config3.default.floor, import_config3.default.width, 5, palette.floor);
+          line(0, import_config3.default.floor, import_config3.default.width, palette.rail);
           rect(
             0,
-            import_config2.default.floor + 5,
-            import_config2.default.width,
+            import_config3.default.floor + 5,
+            import_config3.default.width,
             39,
             palette.ground,
           );
@@ -2322,7 +2773,7 @@
         }
         return { draw };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -2360,12 +2811,12 @@
   var require_sprites = __commonJS({
     "src/sprites.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var import_pixel2 = __toESM(require_pixel());
-      var import_loadout2 = __toESM(require_loadout());
+      var import_loadout3 = __toESM(require_loadout());
       var import_cloth2 = __toESM(require_cloth());
-      var import_combat2 = __toESM(require_combat());
-      function create(ctx, reducedMotion = false) {
+      var import_combat3 = __toESM(require_combat());
+      function create4(ctx, reducedMotion = false) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function cape(x, y, time, definition, state) {
           const columns = import_cloth2.default.sample(definition, time, {
@@ -2432,27 +2883,27 @@
           }
         }
         function courier(x, y, time, dashing, state) {
-          const equipment = state.loadout || import_loadout2.default.defaults;
-          const person = import_loadout2.default.find(
-            import_loadout2.default.characters,
+          const equipment = state.loadout || import_loadout3.default.defaults;
+          const person = import_loadout3.default.find(
+            import_loadout3.default.characters,
             equipment.character,
           );
-          const capeType = import_loadout2.default.find(
-            import_loadout2.default.capes,
+          const capeType = import_loadout3.default.find(
+            import_loadout3.default.capes,
             equipment.cape,
           );
-          const pack = import_loadout2.default.find(
-            import_loadout2.default.jetpacks,
+          const pack2 = import_loadout3.default.find(
+            import_loadout3.default.jetpacks,
             equipment.jetpack,
           );
-          const weapon = import_loadout2.default.find(
-            import_loadout2.default.weapons,
+          const weapon = import_loadout3.default.find(
+            import_loadout3.default.weapons,
             equipment.weapon,
           );
-          const step = state.player.jumps ? 0 : Math.floor(time * 13) % 4;
-          const leg = [0, 3, 0, -3][step];
+          const step2 = state.player.jumps ? 0 : Math.floor(time * 13) % 4;
+          const leg = [0, 3, 0, -3][step2];
           cape(x + 1, y + 6, time, capeType, state);
-          jetpack(x, y + 7, time, pack, dashing || state.player.jumps > 0);
+          jetpack(x, y + 7, time, pack2, dashing || state.player.jumps > 0);
           if (dashing) {
             line(x - 34, y + 2, 18, "#b9e4d0");
             line(x - 43, y + 15, 24, "#779e90");
@@ -2683,7 +3134,7 @@
           },
         };
         function object(o, time) {
-          if (o.x > import_config2.default.width + 35 || o.x + o.w < -10) return;
+          if (o.x > import_config3.default.width + 35 || o.x + o.w < -10) return;
           if (o.kind === "ember") {
             const thin = Math.sin(time * 5 + o.x * 0.025) > 0.7;
             rect(o.x - 2, o.y - 2, 9, 10, "#594e2e");
@@ -2713,7 +3164,7 @@
               o.x + 2,
               o.y + 2,
               Math.max(3, o.w - 4),
-              import_combat2.default.breakable(o) ? "#ffce83" : "#c0d2c4",
+              import_combat3.default.breakable(o) ? "#ffce83" : "#c0d2c4",
             );
           }
         }
@@ -2783,7 +3234,7 @@
         }
         return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -2791,17 +3242,18 @@
   var require_renderer = __commonJS({
     "src/renderer.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
+      init_party();
       var import_pixel2 = __toESM(require_pixel());
       var import_backgrounds2 = __toESM(require_backgrounds());
       var import_sprites2 = __toESM(require_sprites());
-      function create(canvas, reducedMotion) {
+      function create4(canvas, reducedMotion) {
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
         const background = import_backgrounds2.default.create(ctx);
         const sprites = import_sprites2.default.create(ctx, reducedMotion);
         const { rect } = import_pixel2.default.create(ctx);
-        function draw(state, time, particles, feedback, popups = []) {
+        function draw(state, time, particles, feedback, popups = [], party = null, localId = "") {
           ctx.save();
           if (feedback.shake > 0 && !reducedMotion) {
             ctx.translate(
@@ -2831,7 +3283,66 @@
           } else {
             for (const device of state.traversals) sprites.traversal(device);
             for (const object of state.objects) sprites.object(object, time);
-            if (
+            if (party) {
+              const beacon = party.checkpoint;
+              if (beacon) {
+                const pulse = reducedMotion ? 0.8 : 0.65 + Math.sin(beacon.age * 4) * 0.25;
+                const x = beacon.x + 11;
+                ctx.save();
+                ctx.globalAlpha = beacon.used ? 0.45 : pulse;
+                ctx.shadowBlur = reducedMotion ? 0 : 14;
+                ctx.shadowColor = "#8cffe0";
+                rect(x - 13, 191, 26, 5, "#264b48");
+                rect(x - 8, 156, 16, 35, "#26564e");
+                rect(x - 5, 151, 10, 44, beacon.used ? "#557c76" : "#b6ffe9");
+                rect(x - 11, 165, 22, 6, "#9aeccd");
+                rect(x - 2, 156, 4, 30, "#eefee4");
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+                const text = beacon.used ? "SIGNAL RESTORED" : "DASH \u2192 REVIVE TEAM";
+                ctx.font = "bold 6px monospace";
+                const tx = Math.max(58, Math.min(420, x));
+                rect(tx - 57, 130, 114, 12, "#112e29");
+                ctx.fillStyle = "#cbffe6";
+                ctx.textAlign = "center";
+                ctx.fillText(text, tx, 138);
+                if (!reducedMotion && !beacon.used)
+                  for (let i = 0; i < 7; i++) {
+                    const phase = (beacon.age * 24 + i * 9) % 50;
+                    rect(x + Math.sin(i * 3 + beacon.age) * 18, 193 - phase, 2, 2, "#9fffe0");
+                  }
+                if (beacon.flash > 0 && !reducedMotion) {
+                  ctx.strokeStyle = "#caffea";
+                  ctx.lineWidth = 2;
+                  ctx.beginPath();
+                  ctx.arc(x, 171, 10 + (1 - beacon.flash) * 40, 0, Math.PI * 2);
+                  ctx.stroke();
+                }
+                ctx.restore();
+              }
+              for (const [i, member] of sorted(party).entries()) {
+                if (!alive(member)) continue;
+                const s = member.state;
+                sprites.courier(s.player.x, s.player.y, time, s.dash > 0, s);
+                ctx.font = "bold 5px monospace";
+                ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
+                ctx.textAlign = "center";
+                ctx.fillText(
+                  `${i + 1}${member.id === localId ? " / YOU" : ""}`,
+                  s.player.x + 6,
+                  Math.max(12, s.player.y - 15),
+                );
+                ctx.textAlign = "left";
+                for (let hp = 0; hp < s.health; hp++)
+                  rect(
+                    s.player.x + hp * 4,
+                    s.player.y - 10,
+                    3,
+                    2,
+                    hp < s.health - s.hits ? "#a2ecc5" : "#68454c",
+                  );
+              }
+            } else if (
               state.mode !== "dead" &&
               !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
             ) {
@@ -2868,7 +3379,7 @@
           }
           for (const popup of popups) {
             ctx.globalAlpha = Math.min(1, popup.life * 4);
-            const x = Math.max(5, Math.min(import_config2.default.width - 54, popup.x));
+            const x = Math.max(5, Math.min(import_config3.default.width - 54, popup.x));
             const y = Math.max(30, popup.y);
             ctx.font = "bold 8px monospace";
             ctx.fillStyle = "#12201b";
@@ -2886,14 +3397,14 @@
           ctx.globalAlpha = 1;
           if (feedback.flash > 0 && !reducedMotion) {
             ctx.globalAlpha = feedback.flash;
-            rect(0, 0, import_config2.default.width, import_config2.default.height, "#ffbf77");
+            rect(0, 0, import_config3.default.width, import_config3.default.height, "#ffbf77");
             ctx.globalAlpha = 1;
           }
           ctx.restore();
         }
         return { draw };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -2916,9 +3427,9 @@
       "use strict";
       init_dom();
       var import_content2 = __toESM(require_content());
-      var import_loadout2 = __toESM(require_loadout());
+      var import_loadout3 = __toESM(require_loadout());
       var format = (value) => value.toString().padStart(6, "0");
-      function create(doc) {
+      function create4(doc) {
         const byId = (id) => element(doc, id);
         const ids = [
           "score",
@@ -2956,8 +3467,8 @@
         let announcementTime = 0;
         function render(state, best, coins = 0n) {
           el["coin-total"].textContent = coins.toString().padStart(4, "0");
-          const weapon = import_loadout2.default.find(
-            import_loadout2.default.weapons,
+          const weapon = import_loadout3.default.find(
+            import_loadout3.default.weapons,
             state.loadout.weapon,
           ).short;
           const ready = state.attackCooldown <= 0;
@@ -3001,11 +3512,11 @@
           }
           el.pause.textContent = mode === "paused" ? "\u25B6 RESUME" : "\u2161 PAUSE";
         }
-        function announce(message, seconds = 2.5) {
-          el.announce.textContent = message;
+        function announce(message2, seconds = 2.5) {
+          el.announce.textContent = message2;
           announcementTime = seconds;
         }
-        function update(dt) {
+        function update2(dt) {
           if (announcementTime <= 0) return;
           announcementTime -= dt;
           if (announcementTime <= 0) el.announce.textContent = "";
@@ -3019,9 +3530,9 @@
           el.pause.textContent = "\u2161 PAUSE";
           announce("", 0);
         }
-        return { el, render, showOverlay, hideOverlay, announce, update, sound };
+        return { el, render, showOverlay, hideOverlay, announce, update: update2, sound };
       }
-      module.exports = { create, format };
+      module.exports = { create: create4, format };
     },
   });
 
@@ -3040,10 +3551,11 @@
           pause: actions.pause,
           sound: actions.sound,
           fullscreen: actions.fullscreen,
+          "take-front": actions.front,
         };
-        for (const [id, action] of Object.entries(clicks)) {
+        for (const [id, action2] of Object.entries(clicks)) {
           byId(id).addEventListener("click", (event) => {
-            action();
+            action2();
             if (event.detail > 0 && !id.includes("setup")) canvas.focus({ preventScroll: true });
           });
         }
@@ -3051,14 +3563,15 @@
           actions.effects(event.target.checked);
           canvas.focus({ preventScroll: true });
         });
-        for (const [id, action] of [
+        for (const [id, action2] of [
           ["touch-jump", actions.jump],
           ["touch-dash", actions.dash],
           ["touch-attack", actions.attack],
+          ["touch-front", actions.front],
         ]) {
           byId(id).addEventListener("pointerdown", (event) => {
             event.preventDefault();
-            action();
+            action2();
           });
         }
         const keys = {
@@ -3070,6 +3583,7 @@
           KeyX: actions.attack,
           KeyJ: actions.attack,
           KeyL: actions.setup,
+          KeyT: actions.front,
           KeyP: actions.pause,
           Escape: actions.escape,
           KeyF: actions.fullscreen,
@@ -3079,14 +3593,14 @@
           if (doc.querySelector("dialog[open]")) return;
           if (
             event.target instanceof Element &&
-            event.target.matches("button,input,a") &&
+            event.target.matches("button,input,textarea,select,a") &&
             ["Enter", " "].includes(event.key)
           )
             return;
-          const action = keys[event.code];
-          if (!action) return;
+          const action2 = keys[event.code];
+          if (!action2) return;
           event.preventDefault();
-          if (!event.repeat) action();
+          if (!event.repeat) action2();
         });
         canvas.addEventListener("pointerdown", () => actions.attack());
         doc.addEventListener("visibilitychange", () => {
@@ -3102,9 +3616,9 @@
   var require_popups = __commonJS({
     "src/popups.ts"(exports, module) {
       "use strict";
-      function create(reducedMotion = false) {
+      function create4(reducedMotion = false) {
         let items = [];
-        function add(event) {
+        function add2(event) {
           if (!event.points && !event.label) return;
           const neighbors = items.filter(
             (item) => Math.abs(item.x - event.x) < 18 && item.life > 0.55,
@@ -3123,7 +3637,7 @@
           });
           if (items.length > 32) items.shift();
         }
-        function update(dt, speed) {
+        function update2(dt, speed) {
           for (const item of items) {
             item.life -= dt;
             if (!reducedMotion) {
@@ -3134,8 +3648,8 @@
           items = items.filter((item) => item.life > 0);
         }
         return {
-          add,
-          update,
+          add: add2,
+          update: update2,
           clear() {
             items = [];
           },
@@ -3144,7 +3658,7 @@
           },
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
@@ -3153,8 +3667,8 @@
     "src/upgrade-panel.ts"(exports, module) {
       "use strict";
       init_dom();
-      var import_upgrades2 = __toESM(require_upgrades());
-      var import_config2 = __toESM(require_config());
+      var import_upgrades3 = __toESM(require_upgrades());
+      var import_config3 = __toESM(require_config());
       var names = {
         dash: "Dash",
         jump: "Jump height",
@@ -3162,14 +3676,14 @@
         triple: "Triple jump",
       };
       function benefit(id, levels) {
-        const stats = import_upgrades2.default.stats(levels);
+        const stats = import_upgrades3.default.stats(levels);
         switch (id) {
           case "dash":
             return Math.round((stats.dashWorldMultiplier - 1) * 100) + "% boost";
           case "jump":
             return (
               "~" +
-              Math.round(stats.jumpVelocity ** 2 / (2 * import_config2.default.gravity)) +
+              Math.round(stats.jumpVelocity ** 2 / (2 * import_config3.default.gravity)) +
               "px"
             );
           case "damage":
@@ -3178,8 +3692,8 @@
             return stats.maxJumps + " jumps";
         }
       }
-      function create(doc, shop, onPurchase) {
-        let message = "";
+      function create4(doc, shop, onPurchase) {
+        let message2 = "";
         function element2(tag, className, text) {
           const node = doc.createElement(tag);
           node.className = className;
@@ -3201,14 +3715,14 @@
           );
           heading.append(introduction, wallet);
           panel.append(heading);
-          const notice = element2("p", "upgrade-notice", message);
+          const notice = element2("p", "upgrade-notice", message2);
           notice.id = "upgrade-notice";
           notice.setAttribute("role", "status");
           panel.append(notice);
-          for (const track of import_upgrades2.default.tracks) {
+          for (const track of import_upgrades3.default.tracks) {
             const levels = shop.levels,
               level = levels[track.id],
-              cost = import_upgrades2.default.cost(track.id, levels);
+              cost = import_upgrades3.default.cost(track.id, levels);
             const next = { ...levels, [track.id]: Math.min(track.maxLevel, level + 1) };
             const row = element2("section", "upgrade-product" + (cost === null ? " maxed" : ""));
             row.id = "upgrade-row-" + track.id;
@@ -3283,7 +3797,7 @@
             );
             button.addEventListener("click", () => {
               const result = shop.upgrade(track.id, level);
-              message = result.ok
+              message2 = result.ok
                 ? names[track.id] +
                   (track.id === "triple"
                     ? " unlocked."
@@ -3308,10 +3822,10 @@
               "p",
               "",
               "Current: " +
-                import_upgrades2.default.describe(track.id, levels) +
+                import_upgrades3.default.describe(track.id, levels) +
                 (cost === null
                   ? ""
-                  : ". Next: " + import_upgrades2.default.describe(track.id, next)),
+                  : ". Next: " + import_upgrades3.default.describe(track.id, next)),
             );
             details.append(summary, description, stats);
             row.append(identity, improvement, button, details);
@@ -3320,7 +3834,7 @@
         }
         return { render };
       }
-      module.exports = { create, benefit };
+      module.exports = { create: create4, benefit };
     },
   });
 
@@ -3329,19 +3843,19 @@
     "src/wardrobe.ts"(exports, module) {
       "use strict";
       init_dom();
-      var import_loadout2 = __toESM(require_loadout());
-      var import_engine2 = __toESM(require_engine());
+      var import_loadout3 = __toESM(require_loadout());
+      var import_engine3 = __toESM(require_engine());
       var import_sprites2 = __toESM(require_sprites());
       var import_pixel2 = __toESM(require_pixel());
-      var import_upgrades2 = __toESM(require_upgrades());
+      var import_upgrades3 = __toESM(require_upgrades());
       var import_upgrade_panel2 = __toESM(require_upgrade_panel());
       var groups = {
-        upgrades: import_upgrades2.default.tracks,
-        character: import_loadout2.default.characters,
-        cape: import_loadout2.default.capes,
-        jetpack: import_loadout2.default.jetpacks,
-        weapon: import_loadout2.default.weapons,
-        difficulty: import_loadout2.default.difficulties,
+        upgrades: import_upgrades3.default.tracks,
+        character: import_loadout3.default.characters,
+        cape: import_loadout3.default.capes,
+        jetpack: import_loadout3.default.jetpacks,
+        weapon: import_loadout3.default.weapons,
+        difficulty: import_loadout3.default.difficulties,
         settings: [],
       };
       var labels = {
@@ -3353,7 +3867,7 @@
         difficulty: "Difficulty",
         settings: "Settings",
       };
-      function create(doc, initial, onChange, shop, onReset) {
+      function create4(doc, initial, onChange, shop, onReset) {
         const byId = (id) => element(doc, id);
         const dialog = element(doc, "setup-dialog", "dialog");
         const tabs = byId("loadout-tabs");
@@ -3366,15 +3880,15 @@
           matchMedia("(prefers-reduced-motion: reduce)").matches,
         );
         const { rect, line } = import_pixel2.default.create(ctx);
-        let selection = import_loadout2.default.sanitize(initial);
+        let selection = import_loadout3.default.sanitize(initial);
         let active = "upgrades";
         let controls = [];
         let previewChoice = null;
         let buyButton = null;
-        const previewState = import_engine2.default.create("wardrobe", selection);
+        const previewState = import_engine3.default.create("wardrobe", selection);
         function changed() {
           previewChoice = null;
-          selection = import_loadout2.default.sanitize(selection);
+          selection = import_loadout3.default.sanitize(selection);
           previewState.loadout = selection;
           sync();
           onChange(selection);
@@ -3414,8 +3928,8 @@
                   : "BUY & EQUIP / " + cost + " COINS";
             }
           }
-          const preset = import_loadout2.default.find(
-            import_loadout2.default.difficulties,
+          const preset = import_loadout3.default.find(
+            import_loadout3.default.difficulties,
             selection.difficulty,
           );
           const settings = selection.difficulty === "custom" ? selection.custom : preset;
@@ -3426,16 +3940,16 @@
                 ? settings[field] + " HP"
                 : Number(settings[field]).toFixed(2) + "\xD7";
           }
-          byId("profile-name").textContent = import_loadout2.default.find(
-            import_loadout2.default.characters,
+          byId("profile-name").textContent = import_loadout3.default.find(
+            import_loadout3.default.characters,
             shown.character,
           ).name;
           byId("profile-gear").textContent =
-            import_loadout2.default.find(import_loadout2.default.capes, shown.cape).name +
+            import_loadout3.default.find(import_loadout3.default.capes, shown.cape).name +
             " / " +
-            import_loadout2.default.find(import_loadout2.default.jetpacks, shown.jetpack).name;
-          byId("profile-weapon").textContent = import_loadout2.default.find(
-            import_loadout2.default.weapons,
+            import_loadout3.default.find(import_loadout3.default.jetpacks, shown.jetpack).name;
+          byId("profile-weapon").textContent = import_loadout3.default.find(
+            import_loadout3.default.weapons,
             shown.weapon,
           ).name;
           byId("profile-difficulty").textContent =
@@ -3591,7 +4105,7 @@
                 selection[group] = id;
                 changed();
                 byId("shop-message").textContent =
-                  import_loadout2.default.find(groups[group], id).name + " purchased and equipped.";
+                  import_loadout3.default.find(groups[group], id).name + " purchased and equipped.";
                 panel.querySelector(`input[value="${id}"]`).focus();
               } else {
                 sync();
@@ -3606,7 +4120,7 @@
             const legend = doc.createElement("legend");
             legend.textContent = "FINE TUNE / CUSTOM";
             tuning.append(legend);
-            for (const [field, label, min, max, step] of [
+            for (const [field, label, min, max, step2] of [
               ["speed", "Starting pace", 0.75, 1.4, 0.01],
               ["growth", "Escalation", 0.6, 1.8, 0.05],
               ["density", "Obstacle density", 0.7, 1.4, 0.05],
@@ -3620,7 +4134,7 @@
               input.type = "range";
               input.min = String(min);
               input.max = String(max);
-              input.step = String(step);
+              input.step = String(step2);
               input.id = "tune-" + field;
               const output = doc.createElement("output");
               output.htmlFor.value = input.id;
@@ -3628,8 +4142,8 @@
                 const current =
                   selection.difficulty === "custom"
                     ? selection.custom
-                    : import_loadout2.default.find(
-                        import_loadout2.default.difficulties,
+                    : import_loadout3.default.find(
+                        import_loadout3.default.difficulties,
                         selection.difficulty,
                       );
                 selection.custom = {
@@ -3715,7 +4229,688 @@
           draw,
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
+    },
+  });
+
+  // src/party-network.ts
+  function unpack(code) {
+    if (code.length > 32e3) throw new Error("Invite is too long.");
+    const data = JSON.parse(atob(code.trim().replace(/^EMBER7\./, "")));
+    if (
+      data.version !== 7 ||
+      !["offer", "answer"].includes(data.type) ||
+      typeof data.sdp !== "string" ||
+      data.sdp.length > 24e3 ||
+      !/^[a-z0-9-]{1,64}$/i.test(data.slot)
+    )
+      throw new Error("Use a valid version 7 invite or answer.");
+    return data;
+  }
+  function pack(data) {
+    return "EMBER7." + btoa(JSON.stringify(data));
+  }
+  function message(text) {
+    if (typeof text !== "string" || text.length > 25e4) return null;
+    try {
+      const data = JSON.parse(text);
+      return data && ["hello", "state", "input", "reject"].includes(data.type) ? data : null;
+    } catch {
+      return null;
+    }
+  }
+  function identifier() {
+    const bytes = crypto.getRandomValues(new Uint32Array(3));
+    return Array.from(bytes, (b) => b.toString(36)).join("-");
+  }
+  function create2(callbacks) {
+    let links = /* @__PURE__ */ new Map();
+    let peers = /* @__PURE__ */ new Map();
+    let socket = null;
+    let role = null;
+    let localId = "host",
+      hostId = "host";
+    let generation = 0;
+    const timers = /* @__PURE__ */ new Set();
+    function later(fn, ms) {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        fn();
+      }, ms);
+      timers.add(timer);
+      return timer;
+    }
+    function close() {
+      generation++;
+      const previous = links;
+      links = /* @__PURE__ */ new Map();
+      const oldPeers = peers;
+      peers = /* @__PURE__ */ new Map();
+      role = null;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+      for (const link of previous.values()) link.close();
+      for (const pc of oldPeers.values()) pc.close();
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+        socket = null;
+      }
+    }
+    function attach(id, channel, pc, epoch) {
+      const lost = () => {
+        if (generation !== epoch || !links.has(id)) return;
+        links.delete(id);
+        peers.delete(id);
+        pc.close();
+        callbacks.disconnected(id);
+      };
+      channel.onopen = () => {
+        if (generation !== epoch) {
+          pc.close();
+          return;
+        }
+        links.set(id, {
+          send(data) {
+            if (channel.readyState === "open" && channel.bufferedAmount < 5e5)
+              channel.send(JSON.stringify(data));
+          },
+          close() {
+            channel.close();
+            pc.close();
+          },
+        });
+        callbacks.status("Courier connected.");
+        if (role === "guest") callbacks.ready(localId, false, "Direct connection");
+      };
+      channel.onmessage = (event) => {
+        const data = message(event.data);
+        if (data && generation === epoch) callbacks.message(id, data);
+      };
+      channel.onclose = lost;
+      channel.onerror = lost;
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") lost();
+        else if (pc.connectionState === "disconnected")
+          later(() => {
+            if (pc.connectionState === "disconnected") lost();
+          }, 5e3);
+      };
+    }
+    async function gather(pc) {
+      if (pc.iceGatheringState === "complete") return;
+      await new Promise((resolve, reject) => {
+        const timeout = later(() => {
+          cleanup();
+          if (pc.localDescription?.sdp.includes("a=candidate:")) resolve();
+          else
+            reject(new Error("Connection discovery timed out. Try LAN hosting on the same Wi-Fi."));
+        }, 12e3);
+        const change = () => {
+          if (pc.iceGatheringState === "complete") {
+            cleanup();
+            resolve();
+          }
+        };
+        function cleanup() {
+          clearTimeout(timeout);
+          timers.delete(timeout);
+          pc.removeEventListener("icegatheringstatechange", change);
+        }
+        pc.addEventListener("icegatheringstatechange", change);
+      });
+    }
+    function peer() {
+      if (typeof RTCPeerConnection === "undefined")
+        throw new Error("Direct invites are unavailable in this browser. Use LAN hosting instead.");
+      return new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    }
+    function host() {
+      close();
+      role = "host";
+      localId = hostId = "host";
+      callbacks.ready(localId, true, "Direct invites");
+    }
+    async function offer() {
+      if (role !== "host") throw new Error("Create a party first.");
+      if (peers.size >= 3)
+        throw new Error(
+          "Party full, or three invites are pending. Cancel pending invites to free a slot.",
+        );
+      const id = identifier(),
+        epoch = generation;
+      const pc = peer();
+      peers.set(id, pc);
+      const channel = pc.createDataChannel("emberline-v7", { ordered: true });
+      attach(id, channel, pc, epoch);
+      try {
+        await pc.setLocalDescription(await pc.createOffer());
+        await gather(pc);
+        if (epoch !== generation) throw new Error("Party closed.");
+        later(() => {
+          if (!links.has(id) && peers.get(id) === pc) {
+            peers.delete(id);
+            pc.close();
+            callbacks.status("An unused invite expired. Generate a new invite.");
+          }
+        }, 18e4);
+        return pack({ version: 7, slot: id, type: "offer", sdp: pc.localDescription.sdp });
+      } catch (error) {
+        peers.delete(id);
+        pc.close();
+        throw error;
+      }
+    }
+    async function answer(code) {
+      const invite = unpack(code);
+      if (invite.type !== "offer") throw new Error("Paste the host's invite here.");
+      close();
+      role = "guest";
+      localId = invite.slot;
+      hostId = "host";
+      const epoch = generation,
+        pc = peer();
+      peers.set(hostId, pc);
+      pc.ondatachannel = (event) => attach(hostId, event.channel, pc, epoch);
+      await pc.setRemoteDescription({ type: "offer", sdp: invite.sdp });
+      await pc.setLocalDescription(await pc.createAnswer());
+      await gather(pc);
+      return pack({ version: 7, slot: invite.slot, type: "answer", sdp: pc.localDescription.sdp });
+    }
+    async function accept(code) {
+      if (role !== "host") throw new Error("Only the host can accept answers.");
+      const invite = unpack(code),
+        pc = peers.get(invite.slot);
+      if (invite.type !== "answer" || !pc || pc.signalingState !== "have-local-offer")
+        throw new Error(
+          "This answer doesn't match a pending invite. Generate a fresh invite for each teammate.",
+        );
+      await pc.setRemoteDescription({ type: "answer", sdp: invite.sdp });
+      later(() => {
+        if (!links.has(invite.slot))
+          callbacks.status(
+            "No direct route found. Use LAN hosting on the same network; some internet networks need a relay.",
+          );
+      }, 2e4);
+    }
+    function lan(host2, room) {
+      if (!/^https?:$/.test(location.protocol))
+        throw new Error("Start npm run host and open its LAN address first.");
+      close();
+      role = host2 ? "host" : "guest";
+      const epoch = generation;
+      const url = new URL("/party", location.href);
+      url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      url.search = new URLSearchParams({
+        role: host2 ? "host" : "guest",
+        room: room.trim().toUpperCase(),
+      }).toString();
+      const ws = new WebSocket(url);
+      socket = ws;
+      const timeout = later(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          ws.close();
+          callbacks.status("LAN server unavailable. Open the address printed by npm run host.");
+        }
+      }, 7e3);
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        timers.delete(timeout);
+      };
+      ws.onerror = () =>
+        callbacks.status(
+          "LAN connection failed. Open the address printed by npm run host on the same Wi-Fi.",
+        );
+      ws.onmessage = (event) => {
+        if (generation !== epoch || typeof event.data !== "string" || event.data.length > 3e5)
+          return;
+        try {
+          const envelope = JSON.parse(event.data);
+          if (envelope.kind === "welcome") {
+            localId = envelope.id;
+            hostId = envelope.host;
+            callbacks.ready(localId, host2, envelope.room);
+          } else if (envelope.kind === "data") {
+            const data = message(JSON.stringify(envelope.data));
+            if (!data) return;
+            const id = String(envelope.from);
+            if (role === "host" && !links.has(id))
+              links.set(id, { send: (data2) => sendSocket(id, data2), close() {} });
+            callbacks.message(id, data);
+          } else if (envelope.kind === "left") {
+            links.delete(envelope.id);
+            if (role === "host" || envelope.id === hostId) callbacks.disconnected(envelope.id);
+          } else if (envelope.kind === "error") callbacks.status(String(envelope.message));
+        } catch {
+          callbacks.status("Invalid LAN server response.");
+        }
+      };
+      ws.onclose = () => {
+        if (generation === epoch) callbacks.disconnected(host2 ? localId : hostId);
+      };
+    }
+    function sendSocket(to, data) {
+      if (socket?.readyState === WebSocket.OPEN && socket.bufferedAmount < 5e5)
+        socket.send(JSON.stringify({ to, data }));
+    }
+    return {
+      host,
+      offer,
+      answer,
+      accept,
+      lan,
+      close,
+      cancelPending() {
+        for (const [id, pc] of peers)
+          if (!links.has(id)) {
+            peers.delete(id);
+            pc.close();
+          }
+      },
+      send(id, data) {
+        if (socket) sendSocket(id, data);
+        else links.get(id)?.send(data);
+      },
+      broadcast(data) {
+        for (const id of links.keys()) this.send(id, data);
+      },
+      toHost(data) {
+        this.send(hostId, data);
+      },
+      lock(locked) {
+        if (socket?.readyState === WebSocket.OPEN)
+          socket.send(JSON.stringify({ kind: "lock", locked }));
+      },
+      remove(id) {
+        links.get(id)?.close();
+        links.delete(id);
+        peers.get(id)?.close();
+        peers.delete(id);
+      },
+      get isHost() {
+        return role === "host";
+      },
+      get localId() {
+        return localId;
+      },
+    };
+  }
+  var init_party_network = __esm({
+    "src/party-network.ts"() {
+      "use strict";
+    },
+  });
+
+  // src/party-session.ts
+  function create3(doc, getProfile, ended) {
+    const dialog = element(doc, "party-dialog", "dialog");
+    const status = element(doc, "party-message");
+    const output = element(doc, "party-output", "textarea");
+    const input = element(doc, "party-input", "textarea");
+    const name = element(doc, "party-name", "input");
+    const room = element(doc, "party-room", "input");
+    const roster = element(doc, "party-roster");
+    const hud = element(doc, "party-hud");
+    const startButton = element(doc, "party-start", "button");
+    const front = element(doc, "touch-front", "button");
+    let run = null;
+    let id = "host",
+      host = false,
+      elapsed = 0,
+      sequence = 0,
+      eventId = 0,
+      seenEvent = 0;
+    let earned = 0,
+      pendingCoins = 0,
+      quiet = 0,
+      active = false,
+      fingerprint = "";
+    let pendingEvents = [];
+    let unsentEvents = [];
+    const inputs = /* @__PURE__ */ new Map();
+    function say(text) {
+      status.textContent = text;
+    }
+    function localProfile() {
+      return profile({ ...getProfile(), name: name.value });
+    }
+    function refresh() {
+      const members = run ? sorted(run) : [];
+      startButton.disabled = !host || !run || run.world.mode === "playing";
+      element(doc, "party-leave", "button").disabled = !active;
+      element(doc, "party-invite", "button").disabled = !host || !run || run.started;
+      for (const key of ["party-host", "party-lan-host", "party-lan-join", "party-answer"])
+        element(doc, key, "button").disabled = active;
+      front.hidden = !active;
+      hud.hidden = !active;
+      element(doc, "party", "button").textContent = active
+        ? `PARTY ${members.length}/4`
+        : "PARTY / LAN";
+      const rows = members
+        .map(
+          (m) =>
+            `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.frontCooldown > 0}|${m.id === id}`,
+        )
+        .join(";");
+      if (rows !== fingerprint) {
+        fingerprint = rows;
+        for (const container of [roster, hud]) {
+          container.replaceChildren();
+          for (const [i, m] of members.entries()) {
+            const row = doc.createElement("div");
+            row.className =
+              "party-member" + (m.id === id ? " local" : "") + (!alive(m) ? " down" : "");
+            row.dataset.player = m.id;
+            const title = doc.createElement("strong");
+            title.textContent = `${i + 1}. ${m.name}${m.id === id ? " (YOU)" : ""}`;
+            const health = doc.createElement("span");
+            health.textContent = !m.connected
+              ? "DISCONNECTED"
+              : alive(m)
+                ? `HP ${m.state.health - m.state.hits}/${m.state.health}`
+                : "DOWN \xB7 REVIVE AT BEACON";
+            const levels = doc.createElement("small");
+            const l = m.state.stats.levels;
+            levels.textContent = `DASH ${l.dash} \xB7 JUMP ${l.jump} \xB7 DAMAGE ${l.damage} \xB7 ${m.state.stats.maxJumps} JUMPS`;
+            row.append(title, health, levels);
+            container.append(row);
+          }
+        }
+      }
+      const local = run?.members.find((m) => m.id === id);
+      front.disabled =
+        !run ||
+        run.world.mode !== "playing" ||
+        !local ||
+        !alive(local) ||
+        local.frontCooldown > 0 ||
+        sorted(run).find(alive)?.id === id;
+      front.textContent =
+        local && local.frontCooldown > 0 ? "TAKE POINT \xB7 CHARGING" : "T / TAKE POINT";
+      const desktopFront = element(doc, "take-front", "button");
+      desktopFront.hidden = !active;
+      desktopFront.disabled = front.disabled;
+      desktopFront.textContent = front.textContent;
+      const mainStart = element(doc, "start", "button");
+      if (active) {
+        mainStart.disabled = !host;
+        mainStart.textContent = host
+          ? run?.started
+            ? run.world.mode === "paused"
+              ? "RESUME PARTY"
+              : "RESTART PARTY"
+            : "START PARTY RUN"
+          : "WAITING FOR HOST";
+      }
+    }
+    function publish(events = []) {
+      if (!run || !host) return;
+      if (events.length) eventId++;
+      network.broadcast({ type: "state", snapshot: encode(run), eventId, events });
+    }
+    function account() {
+      if (!run) return;
+      pendingCoins += Math.max(0, run.earned - earned);
+      earned = run.earned;
+    }
+    function leave(message2 = "Party closed. Your solo progress is saved.") {
+      network.close();
+      active = false;
+      run = null;
+      pendingEvents = [];
+      unsentEvents = [];
+      pendingCoins = 0;
+      earned = 0;
+      inputs.clear();
+      fingerprint = "";
+      output.value = "";
+      input.value = "";
+      say(message2);
+      refresh();
+      ended();
+    }
+    const network = create2({
+      status: say,
+      ready(playerId, hosting, code) {
+        active = true;
+        id = playerId;
+        host = hosting;
+        earned = 0;
+        quiet = 0;
+        seenEvent = 0;
+        eventId = 0;
+        sequence = 0;
+        if (host) run = create(id, localProfile());
+        else network.toHost({ type: "hello", profile: localProfile() });
+        say(
+          host
+            ? `HOST / ${code} \xB7 Choose gear before hosting. Start when everyone appears below.`
+            : "Connected. Waiting for the host's lobby.",
+        );
+        if (/^[A-F0-9]{6}$/.test(code)) room.value = code;
+        refresh();
+      },
+      message(sender, data) {
+        if (host) {
+          if (!run) return;
+          if (data.type === "hello") {
+            if (run.members.some((m) => m.id === sender)) return;
+            if (!add(run, sender, profile(data.profile))) {
+              network.send(sender, {
+                type: "reject",
+                reason: "Party full or run already started. Join the next lobby.",
+              });
+              network.remove(sender);
+              return;
+            }
+            publish();
+            refresh();
+          } else if (data.type === "input") {
+            if (
+              !["jump", "dash", "attack", "front"].includes(data.action) ||
+              !Number.isSafeInteger(data.sequence)
+            )
+              return;
+            let entry = inputs.get(sender);
+            if (!entry) {
+              entry = { seq: -1, time: performance.now(), count: 0 };
+              inputs.set(sender, entry);
+            }
+            if (data.sequence <= entry.seq) return;
+            if (performance.now() - entry.time > 1e3) {
+              entry.time = performance.now();
+              entry.count = 0;
+            }
+            if (++entry.count > 30) return;
+            entry.seq = data.sequence;
+            action(run, sender, data.action);
+          }
+        } else if (
+          data.type === "state" &&
+          typeof data.snapshot === "string" &&
+          data.snapshot.length < 22e4
+        ) {
+          try {
+            const received = decode(data.snapshot);
+            if (
+              !Array.isArray(received.members) ||
+              received.members.length > 4 ||
+              !received.members.some((m) => m.id === id)
+            )
+              return;
+            run = received;
+            quiet = 0;
+            if (data.eventId > seenEvent && Array.isArray(data.events)) {
+              pendingEvents.push(...data.events.slice(0, 100));
+              seenEvent = data.eventId;
+            }
+            account();
+            refresh();
+          } catch {
+            say("Invalid party update. Leave and rejoin the lobby.");
+          }
+        } else if (data.type === "reject") leave(String(data.reason));
+      },
+      disconnected(playerId) {
+        if (!active) return;
+        if (host && playerId !== id && run) {
+          disconnect(run, playerId);
+          publish();
+          say("A teammate disconnected. The line has reformed.");
+          refresh();
+        } else
+          leave(
+            "Host disconnected. Party ended; earned coins are saved. Create a new lobby to continue.",
+          );
+      },
+    });
+    async function attempt(fn) {
+      try {
+        await fn();
+      } catch (error) {
+        say(error instanceof Error ? error.message : "Connection failed.");
+      }
+      refresh();
+    }
+    const clicks = {
+      "party-host": () => {
+        network.host();
+      },
+      "party-invite": async () => {
+        say("Preparing a unique invite for the next teammate\u2026");
+        output.value = await network.offer();
+        say(
+          "Send this invite to one teammate. They paste it below, create an answer, and send it back. Keep this party open.",
+        );
+      },
+      "party-answer": async () => {
+        say("Preparing answer\u2026");
+        output.value = await network.answer(input.value);
+        say("Send this answer back to the host. Wait here while they accept it.");
+      },
+      "party-accept": async () => {
+        await network.accept(input.value);
+        input.value = "";
+        say("Answer accepted. Waiting for the direct connection\u2026");
+      },
+      "party-cancel-invites": () => {
+        network.cancelPending();
+        output.value = "";
+        say("Pending invites cancelled. Connected teammates remain.");
+      },
+      "party-lan-host": () => network.lan(true, ""),
+      "party-lan-join": () => {
+        if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
+          throw new Error("Enter the six-character LAN room code.");
+        network.lan(false, room.value);
+      },
+      "party-copy": async () => {
+        if (!output.value) return;
+        try {
+          await navigator.clipboard.writeText(output.value);
+          say("Code copied.");
+        } catch {
+          output.focus();
+          output.select();
+          say("Code selected. Press Ctrl+C to copy.");
+        }
+      },
+      "party-leave": () => leave(),
+      "party-start": () => {
+        start2();
+        dialog.close();
+      },
+      "party-close": () => dialog.close(),
+    };
+    for (const [button, fn] of Object.entries(clicks))
+      element(doc, button).addEventListener("click", () => {
+        void attempt(fn);
+      });
+    element(doc, "party").addEventListener("click", () => {
+      refresh();
+      dialog.showModal();
+    });
+    function start2() {
+      if (!run || !host) {
+        say("The host starts and restarts the party run.");
+        return;
+      }
+      if (run.world.mode === "paused") run.world.mode = "playing";
+      else {
+        start(run);
+        network.lock(true);
+      }
+      publish();
+      refresh();
+    }
+    refresh();
+    return {
+      get active() {
+        return active;
+      },
+      get isHost() {
+        return host;
+      },
+      get run() {
+        return run;
+      },
+      get localId() {
+        return id;
+      },
+      get state() {
+        return run ? view(run, id) : null;
+      },
+      start: start2,
+      pause() {
+        if (host && run && run.started && run.world.mode !== "dead") {
+          run.world.mode = run.world.mode === "paused" ? "playing" : "paused";
+          publish();
+        }
+      },
+      action(action2) {
+        if (!active) return;
+        if (host && run) action(run, id, action2);
+        else network.toHost({ type: "input", action: action2, sequence: ++sequence });
+      },
+      update(dt) {
+        if (!active || !run) return;
+        if (host) {
+          update(run, dt);
+          const events = run.world.events.splice(0);
+          pendingEvents.push(...events);
+          unsentEvents.push(...events);
+          elapsed += dt;
+          if (elapsed >= 1 / 20) {
+            publish(unsentEvents.splice(0, 100));
+            elapsed = 0;
+          }
+          account();
+        } else {
+          quiet += dt;
+          if (quiet > 6) {
+            leave("Connection timed out. Party ended; earned coins are saved.");
+            return;
+          }
+        }
+        refresh();
+      },
+      takeEvents() {
+        return pendingEvents.splice(0);
+      },
+      takeCoins() {
+        const coins = pendingCoins;
+        pendingCoins = 0;
+        return coins;
+      },
+      leave,
+    };
+  }
+  var init_party_session = __esm({
+    "src/party-session.ts"() {
+      "use strict";
+      init_party();
+      init_party_network();
+      init_dom();
     },
   });
 
@@ -3723,9 +4918,9 @@
   var require_app = __commonJS({
     "src/app.ts"(exports, module) {
       "use strict";
-      var import_config2 = __toESM(require_config());
+      var import_config3 = __toESM(require_config());
       var import_content2 = __toESM(require_content());
-      var import_engine2 = __toESM(require_engine());
+      var import_engine3 = __toESM(require_engine());
       var import_storage2 = __toESM(require_storage());
       var import_audio2 = __toESM(require_audio());
       var import_particles2 = __toESM(require_particles());
@@ -3735,7 +4930,8 @@
       var import_popups2 = __toESM(require_popups());
       var import_wardrobe2 = __toESM(require_wardrobe());
       var import_economy2 = __toESM(require_economy());
-      function create(doc) {
+      init_party_session();
+      function create4(doc) {
         const ui = import_ui2.default.create(doc);
         let storage;
         try {
@@ -3752,7 +4948,7 @@
         const fixedSeed = parameters.get("seed");
         const economy = import_economy2.default.create(saves);
         let loadout = economy.enforce(saves.loadout());
-        let state = import_engine2.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+        let state = import_engine3.default.create(fixedSeed ?? void 0, loadout, economy.levels);
         const popups = import_popups2.default.create(reducedMotion);
         const wardrobe = import_wardrobe2.default.create(
           doc,
@@ -3774,6 +4970,21 @@
         let lastTime = 0;
         let animationTime = 0;
         const feedback = { shake: 0, flash: 0 };
+        const session = create3(
+          doc,
+          () => ({ name: "Courier", loadout, levels: economy.levels }),
+          () => {
+            state = import_engine3.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+            partyMode = "menu";
+            ui.el.start.removeAttribute("disabled");
+            ui.el.heading.innerHTML = "KEEP THE<br><em>SIGNAL ALIVE.</em>";
+            ui.el.description.innerHTML =
+              "The city went dark. You kept running.<br>Carry the last ember as far as you can.";
+            ui.el.start.innerHTML = "START RUN <span>\u2197</span>";
+            ui.el.overlay.classList.remove("hidden");
+          },
+        );
+        let partyMode = "menu";
         particles.setEnabled(saves.effects());
         ui.el.effects.checked = particles.enabled;
         ui.sound(audio.muted);
@@ -3783,12 +4994,18 @@
           best = state.score;
           saves.write("best", best);
         }
-        function start() {
+        function start2() {
           if (wardrobe.isOpen) return;
+          if (session.active) {
+            session.start();
+            audio.unlock();
+            ui.el.game.focus({ preventScroll: true });
+            return;
+          }
           audio.unlock();
           if (state.mode === "paused") state.mode = "playing";
           else {
-            state = import_engine2.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+            state = import_engine3.default.create(fixedSeed ?? void 0, loadout, economy.levels);
             state.mode = "playing";
             particles.clear();
             popups.clear();
@@ -3802,12 +5019,17 @@
           ui.render(state, best, economy.balance);
         }
         function pauseIfPlaying() {
+          if (session.active) return;
           if (state.mode !== "playing") return;
           state.mode = "paused";
           ui.showOverlay("paused", state);
         }
         function pause() {
-          if (state.mode === "paused") start();
+          if (session.active) {
+            session.pause();
+            return;
+          }
+          if (state.mode === "paused") start2();
           else pauseIfPlaying();
         }
         async function fullscreen() {
@@ -3826,6 +5048,9 @@
           if (!audio.muted) audio.play("pickup");
         }
         const bursts = {
+          revive: [65, "#b1ffe3", 100],
+          front: [20, "#9ee9ec", 50],
+          down: [35, "#ec9865", 65],
           portal: [65, "#c5bbff", 95],
           pad: [45, "#9de9c2", 85],
           deflect: [16, "#fff0b4", 60],
@@ -3837,18 +5062,26 @@
           hit: [25, "#ec9865", 75],
           death: [65, "#ffae62", 110],
         };
-        function handleEvents() {
+        function handleEvents(events = state.events.splice(0), partyEvents = false) {
           let collected = 0n;
-          for (const event of state.events.splice(0)) {
-            if (event.coins) {
+          for (const event of events) {
+            if (event.coins && !partyEvents) {
               collected += BigInt(event.coins);
             }
             if (event.points || event.type === "armor") popups.add(event);
             audio.play(event.type, state.combo);
             const burst = bursts[event.type];
-            if (burst && !(reducedMotion && (event.type === "portal" || event.type === "pad")))
+            if (
+              burst &&
+              !(reducedMotion && ["portal", "pad", "revive", "front"].includes(event.type))
+            )
               particles.burst(event.x, event.y, ...burst);
             switch (event.type) {
+              case "revive":
+              case "front":
+              case "down":
+                ui.announce(event.label ?? "COURIER DOWN / DASH A BEACON TO REVIVE", 2.5);
+                break;
               case "portal":
               case "pad":
                 feedback.shake = event.type === "portal" ? 4 : 2;
@@ -3889,31 +5122,43 @@
         import_input2.default.bind(
           doc,
           {
-            start,
+            start: start2,
             pause,
             fullscreen,
             sound: toggleSound,
             pauseIfPlaying,
             enter() {
-              if (state.mode !== "playing") start();
+              if (state.mode !== "playing") start2();
             },
             escape: pauseIfPlaying,
             jump() {
               audio.unlock();
-              if (state.mode === "menu" || state.mode === "dead") start();
-              else import_engine2.default.jump(state);
+              if (state.mode === "menu" || state.mode === "dead") start2();
+              else if (session.active) session.action("jump");
+              else import_engine3.default.jump(state);
             },
             dash() {
               audio.unlock();
-              import_engine2.default.dash(state);
+              if (session.active) session.action("dash");
+              else import_engine3.default.dash(state);
+            },
+            front() {
+              session.action("front");
             },
             setup() {
+              if (session.active) {
+                ui.announce(
+                  "Leave the party to change your gear. Host difficulty applies to the party.",
+                );
+                return;
+              }
               pauseIfPlaying();
               wardrobe.open();
             },
             attack() {
               audio.unlock();
-              import_engine2.default.attack(state);
+              if (session.active) session.action("attack");
+              else import_engine3.default.attack(state);
             },
             effects(enabled) {
               particles.setEnabled(enabled);
@@ -3928,17 +5173,40 @@
             : "\u26F6 FULLSCREEN";
         });
         function draw() {
-          renderer.draw(state, animationTime, particles.items, feedback, popups.items);
+          renderer.draw(
+            state,
+            animationTime,
+            particles.items,
+            feedback,
+            popups.items,
+            session.active ? session.run : null,
+            session.localId,
+          );
         }
         function frame(now) {
           const dt = Math.min(
-            import_config2.default.maxFrameSeconds,
+            import_config3.default.maxFrameSeconds,
             Math.max(0, (now - lastTime) / 1e3 || 0),
           );
           lastTime = now;
           if (state.mode !== "paused") animationTime += dt;
-          if (state.mode === "playing") {
-            import_engine2.default.update(state, dt);
+          if (session.active) {
+            session.update(dt);
+            const shared = session.state;
+            if (shared) {
+              state = shared;
+              const coins = session.takeCoins();
+              if (coins) economy.credit(BigInt(coins));
+              handleEvents(session.takeEvents(), true);
+              if (state.mode !== partyMode) {
+                if (state.mode === "playing") ui.hideOverlay();
+                else if (state.mode === "paused" || state.mode === "dead")
+                  ui.showOverlay(state.mode, state);
+                partyMode = state.mode;
+              }
+            }
+          } else if (state.mode === "playing") {
+            import_engine3.default.update(state, dt);
             handleEvents();
             if (Math.random() < dt * 24)
               particles.burst(
@@ -3957,6 +5225,15 @@
             ui.update(dt);
           }
           ui.render(state, best, economy.balance);
+          if (session.active) {
+            ui.el.pause.toggleAttribute("disabled", !session.isHost);
+            const local = session.run?.members.find((m) => m.id === session.localId);
+            if (local && local.state.hits >= local.state.health && state.mode === "playing") {
+              ui.el.status.textContent =
+                "DOWN / SPECTATING \xB7 TEAMMATE DASHES A BEACON TO REVIVE";
+              ui.el.attack.disabled = true;
+            }
+          } else ui.el.pause.removeAttribute("disabled");
           draw();
           wardrobe.draw(now / 1e3);
           requestAnimationFrame(frame);
@@ -3966,7 +5243,7 @@
           get state() {
             return state;
           },
-          start,
+          start: start2,
           pause,
           draw,
           particles,
@@ -3974,20 +5251,22 @@
           popups,
           wardrobe,
           economy,
+          session,
           get coins() {
             return economy.balance;
           },
         };
       }
-      module.exports = { create };
+      module.exports = { create: create4 };
     },
   });
 
   // src/main.ts
+  init_party();
   var import_economy = __toESM(require_economy());
   var import_content = __toESM(require_content());
-  var import_engine = __toESM(require_engine());
-  var import_upgrades = __toESM(require_upgrades());
+  var import_engine2 = __toESM(require_engine());
+  var import_upgrades2 = __toESM(require_upgrades());
   var import_app = __toESM(require_app());
   var import_ui = __toESM(require_ui());
   var import_sprites = __toESM(require_sprites());
@@ -3995,21 +5274,21 @@
   var import_wardrobe = __toESM(require_wardrobe());
   var import_upgrade_panel = __toESM(require_upgrade_panel());
   var import_renderer = __toESM(require_renderer());
-  var import_generator = __toESM(require_generator());
-  var import_combat = __toESM(require_combat());
+  var import_generator2 = __toESM(require_generator());
+  var import_combat2 = __toESM(require_combat());
   var import_random = __toESM(require_random());
   var import_storage = __toESM(require_storage());
   var import_input = __toESM(require_input());
   var import_particles = __toESM(require_particles());
-  var import_difficulty = __toESM(require_difficulty());
-  var import_loadout = __toESM(require_loadout());
+  var import_difficulty2 = __toESM(require_difficulty());
+  var import_loadout2 = __toESM(require_loadout());
   var import_popups = __toESM(require_popups());
   var import_backgrounds = __toESM(require_backgrounds());
   var import_cloth = __toESM(require_cloth());
   var import_pixel = __toESM(require_pixel());
-  var import_config = __toESM(require_config());
-  var import_traversal = __toESM(require_traversal());
-  var import_enemy_fire = __toESM(require_enemy_fire());
+  var import_config2 = __toESM(require_config());
+  var import_traversal2 = __toESM(require_traversal());
+  var import_enemy_fire2 = __toESM(require_enemy_fire());
 
   // src/pwa.ts
   (() => {
@@ -4022,12 +5301,13 @@
 
   // src/main.ts
   var Emberline = {
-    Traversal: import_traversal.default,
-    EnemyFire: import_enemy_fire.default,
+    Party: party_exports,
+    Traversal: import_traversal2.default,
+    EnemyFire: import_enemy_fire2.default,
     Economy: import_economy.default,
     Content: import_content.default,
-    Engine: import_engine.default,
-    Upgrades: import_upgrades.default,
+    Engine: import_engine2.default,
+    Upgrades: import_upgrades2.default,
     App: import_app.default,
     UI: import_ui.default,
     Sprites: import_sprites.default,
@@ -4035,19 +5315,19 @@
     Wardrobe: import_wardrobe.default,
     UpgradePanel: import_upgrade_panel.default,
     Renderer: import_renderer.default,
-    Generator: import_generator.default,
-    Combat: import_combat.default,
+    Generator: import_generator2.default,
+    Combat: import_combat2.default,
     Random: import_random.default,
     Storage: import_storage.default,
     Input: import_input.default,
     Particles: import_particles.default,
-    Difficulty: import_difficulty.default,
-    Loadout: import_loadout.default,
+    Difficulty: import_difficulty2.default,
+    Loadout: import_loadout2.default,
     Popups: import_popups.default,
     Backgrounds: import_backgrounds.default,
     Cloth: import_cloth.default,
     Pixel: import_pixel.default,
-    Config: import_config.default,
+    Config: import_config2.default,
   };
   window.Emberline = Emberline;
   (() => {

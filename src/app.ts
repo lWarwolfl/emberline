@@ -10,6 +10,8 @@ import Input from "./input";
 import Popups from "./popups";
 import Wardrobe from "./wardrobe";
 import Economy from "./economy";
+import * as PartySession from "./party-session";
+import type { GameEvent } from "./types";
 
 function create(doc: Document) {
   const ui = UI.create(doc);
@@ -52,6 +54,22 @@ function create(doc: Document) {
   let animationTime = 0;
   const feedback = { shake: 0, flash: 0 };
 
+  const session = PartySession.create(
+    doc,
+    () => ({ name: "Courier", loadout, levels: economy.levels }),
+    () => {
+      state = Engine.create(fixedSeed ?? undefined, loadout, economy.levels);
+      partyMode = "menu";
+      ui.el.start.removeAttribute("disabled");
+      ui.el.heading.innerHTML = "KEEP THE<br><em>SIGNAL ALIVE.</em>";
+      ui.el.description.innerHTML =
+        "The city went dark. You kept running.<br>Carry the last ember as far as you can.";
+      ui.el.start.innerHTML = "START RUN <span>↗</span>";
+      ui.el.overlay.classList.remove("hidden");
+    },
+  );
+  let partyMode = "menu";
+
   particles.setEnabled(saves.effects());
   ui.el.effects.checked = particles.enabled;
   ui.sound(audio.muted);
@@ -65,6 +83,12 @@ function create(doc: Document) {
 
   function start() {
     if (wardrobe.isOpen) return;
+    if (session.active) {
+      session.start();
+      audio.unlock();
+      ui.el.game.focus({ preventScroll: true });
+      return;
+    }
     audio.unlock();
     if (state.mode === "paused") state.mode = "playing";
     else {
@@ -83,12 +107,17 @@ function create(doc: Document) {
   }
 
   function pauseIfPlaying() {
+    if (session.active) return;
     if (state.mode !== "playing") return;
     state.mode = "paused";
     ui.showOverlay("paused", state);
   }
 
   function pause() {
+    if (session.active) {
+      session.pause();
+      return;
+    }
     if (state.mode === "paused") start();
     else pauseIfPlaying();
   }
@@ -111,6 +140,9 @@ function create(doc: Document) {
   }
 
   const bursts: Record<string, [number, string, number]> = {
+    revive: [65, "#b1ffe3", 100],
+    front: [20, "#9ee9ec", 50],
+    down: [35, "#ec9865", 65],
     portal: [65, "#c5bbff", 95],
     pad: [45, "#9de9c2", 85],
     deflect: [16, "#fff0b4", 60],
@@ -123,18 +155,23 @@ function create(doc: Document) {
     death: [65, "#ffae62", 110],
   };
 
-  function handleEvents() {
+  function handleEvents(events: GameEvent[] = state.events.splice(0), partyEvents = false) {
     let collected = 0n;
-    for (const event of state.events.splice(0)) {
-      if (event.coins) {
+    for (const event of events) {
+      if (event.coins && !partyEvents) {
         collected += BigInt(event.coins);
       }
       if (event.points || event.type === "armor") popups.add(event);
       audio.play(event.type, state.combo);
       const burst = bursts[event.type];
-      if (burst && !(reducedMotion && (event.type === "portal" || event.type === "pad")))
+      if (burst && !(reducedMotion && ["portal", "pad", "revive", "front"].includes(event.type)))
         particles.burst(event.x, event.y, ...burst);
       switch (event.type) {
+        case "revive":
+        case "front":
+        case "down":
+          ui.announce(event.label ?? "COURIER DOWN / DASH A BEACON TO REVIVE", 2.5);
+          break;
         case "portal":
         case "pad":
           feedback.shake = event.type === "portal" ? 4 : 2;
@@ -187,19 +224,29 @@ function create(doc: Document) {
       jump() {
         audio.unlock();
         if (state.mode === "menu" || state.mode === "dead") start();
+        else if (session.active) session.action("jump");
         else Engine.jump(state);
       },
       dash() {
         audio.unlock();
-        Engine.dash(state);
+        if (session.active) session.action("dash");
+        else Engine.dash(state);
+      },
+      front() {
+        session.action("front");
       },
       setup() {
+        if (session.active) {
+          ui.announce("Leave the party to change your gear. Host difficulty applies to the party.");
+          return;
+        }
         pauseIfPlaying();
         wardrobe.open();
       },
       attack() {
         audio.unlock();
-        Engine.attack(state);
+        if (session.active) session.action("attack");
+        else Engine.attack(state);
       },
       effects(enabled) {
         particles.setEnabled(enabled);
@@ -214,14 +261,37 @@ function create(doc: Document) {
   });
 
   function draw() {
-    renderer.draw(state, animationTime, particles.items, feedback, popups.items);
+    renderer.draw(
+      state,
+      animationTime,
+      particles.items,
+      feedback,
+      popups.items,
+      session.active ? session.run : null,
+      session.localId,
+    );
   }
 
   function frame(now: number) {
     const dt = Math.min(Config.maxFrameSeconds, Math.max(0, (now - lastTime) / 1000 || 0));
     lastTime = now;
     if (state.mode !== "paused") animationTime += dt;
-    if (state.mode === "playing") {
+    if (session.active) {
+      session.update(dt);
+      const shared = session.state;
+      if (shared) {
+        state = shared;
+        const coins = session.takeCoins();
+        if (coins) economy.credit(BigInt(coins));
+        handleEvents(session.takeEvents(), true);
+        if (state.mode !== partyMode) {
+          if (state.mode === "playing") ui.hideOverlay();
+          else if (state.mode === "paused" || state.mode === "dead")
+            ui.showOverlay(state.mode, state);
+          partyMode = state.mode;
+        }
+      }
+    } else if (state.mode === "playing") {
       Engine.update(state, dt);
       handleEvents();
       if (Math.random() < dt * 24)
@@ -241,6 +311,14 @@ function create(doc: Document) {
       ui.update(dt);
     }
     ui.render(state, best, economy.balance);
+    if (session.active) {
+      ui.el.pause.toggleAttribute("disabled", !session.isHost);
+      const local = session.run?.members.find((m) => m.id === session.localId);
+      if (local && local.state.hits >= local.state.health && state.mode === "playing") {
+        ui.el.status.textContent = "DOWN / SPECTATING · TEAMMATE DASHES A BEACON TO REVIVE";
+        ui.el.attack.disabled = true;
+      }
+    } else ui.el.pause.removeAttribute("disabled");
     draw();
     wardrobe.draw(now / 1000);
     requestAnimationFrame(frame);
@@ -259,6 +337,7 @@ function create(doc: Document) {
     popups,
     wardrobe,
     economy,
+    session,
     get coins() {
       return economy.balance;
     },

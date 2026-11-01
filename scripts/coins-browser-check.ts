@@ -78,7 +78,7 @@ async function main() {
       await page.click("#setup");
       assert.equal(await page.locator("#shop-balance").innerText(), "250");
       assert(await page.locator("#shop-buy").isEnabled());
-      const insets = await page.locator(".setup-footer").evaluate((node) => {
+      const insets = await page.locator("#setup-dialog .setup-footer").evaluate((node) => {
         const footer = node.getBoundingClientRect();
         const button = node.querySelector("button")!.getBoundingClientRect();
         return { left: button.left - footer.left, right: footer.right - button.right };

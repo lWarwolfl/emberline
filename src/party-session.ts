@@ -1,0 +1,368 @@
+import * as Party from "./party";
+import * as Network from "./party-network";
+import { element } from "./dom";
+import type { GameEvent } from "./types";
+
+export function create(doc: Document, getProfile: () => Party.Profile, ended: () => void) {
+  const dialog = element(doc, "party-dialog", "dialog");
+  const status = element(doc, "party-message");
+  const output = element(doc, "party-output", "textarea");
+  const input = element(doc, "party-input", "textarea");
+  const name = element(doc, "party-name", "input");
+  const room = element(doc, "party-room", "input");
+  const roster = element(doc, "party-roster");
+  const hud = element(doc, "party-hud");
+  const startButton = element(doc, "party-start", "button");
+  const front = element(doc, "touch-front", "button");
+  let run: Party.PartyRun | null = null;
+  let id = "host",
+    host = false,
+    elapsed = 0,
+    sequence = 0,
+    eventId = 0,
+    seenEvent = 0;
+  let earned = 0,
+    pendingCoins = 0,
+    quiet = 0,
+    active = false,
+    fingerprint = "";
+  let pendingEvents: GameEvent[] = [];
+  let unsentEvents: GameEvent[] = [];
+  const inputs = new Map<string, { seq: number; time: number; count: number }>();
+  function say(text: string) {
+    status.textContent = text;
+  }
+  function localProfile() {
+    return Party.profile({ ...getProfile(), name: name.value });
+  }
+  function refresh() {
+    const members = run ? Party.sorted(run) : [];
+    startButton.disabled = !host || !run || run.world.mode === "playing";
+    element(doc, "party-leave", "button").disabled = !active;
+    element(doc, "party-invite", "button").disabled = !host || !run || run.started;
+    for (const key of ["party-host", "party-lan-host", "party-lan-join", "party-answer"])
+      element(doc, key, "button").disabled = active;
+    front.hidden = !active;
+    hud.hidden = !active;
+    element(doc, "party", "button").textContent = active
+      ? `PARTY ${members.length}/4`
+      : "PARTY / LAN";
+    const rows = members
+      .map(
+        (m) =>
+          `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.frontCooldown > 0}|${m.id === id}`,
+      )
+      .join(";");
+    if (rows !== fingerprint) {
+      fingerprint = rows;
+      for (const container of [roster, hud]) {
+        container.replaceChildren();
+        for (const [i, m] of members.entries()) {
+          const row = doc.createElement("div");
+          row.className =
+            "party-member" + (m.id === id ? " local" : "") + (!Party.alive(m) ? " down" : "");
+          row.dataset.player = m.id;
+          const title = doc.createElement("strong");
+          title.textContent = `${i + 1}. ${m.name}${m.id === id ? " (YOU)" : ""}`;
+          const health = doc.createElement("span");
+          health.textContent = !m.connected
+            ? "DISCONNECTED"
+            : Party.alive(m)
+              ? `HP ${m.state.health - m.state.hits}/${m.state.health}`
+              : "DOWN · REVIVE AT BEACON";
+          const levels = doc.createElement("small");
+          const l = m.state.stats.levels;
+          levels.textContent = `DASH ${l.dash} · JUMP ${l.jump} · DAMAGE ${l.damage} · ${m.state.stats.maxJumps} JUMPS`;
+          row.append(title, health, levels);
+          container.append(row);
+        }
+      }
+    }
+    const local = run?.members.find((m) => m.id === id);
+    front.disabled =
+      !run ||
+      run.world.mode !== "playing" ||
+      !local ||
+      !Party.alive(local) ||
+      local.frontCooldown > 0 ||
+      Party.sorted(run).find(Party.alive)?.id === id;
+    front.textContent =
+      local && local.frontCooldown > 0 ? "TAKE POINT · CHARGING" : "T / TAKE POINT";
+    const desktopFront = element(doc, "take-front", "button");
+    desktopFront.hidden = !active;
+    desktopFront.disabled = front.disabled;
+    desktopFront.textContent = front.textContent;
+    const mainStart = element(doc, "start", "button");
+    if (active) {
+      mainStart.disabled = !host;
+      mainStart.textContent = host
+        ? run?.started
+          ? run.world.mode === "paused"
+            ? "RESUME PARTY"
+            : "RESTART PARTY"
+          : "START PARTY RUN"
+        : "WAITING FOR HOST";
+    }
+  }
+  function publish(events: GameEvent[] = []) {
+    if (!run || !host) return;
+    if (events.length) eventId++;
+    network.broadcast({ type: "state", snapshot: Party.encode(run), eventId, events });
+  }
+  function account() {
+    if (!run) return;
+    pendingCoins += Math.max(0, run.earned - earned);
+    earned = run.earned;
+  }
+  function leave(message = "Party closed. Your solo progress is saved.") {
+    network.close();
+    active = false;
+    run = null;
+    pendingEvents = [];
+    unsentEvents = [];
+    pendingCoins = 0;
+    earned = 0;
+    inputs.clear();
+    fingerprint = "";
+    output.value = "";
+    input.value = "";
+    say(message);
+    refresh();
+    ended();
+  }
+  const network = Network.create({
+    status: say,
+    ready(playerId, hosting, code) {
+      active = true;
+      id = playerId;
+      host = hosting;
+      earned = 0;
+      quiet = 0;
+      seenEvent = 0;
+      eventId = 0;
+      sequence = 0;
+      if (host) run = Party.create(id, localProfile());
+      else network.toHost({ type: "hello", profile: localProfile() });
+      say(
+        host
+          ? `HOST / ${code} · Choose gear before hosting. Start when everyone appears below.`
+          : "Connected. Waiting for the host's lobby.",
+      );
+      if (/^[A-F0-9]{6}$/.test(code)) room.value = code;
+      refresh();
+    },
+    message(sender, data) {
+      if (host) {
+        if (!run) return;
+        if (data.type === "hello") {
+          if (run.members.some((m) => m.id === sender)) return;
+          if (!Party.add(run, sender, Party.profile(data.profile))) {
+            network.send(sender, {
+              type: "reject",
+              reason: "Party full or run already started. Join the next lobby.",
+            });
+            network.remove(sender);
+            return;
+          }
+          publish();
+          refresh();
+        } else if (data.type === "input") {
+          if (
+            !["jump", "dash", "attack", "front"].includes(data.action) ||
+            !Number.isSafeInteger(data.sequence)
+          )
+            return;
+          let entry = inputs.get(sender);
+          if (!entry) {
+            entry = { seq: -1, time: performance.now(), count: 0 };
+            inputs.set(sender, entry);
+          }
+          if (data.sequence <= entry.seq) return;
+          if (performance.now() - entry.time > 1000) {
+            entry.time = performance.now();
+            entry.count = 0;
+          }
+          if (++entry.count > 30) return;
+          entry.seq = data.sequence;
+          Party.action(run, sender, data.action);
+        }
+      } else if (
+        data.type === "state" &&
+        typeof data.snapshot === "string" &&
+        data.snapshot.length < 220000
+      ) {
+        try {
+          const received = Party.decode(data.snapshot);
+          if (
+            !Array.isArray(received.members) ||
+            received.members.length > 4 ||
+            !received.members.some((m) => m.id === id)
+          )
+            return;
+          run = received;
+          quiet = 0;
+          if (data.eventId > seenEvent && Array.isArray(data.events)) {
+            pendingEvents.push(...data.events.slice(0, 100));
+            seenEvent = data.eventId;
+          }
+          account();
+          refresh();
+        } catch {
+          say("Invalid party update. Leave and rejoin the lobby.");
+        }
+      } else if (data.type === "reject") leave(String(data.reason));
+    },
+    disconnected(playerId) {
+      if (!active) return;
+      if (host && playerId !== id && run) {
+        Party.disconnect(run, playerId);
+        publish();
+        say("A teammate disconnected. The line has reformed.");
+        refresh();
+      } else
+        leave(
+          "Host disconnected. Party ended; earned coins are saved. Create a new lobby to continue.",
+        );
+    },
+  });
+  async function attempt(fn: () => void | Promise<void>) {
+    try {
+      await fn();
+    } catch (error) {
+      say(error instanceof Error ? error.message : "Connection failed.");
+    }
+    refresh();
+  }
+  const clicks: Record<string, () => void | Promise<void>> = {
+    "party-host": () => {
+      network.host();
+    },
+    "party-invite": async () => {
+      say("Preparing a unique invite for the next teammate…");
+      output.value = await network.offer();
+      say(
+        "Send this invite to one teammate. They paste it below, create an answer, and send it back. Keep this party open.",
+      );
+    },
+    "party-answer": async () => {
+      say("Preparing answer…");
+      output.value = await network.answer(input.value);
+      say("Send this answer back to the host. Wait here while they accept it.");
+    },
+    "party-accept": async () => {
+      await network.accept(input.value);
+      input.value = "";
+      say("Answer accepted. Waiting for the direct connection…");
+    },
+    "party-cancel-invites": () => {
+      network.cancelPending();
+      output.value = "";
+      say("Pending invites cancelled. Connected teammates remain.");
+    },
+    "party-lan-host": () => network.lan(true, ""),
+    "party-lan-join": () => {
+      if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
+        throw new Error("Enter the six-character LAN room code.");
+      network.lan(false, room.value);
+    },
+    "party-copy": async () => {
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        say("Code copied.");
+      } catch {
+        output.focus();
+        output.select();
+        say("Code selected. Press Ctrl+C to copy.");
+      }
+    },
+    "party-leave": () => leave(),
+    "party-start": () => {
+      start();
+      dialog.close();
+    },
+    "party-close": () => dialog.close(),
+  };
+  for (const [button, fn] of Object.entries(clicks))
+    element(doc, button).addEventListener("click", () => {
+      void attempt(fn);
+    });
+  element(doc, "party").addEventListener("click", () => {
+    refresh();
+    dialog.showModal();
+  });
+  function start() {
+    if (!run || !host) {
+      say("The host starts and restarts the party run.");
+      return;
+    }
+    if (run.world.mode === "paused") run.world.mode = "playing";
+    else {
+      Party.start(run);
+      network.lock(true);
+    }
+    publish();
+    refresh();
+  }
+  refresh();
+  return {
+    get active() {
+      return active;
+    },
+    get isHost() {
+      return host;
+    },
+    get run() {
+      return run;
+    },
+    get localId() {
+      return id;
+    },
+    get state() {
+      return run ? Party.view(run, id) : null;
+    },
+    start,
+    pause() {
+      if (host && run && run.started && run.world.mode !== "dead") {
+        run.world.mode = run.world.mode === "paused" ? "playing" : "paused";
+        publish();
+      }
+    },
+    action(action: Party.Action) {
+      if (!active) return;
+      if (host && run) Party.action(run, id, action);
+      else network.toHost({ type: "input", action, sequence: ++sequence });
+    },
+    update(dt: number) {
+      if (!active || !run) return;
+      if (host) {
+        Party.update(run, dt);
+        const events = run.world.events.splice(0);
+        pendingEvents.push(...events);
+        unsentEvents.push(...events);
+        elapsed += dt;
+        if (elapsed >= 1 / 20) {
+          publish(unsentEvents.splice(0, 100));
+          elapsed = 0;
+        }
+        account();
+      } else {
+        quiet += dt;
+        if (quiet > 6) {
+          leave("Connection timed out. Party ended; earned coins are saved.");
+          return;
+        }
+      }
+      refresh();
+    },
+    takeEvents() {
+      return pendingEvents.splice(0);
+    },
+    takeCoins() {
+      const coins = pendingCoins;
+      pendingCoins = 0;
+      return coins;
+    },
+    leave,
+  };
+}

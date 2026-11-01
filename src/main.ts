@@ -1,3 +1,4 @@
+import * as Party from "./party";
 import Economy from "./economy";
 import Content from "./content";
 import Engine from "./engine";
@@ -26,6 +27,7 @@ import Traversal from "./traversal";
 import EnemyFire from "./enemy-fire";
 import "./pwa";
 const Emberline = {
+  Party,
   Traversal,
   EnemyFire,
   Economy,

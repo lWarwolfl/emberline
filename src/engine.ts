@@ -237,4 +237,4 @@ function update(state: GameState, seconds: number) {
     remaining -= dt;
   }
 }
-export = { create, update, jump, dash, attack: Combat.attack, collides };
+export = { create, update, jump, dash, attack: Combat.attack, collides, hit, collect };

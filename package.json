@@ -1,12 +1,12 @@
 {
   "name": "emberline",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "private": true,
   "description": "Offline procedural pixel runner with strict TypeScript source",
   "scripts": {
     "test": "npm run build && node --import tsx --test tests/*.test.ts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "test:browser": "node --import tsx scripts/browser-check.ts && node --import tsx scripts/gear-browser-check.ts && node --import tsx scripts/shop-browser-check.ts && node --import tsx scripts/coins-browser-check.ts && node --import tsx scripts/upgrades-browser-check.ts && node --import tsx scripts/reset-browser-check.ts && node --import tsx scripts/expansion-browser-check.ts && node --import tsx scripts/pwa-browser-check.ts",
+    "test:browser": "node --import tsx scripts/browser-check.ts && node --import tsx scripts/gear-browser-check.ts && node --import tsx scripts/shop-browser-check.ts && node --import tsx scripts/coins-browser-check.ts && node --import tsx scripts/upgrades-browser-check.ts && node --import tsx scripts/reset-browser-check.ts && node --import tsx scripts/expansion-browser-check.ts && node --import tsx scripts/party-browser-check.ts && node --import tsx scripts/pwa-browser-check.ts",
     "format": "prettier --write .",
     "metadata": "node --import tsx scripts/update-metadata.ts",
     "assets": "node --import tsx scripts/generate-brand-assets.ts",
@@ -16,7 +16,8 @@
     "lint:fix": "eslint . --fix --max-warnings 0",
     "format:check": "prettier --check .",
     "pretest:browser": "npm run build:site",
-    "build:site": "npm run build && node --import tsx scripts/package-site.ts"
+    "build:site": "npm run build && node --import tsx scripts/package-site.ts",
+    "host": "npm run build:site && node --import tsx scripts/lan-server.ts"
   },
   "engines": {
     "node": "24.x"
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
+    "@types/ws": "^8.18.2",
     "esbuild": "^0.25.12",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
@@ -33,5 +35,8 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.1"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
   }
 }
