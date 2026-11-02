@@ -17,6 +17,7 @@ test("party setup separates connection methods from the persistent lobby", () =>
   assert.match(dialog, /id="party-join-steps" class="party-steps" hidden/);
   assert.match(dialog, /id="party-role-host"[^>]*aria-pressed="true"/);
   assert.match(dialog, /id="party-role-join"[^>]*aria-pressed="false"/);
+  assert.ok(dialog.indexOf('id="party-input"') < dialog.indexOf('id="party-accept"'));
   assert.match(dialog, /<aside class="party-lobby" aria-labelledby="party-lobby-heading">/);
   assert.match(dialog, /id="party-message" role="status"/);
   assert.match(dialog, /<button id="party-start" class="primary" disabled>/);

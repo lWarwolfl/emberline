@@ -73,3 +73,66 @@ test("LAN relay check accepts this host and rejects a page with no relay", async
     plain.close();
   }
 });
+
+test("a line-broken answer still matches the waiting invite", async (t) => {
+  const sdp = "v=0\r\na=candidate:1 1 udp 2122260223 1.2.3.4 9 typ host\r\n";
+  class Channel {
+    readyState = "connecting";
+    bufferedAmount = 0;
+    onopen: (() => void) | null = null;
+    onmessage: (() => void) | null = null;
+    onclose: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    send() {}
+    close() {}
+  }
+  class Peer {
+    signalingState = "stable";
+    iceGatheringState = "complete";
+    connectionState = "new";
+    localDescription: { type: string; sdp: string } | null = null;
+    ondatachannel: ((event: { channel: Channel }) => void) | null = null;
+    onconnectionstatechange: (() => void) | null = null;
+    createDataChannel() {
+      return new Channel();
+    }
+    createOffer() {
+      return Promise.resolve({ type: "offer", sdp });
+    }
+    createAnswer() {
+      return Promise.resolve({ type: "answer", sdp });
+    }
+    setLocalDescription(description: { type: string; sdp: string }) {
+      this.localDescription = description;
+      this.signalingState = description.type === "offer" ? "have-local-offer" : "stable";
+      return Promise.resolve();
+    }
+    setRemoteDescription() {
+      this.signalingState = "stable";
+      return Promise.resolve();
+    }
+    close() {
+      this.connectionState = "closed";
+    }
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  const original = Object.getOwnPropertyDescriptor(globalThis, "RTCPeerConnection");
+  Object.defineProperty(globalThis, "RTCPeerConnection", { configurable: true, value: Peer });
+  t.after(() => {
+    if (original) Object.defineProperty(globalThis, "RTCPeerConnection", original);
+    else Reflect.deleteProperty(globalThis, "RTCPeerConnection");
+  });
+  const callbacks = { message() {}, disconnected() {}, status() {}, ready() {} };
+  const host = Network.create(callbacks);
+  const guest = Network.create(callbacks);
+  t.after(() => {
+    host.close();
+    guest.close();
+  });
+  host.host();
+  const offer = await host.offer();
+  const answer = await guest.answer(offer);
+  const wrapped = `answer:\n${answer.slice(0, 16)}\n${answer.slice(16)}\nthanks`;
+  await host.accept(wrapped);
+});

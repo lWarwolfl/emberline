@@ -257,6 +257,18 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     element(doc, "party-join-steps").hidden = hosting;
     element(doc, "party-host-actions").hidden = !hosting;
     element(doc, "party-join-actions").hidden = hosting;
+    element(doc, "party-accept-actions").hidden = !hosting;
+    const flow = element(doc, "party-direct-flow");
+    const order = hosting
+      ? [
+          "party-host-actions",
+          "party-output-field",
+          "party-copy-actions",
+          "party-input-field",
+          "party-accept-actions",
+        ]
+      : ["party-input-field", "party-join-actions", "party-output-field", "party-copy-actions"];
+    for (const id of order) flow.append(element(doc, id));
     element(doc, "party-input-label").textContent = hosting
       ? "ANSWER FROM TEAMMATE"
       : "INVITE FROM HOST";
@@ -303,10 +315,23 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       say("Copy this answer and send the whole code back to the host. Stay on this page.");
     },
     "party-accept": async () => {
-      await network.accept(input.value);
-      input.value = "";
-      markDirect("party-host-steps", 3);
-      say("Answer accepted. For another teammate, create a new invite.");
+      const button = element(doc, "party-accept", "button");
+      const code = input.value.trim();
+      if (!code) {
+        input.focus();
+        throw new Error("Paste their answer in the box above Accept Answer.");
+      }
+      const label = button.textContent;
+      button.textContent = "ACCEPTING…";
+      say("Checking their answer…");
+      try {
+        await network.accept(code);
+        input.value = "";
+        markDirect("party-host-steps", 3);
+        say("Answer accepted. Waiting for your teammate to appear in the crew.");
+      } finally {
+        button.textContent = label;
+      }
     },
     "party-cancel-invites": () => {
       network.cancelPending();
@@ -343,6 +368,15 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     element(doc, button).addEventListener("click", () => {
       void attempt(fn);
     });
+  element(doc, "party-direct").addEventListener("paste", (event) => {
+    if (!(event instanceof ClipboardEvent) || event.target === input) return;
+    const text = event.clipboardData?.getData("text") ?? "";
+    if (!text.includes("EMBER7.")) return;
+    event.preventDefault();
+    input.value = text;
+    input.focus();
+    say("Pasted the code into the box. Use the button under it.");
+  });
   element(doc, "party").addEventListener("click", () => {
     refresh();
     dialog.showModal();

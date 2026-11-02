@@ -4786,16 +4786,28 @@
   // src/party-network.ts
   function unpack(code) {
     if (code.length > 32e3) throw new Error("Invite is too long.");
-    const data = JSON.parse(atob(code.trim().replace(/^EMBER7\./, "")));
-    if (
-      data.version !== 7 ||
-      !["offer", "answer"].includes(data.type) ||
-      typeof data.sdp !== "string" ||
-      data.sdp.length > 24e3 ||
-      !/^[a-z0-9-]{1,64}$/i.test(data.slot)
-    )
-      throw new Error("Use a valid version 7 invite or answer.");
-    return data;
+    const compact = code.replace(/[\s\u200b-\u200d\ufeff]/g, "");
+    const start2 = compact.indexOf("EMBER7.");
+    if (start2 < 0) throw new Error("Paste the whole EMBER7 code.");
+    const raw = compact.slice(start2 + "EMBER7.".length).replace(/[^A-Za-z0-9+/=]/g, "");
+    for (let trim = 0; trim <= 40 && raw.length - trim >= 8; trim++) {
+      const slice = raw.slice(0, raw.length - trim);
+      const padded = slice + "=".repeat((4 - (slice.length % 4)) % 4);
+      try {
+        const data = JSON.parse(atob(padded));
+        if (
+          data.version === 7 &&
+          (data.type === "offer" || data.type === "answer") &&
+          typeof data.sdp === "string" &&
+          data.sdp.length <= 24e3 &&
+          /^[a-z0-9-]{1,64}$/i.test(data.slot)
+        )
+          return data;
+      } catch {
+        continue;
+      }
+    }
+    throw new Error("That code is incomplete. Copy the whole answer and paste it again.");
   }
   function pack(data) {
     return "EMBER7." + btoa(JSON.stringify(data));
@@ -4899,34 +4911,47 @@
       channel.onclose = lost;
       channel.onerror = lost;
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "closed") lost();
-        else if (pc.connectionState === "disconnected")
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+          if (!links.has(id))
+            callbacks.status(
+              "No direct route to that teammate. Ask them to keep their page open, or use LAN on the same Wi-Fi.",
+            );
+          lost();
+        } else if (pc.connectionState === "disconnected")
           later(() => {
             if (pc.connectionState === "disconnected") lost();
           }, 5e3);
       };
     }
     async function gather(pc) {
-      if (pc.iceGatheringState === "complete") return;
+      const ready = () => pc.localDescription?.sdp.includes("a=candidate:") === true;
+      if (pc.iceGatheringState === "complete" && ready()) return;
       await new Promise((resolve, reject) => {
-        const timeout = later(() => {
+        let settled = false;
+        const finish = (ok) => {
+          if (settled) return;
+          settled = true;
           cleanup();
-          if (pc.localDescription?.sdp.includes("a=candidate:")) resolve();
+          if (ok || ready()) resolve();
           else
             reject(new Error("Connection discovery timed out. Try LAN hosting on the same Wi-Fi."));
-        }, 12e3);
+        };
+        const timeout = later(() => finish(false), 12e3);
         const change = () => {
-          if (pc.iceGatheringState === "complete") {
-            cleanup();
-            resolve();
-          }
+          if (pc.iceGatheringState === "complete") finish(ready());
+        };
+        const candidate = (event) => {
+          if (!event.candidate) finish(true);
         };
         function cleanup() {
           clearTimeout(timeout);
           timers.delete(timeout);
           pc.removeEventListener("icegatheringstatechange", change);
+          pc.removeEventListener("icecandidate", candidate);
         }
         pc.addEventListener("icegatheringstatechange", change);
+        pc.addEventListener("icecandidate", candidate);
+        if (pc.iceGatheringState === "complete") finish(ready());
       });
     }
     function peer() {
@@ -4992,7 +5017,9 @@
         pc = peers.get(invite.slot);
       if (invite.type !== "answer" || !pc || pc.signalingState !== "have-local-offer")
         throw new Error(
-          "This answer doesn't match a pending invite. Generate a fresh invite for each teammate.",
+          invite.type === "answer" && pc
+            ? "This invite is no longer waiting. Choose New Invite, send that new code, and accept the new answer."
+            : "This answer doesn't match a pending invite. Generate a fresh invite for each teammate.",
         );
       await pc.setRemoteDescription({ type: "answer", sdp: invite.sdp });
       later(() => {
@@ -5371,6 +5398,18 @@
       element(doc, "party-join-steps").hidden = hosting;
       element(doc, "party-host-actions").hidden = !hosting;
       element(doc, "party-join-actions").hidden = hosting;
+      element(doc, "party-accept-actions").hidden = !hosting;
+      const flow = element(doc, "party-direct-flow");
+      const order = hosting
+        ? [
+            "party-host-actions",
+            "party-output-field",
+            "party-copy-actions",
+            "party-input-field",
+            "party-accept-actions",
+          ]
+        : ["party-input-field", "party-join-actions", "party-output-field", "party-copy-actions"];
+      for (const id2 of order) flow.append(element(doc, id2));
       element(doc, "party-input-label").textContent = hosting
         ? "ANSWER FROM TEAMMATE"
         : "INVITE FROM HOST";
@@ -5417,10 +5456,23 @@
         say("Copy this answer and send the whole code back to the host. Stay on this page.");
       },
       "party-accept": async () => {
-        await network.accept(input.value);
-        input.value = "";
-        markDirect("party-host-steps", 3);
-        say("Answer accepted. For another teammate, create a new invite.");
+        const button = element(doc, "party-accept", "button");
+        const code = input.value.trim();
+        if (!code) {
+          input.focus();
+          throw new Error("Paste their answer in the box above Accept Answer.");
+        }
+        const label = button.textContent;
+        button.textContent = "ACCEPTING\u2026";
+        say("Checking their answer\u2026");
+        try {
+          await network.accept(code);
+          input.value = "";
+          markDirect("party-host-steps", 3);
+          say("Answer accepted. Waiting for your teammate to appear in the crew.");
+        } finally {
+          button.textContent = label;
+        }
       },
       "party-cancel-invites": () => {
         network.cancelPending();
@@ -5457,6 +5509,15 @@
       element(doc, button).addEventListener("click", () => {
         void attempt(fn);
       });
+    element(doc, "party-direct").addEventListener("paste", (event) => {
+      if (!(event instanceof ClipboardEvent) || event.target === input) return;
+      const text = event.clipboardData?.getData("text") ?? "";
+      if (!text.includes("EMBER7.")) return;
+      event.preventDefault();
+      input.value = text;
+      input.focus();
+      say("Pasted the code into the box. Use the button under it.");
+    });
     element(doc, "party").addEventListener("click", () => {
       refresh();
       dialog.showModal();

@@ -278,45 +278,49 @@
                     <b>04</b><span>Stay on this page until your name appears in the crew.</span>
                   </li>
                 </ol>
-                <div id="party-host-actions" class="party-step-actions">
-                  <button id="party-host" class="secondary" type="button">HOST PARTY</button>
-                  <button id="party-invite" class="secondary" type="button" disabled>
-                    NEW INVITE
-                  </button>
-                  <button id="party-accept" class="secondary" type="button">ACCEPT ANSWER</button>
-                  <button id="party-cancel-invites" class="secondary" type="button">
-                    CANCEL PENDING INVITES
-                  </button>
-                </div>
-                <div id="party-join-actions" class="party-step-actions" hidden>
-                  <button id="party-answer" class="secondary" type="button">
-                    JOIN / CREATE ANSWER
-                  </button>
-                </div>
-                <div class="party-field">
-                  <label id="party-input-label" for="party-input">ANSWER FROM TEAMMATE</label>
-                  <textarea
-                    id="party-input"
-                    rows="3"
-                    maxlength="32000"
-                    spellcheck="false"
-                    autocapitalize="off"
-                    autocomplete="off"
-                    placeholder="EMBER7.…"
-                  ></textarea>
-                </div>
-                <div class="party-field">
-                  <label id="party-output-label" for="party-output">INVITE TO SEND</label>
-                  <textarea
-                    id="party-output"
-                    rows="3"
-                    readonly
-                    spellcheck="false"
-                    placeholder="Your code appears here"
-                  ></textarea>
-                </div>
-                <div class="party-step-actions">
-                  <button id="party-copy" class="secondary" type="button">COPY CODE</button>
+                <div id="party-direct-flow">
+                  <div id="party-host-actions" class="party-step-actions">
+                    <button id="party-host" class="secondary" type="button">HOST PARTY</button>
+                    <button id="party-invite" class="secondary" type="button" disabled>
+                      NEW INVITE
+                    </button>
+                    <button id="party-cancel-invites" class="secondary" type="button">
+                      CANCEL PENDING INVITES
+                    </button>
+                  </div>
+                  <div id="party-output-field" class="party-field">
+                    <label id="party-output-label" for="party-output">INVITE TO SEND</label>
+                    <textarea
+                      id="party-output"
+                      rows="3"
+                      readonly
+                      spellcheck="false"
+                      placeholder="Your code appears here"
+                    ></textarea>
+                  </div>
+                  <div id="party-copy-actions" class="party-step-actions">
+                    <button id="party-copy" class="secondary" type="button">COPY CODE</button>
+                  </div>
+                  <div id="party-input-field" class="party-field">
+                    <label id="party-input-label" for="party-input">ANSWER FROM TEAMMATE</label>
+                    <textarea
+                      id="party-input"
+                      rows="3"
+                      maxlength="32000"
+                      spellcheck="false"
+                      autocapitalize="off"
+                      autocomplete="off"
+                      placeholder="Paste the whole EMBER7 code here"
+                    ></textarea>
+                  </div>
+                  <div id="party-accept-actions" class="party-step-actions">
+                    <button id="party-accept" class="secondary" type="button">ACCEPT ANSWER</button>
+                  </div>
+                  <div id="party-join-actions" class="party-step-actions" hidden>
+                    <button id="party-answer" class="secondary" type="button">
+                      JOIN / CREATE ANSWER
+                    </button>
+                  </div>
                 </div>
                 <small
                   >One invite per teammate. Unused invites expire after three minutes. Some routers
