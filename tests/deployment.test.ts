@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { packageSite, files } from "../scripts/package-site";
 import vercel from "../vercel.json";
+import ts from "typescript";
 
 const root = path.resolve(__dirname, "..");
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "emberline-package-"));
@@ -40,4 +41,38 @@ test("packaging removes stale files from previous deployments", () => {
   fs.writeFileSync(stale, "old build");
   packageSite(fixture);
   assert(!fs.existsSync(stale));
+});
+
+test("Vercel can emit the account API with its nearest TypeScript configuration", () => {
+  const entry = path.join(root, "api/account/[...action].ts");
+  const configPath = ts.findConfigFile(path.dirname(entry), ts.sys.fileExists);
+  assert(configPath);
+  const config = ts.readConfigFile(configPath, ts.sys.readFile);
+  assert.equal(config.error, undefined);
+  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(configPath));
+  const program = ts.createProgram([...new Set([...parsed.fileNames, entry])], {
+    ...parsed.options,
+    noEmit: false,
+    sourceMap: true,
+  });
+  const outputs = new Map<string, string>();
+  const result = program.emit(program.getSourceFile(entry), (file, content) =>
+    outputs.set(file, content),
+  );
+  const diagnostics = ts.getPreEmitDiagnostics(program);
+  assert.equal(
+    result.emitSkipped,
+    false,
+    ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCurrentDirectory: () => root,
+      getCanonicalFileName: (file) => file,
+      getNewLine: () => "\n",
+    }),
+  );
+  assert(
+    [...outputs].some(
+      ([file, content]) =>
+        file.endsWith("[...action].js") && content.includes("handleAccountRequest"),
+    ),
+  );
 });

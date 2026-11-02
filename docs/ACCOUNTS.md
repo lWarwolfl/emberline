@@ -29,6 +29,11 @@ migration against that database before deploying. The static game remains under
 `public/`; the function and database access stay on the server. The local `.env`
 does not configure a remote deployment.
 
+`api/tsconfig.json` gives Vercel's function compiler a server configuration with
+the repository as its source root and Node types enabled. The browser-only root
+configuration remains separate. The deployment regression test checks actual
+JavaScript emission for the account handler, including its server imports.
+
 ## Saved data and conflicts
 
 The account saves the canonical economy (wallet, ownership and upgrades),

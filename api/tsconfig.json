@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../.build/api",
+    "noEmit": false,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts", "../server/accounts.ts", "../src/cloud-save.ts"],
+  "exclude": []
+}
