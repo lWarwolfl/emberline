@@ -181,7 +181,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           refresh();
         } else if (data.type === "input") {
           if (
-            !["jump", "dash", "attack", "front"].includes(data.action) ||
+            !["jump", "dash", "attack", "front", "powerup"].includes(data.action) ||
             !Number.isSafeInteger(data.sequence)
           )
             return;

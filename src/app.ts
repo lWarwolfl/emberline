@@ -11,6 +11,8 @@ import Popups from "./popups";
 import Wardrobe from "./wardrobe";
 import Economy from "./economy";
 import * as PartySession from "./party-session";
+import * as Accounts from "./accounts";
+import { sameSave, saveKeys } from "./cloud-save";
 import type { GameEvent } from "./types";
 
 function create(doc: Document) {
@@ -29,7 +31,7 @@ function create(doc: Document) {
   const renderer = Renderer.create(ui.el.game, reducedMotion);
   const parameters = new URLSearchParams(location.search);
   const fixedSeed = parameters.get("seed");
-  const economy = Economy.create(saves);
+  let economy = Economy.create(saves);
   let loadout = economy.enforce(saves.loadout());
   let state = Engine.create(fixedSeed ?? undefined, loadout, economy.levels);
   const popups = Popups.create(reducedMotion);
@@ -44,8 +46,17 @@ function create(doc: Document) {
     economy,
     () => {
       if (!saves.resetProgress()) return false;
-      state.mode = "menu";
-      window.location.reload();
+      best = 0n;
+      state = Engine.create(fixedSeed ?? undefined);
+      economy = Economy.create(saves);
+      loadout = economy.enforce({});
+      doc
+        .getElementById("setup-dialog")
+        ?.querySelectorAll<HTMLButtonElement>("button")
+        .forEach((button) => {
+          button.disabled = true;
+        });
+      void accounts.sync().finally(() => window.location.reload());
       return true;
     },
   );
@@ -69,6 +80,35 @@ function create(doc: Document) {
     },
   );
   let partyMode = "menu";
+  const accounts = Accounts.create(doc, {
+    capture() {
+      saveBest();
+      return {
+        ...saves.exportProgress(),
+        economy: JSON.stringify(economy.snapshot()),
+        loadout: JSON.stringify(loadout),
+        best: best.toString(),
+        muted: String(audio.muted),
+        effects: String(particles.enabled),
+      };
+    },
+    apply(data) {
+      const restored = Object.fromEntries(saveKeys.map((key) => [key, data[key] ?? null]));
+      if (sameSave(saves.exportProgress(), restored)) return;
+      if (!saves.importProgress(restored))
+        throw new Error("Could not restore your cloud save. Device storage is unavailable.");
+      window.location.reload();
+    },
+    beforeOpen() {
+      if (session.active && session.isHost && state.mode === "playing") session.pause();
+      else pauseIfPlaying();
+    },
+    onStatus(message) {
+      const summary = doc.getElementById("account-summary");
+      if (summary) summary.textContent = message;
+    },
+  });
+  doc.getElementById("account")?.addEventListener("click", () => accounts.open());
 
   particles.setEnabled(saves.effects());
   ui.el.effects.checked = particles.enabled;
@@ -150,6 +190,10 @@ function create(doc: Document) {
     jump: [10, "#d3c294", 25],
     dash: [25, "#b6dbc3", 90],
     pickup: [12, "#ffcb7c", 50],
+    heal: [18, "#a6e4d1", 40],
+    "powerup-pickup": [22, "#e9cd91", 50],
+    powerup: [35, "#ffae62", 75],
+    explosion: [40, "#ffae62", 90],
     smash: [32, "#b6dbc3", 90],
     hit: [25, "#ec9865", 75],
     death: [65, "#ffae62", 110],
@@ -161,12 +205,23 @@ function create(doc: Document) {
       if (event.coins && !partyEvents) {
         collected += BigInt(event.coins);
       }
-      if (event.points || event.type === "armor") popups.add(event);
+      if (
+        event.points ||
+        event.type === "armor" ||
+        event.type === "heal" ||
+        event.type === "powerup"
+      )
+        popups.add(event);
       audio.play(event.type, state.combo);
-      const burst = bursts[event.type];
+      const burst = event.label === "BLAST" ? bursts.explosion : bursts[event.type];
       if (burst && !(reducedMotion && ["portal", "pad", "revive", "front"].includes(event.type)))
         particles.burst(event.x, event.y, ...burst);
       switch (event.type) {
+        case "heal":
+        case "powerup-pickup":
+        case "powerup":
+          ui.announce(event.label ?? "POWER-UP", 2);
+          break;
         case "revive":
         case "front":
         case "down":
@@ -252,6 +307,11 @@ function create(doc: Document) {
         audio.unlock();
         if (session.active) session.action("attack");
         else Engine.attack(state);
+      },
+      powerup() {
+        audio.unlock();
+        if (session.active) session.action("powerup");
+        else Engine.powerup(state);
       },
       effects(enabled) {
         particles.setEnabled(enabled);
@@ -343,6 +403,7 @@ function create(doc: Document) {
     wardrobe,
     economy,
     session,
+    accounts,
     get coins() {
       return economy.balance;
     },

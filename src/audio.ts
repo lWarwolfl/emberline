@@ -83,6 +83,16 @@ function create(initialMuted = false) {
       case "pickup":
         tone(740 + (combo % 5) * 110, 0.09, "sine", 0.09, 1100);
         break;
+      case "heal":
+        [440, 660, 880].forEach((freq, i) => tone(freq, 0.12, "sine", 0.025, freq, i * 0.07));
+        break;
+      case "powerup":
+        tone(330, 0.3, "triangle", 0.04, 1320);
+        break;
+      case "explosion":
+        noise(0.22, 0.1);
+        tone(120, 0.22, "square", 0.04, 35);
+        break;
       case "smash":
         noise(0.2, 0.14);
         tone(100, 0.2, "square", 0.07, 30);

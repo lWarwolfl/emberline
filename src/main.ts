@@ -25,9 +25,11 @@ import Pixel from "./pixel";
 import Config from "./config";
 import Traversal from "./traversal";
 import EnemyFire from "./enemy-fire";
+import Powerups from "./powerups";
 import "./pwa";
 const Emberline = {
   Party,
+  Powerups,
   Traversal,
   EnemyFire,
   Economy,

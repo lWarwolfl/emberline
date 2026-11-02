@@ -8,6 +8,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     setup: actions.setup,
     "menu-setup": actions.setup,
     attack: actions.attack,
+    powerup: actions.powerup,
     pause: actions.pause,
     sound: actions.sound,
     fullscreen: actions.fullscreen,
@@ -27,6 +28,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     ["touch-jump", actions.jump],
     ["touch-dash", actions.dash],
     ["touch-attack", actions.attack],
+    ["touch-powerup", actions.powerup],
     ["touch-front", actions.front],
   ] as [string, () => void][]) {
     byId(id).addEventListener("pointerdown", (event) => {
@@ -43,6 +45,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     ShiftRight: actions.dash,
     KeyX: actions.attack,
     KeyJ: actions.attack,
+    KeyC: actions.powerup,
     KeyL: actions.setup,
     KeyT: actions.front,
     KeyP: actions.pause,

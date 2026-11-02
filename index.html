@@ -113,6 +113,12 @@
         </div>
       </section>
       <section id="party-hud" aria-label="Party health and formation order" hidden></section>
+      <section class="account-strip" aria-label="Account and cloud saves">
+        <p id="account-summary" role="status">
+          Playing as a guest. Log in or create an account to keep your progress backed up.
+        </p>
+        <button id="account" type="button">LOG IN / CREATE ACCOUNT</button>
+      </section>
       <div class="beacon-trail" id="beacon-trail" hidden>
         <label for="beacon-progress">NEXT REVIVE BEACON</label>
         <progress id="beacon-progress" max="1" value="0"></progress>
@@ -147,6 +153,16 @@
           </div>
         </section>
       </div>
+      <section class="powerup-tray" aria-label="Power-up inventory">
+        <span class="label">POWER-UPS <span id="powerup-count">0 / 3</span></span>
+        <ol id="powerup-queue" aria-label="Next power-ups in activation order">
+          <li>EMPTY</li>
+          <li>EMPTY</li>
+          <li>EMPTY</li>
+        </ol>
+        <span id="powerup-active" role="status">Collect rare drops along the route.</span>
+        <button id="powerup" class="attack-button" type="button" disabled>C / ACTIVATE</button>
+      </section>
       <footer>
         <div class="instructions">
           <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
@@ -157,12 +173,13 @@
         <button id="attack" class="attack-button" disabled>X / PUNCH</button>
       </footer>
       <div class="subfooter">
-        <span>Dodge red shots or dash to deflect. Portals and jump pads skip the route.</span
+        <span>Shots fly straight. Jump to aim. C activates your next power-up.</span
         ><label><input id="effects" type="checkbox" checked /> PARTICLE FX</label>
       </div>
       <div class="touch-controls">
         <button id="touch-jump">JUMP / DOUBLE JUMP</button><button id="touch-dash">DASH</button
         ><button id="touch-attack">PUNCH</button
+        ><button id="touch-powerup" disabled>POWER-UP</button
         ><button id="touch-front" hidden>T / TAKE POINT</button>
       </div>
 

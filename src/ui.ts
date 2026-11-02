@@ -44,9 +44,45 @@ function create(doc: Document) {
     attack: element(doc, "attack", "button"),
   };
   const dashBar = el["dash-state"].querySelector("i")!;
+  const powerupButton = element(doc, "powerup", "button");
+  const touchPowerup = element(doc, "touch-powerup", "button");
+  const queue = element(doc, "powerup-queue");
+  const powerupNames = { blast: "CHAIN BLAST", titan: "TITAN", flight: "JET FLIGHT" };
+  const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
+  let queueSignature = "";
   let announcementTime = 0;
 
   function render(state: GameState, best: bigint, coins = 0n) {
+    const signature = state.powerups.join(",");
+    if (signature !== queueSignature || !queue.children[0]?.hasAttribute("data-slot")) {
+      queueSignature = signature;
+      queue.replaceChildren(
+        ...Array.from({ length: 3 }, (_, i) => {
+          const slot = doc.createElement("li");
+          const id = state.powerups[i];
+          slot.dataset.slot = String(i + 1);
+          slot.textContent = id ? `${i + 1} / ${powerupNames[id]}` : `${i + 1} / EMPTY`;
+          if (id) {
+            slot.dataset.rarity = powerupRarities[id];
+            slot.title = `${powerupRarities[id]} · ${i === 0 ? "Next to activate" : "Queued"}`;
+          }
+          return slot;
+        }),
+      );
+    }
+    byId("powerup-count").textContent = `${state.powerups.length} / 3`;
+    const active = state.activePowerup;
+    const powerReady =
+      state.mode === "playing" && state.hits < state.health && state.powerups.length > 0 && !active;
+    powerupButton.disabled = !powerReady;
+    touchPowerup.disabled = !powerReady;
+    powerupButton.textContent = "C / ACTIVATE";
+    touchPowerup.textContent = state.powerups[0] ? powerupNames[state.powerups[0]] : "POWER-UP";
+    byId("powerup-active").textContent = active
+      ? `${powerupNames[active.id]} · ${Math.ceil(active.remaining)}s`
+      : state.powerups.length
+        ? "Activate in order · C"
+        : "Collect rare drops along the route.";
     el["coin-total"].textContent = coins.toString().padStart(4, "0");
     const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon).short;
     const ready = state.attackCooldown <= 0;

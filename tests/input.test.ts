@@ -20,6 +20,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   let open = false;
   let focused: string;
   let jumps = 0;
+  let powers = 0;
   const canvas = Object.assign(new Node(), {
     focus(options: FocusOptions) {
       assert.equal(options.preventScroll, true);
@@ -31,7 +32,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     querySelector: () => (open ? new Node() : null),
   });
   const actions = new Proxy(
-    { jump: () => jumps++ },
+    { jump: () => jumps++, powerup: () => powers++ },
     {
       get: (target, key) => target[key as keyof typeof target] ?? (() => {}),
     },
@@ -50,6 +51,14 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     assert(event.defaultPrevented);
   }
   assert.equal(jumps, 3);
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyC",
+      key: "c",
+      repeat: false,
+    }),
+  );
+  assert.equal(powers, 1);
   open = true;
   focused = "nested-menu";
   doc.dispatchEvent(new Event("close"));
@@ -62,4 +71,12 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   doc.dispatchEvent(space);
   assert.equal(jumps, 3);
   assert.equal(space.defaultPrevented, false);
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyC",
+      key: "c",
+      repeat: false,
+    }),
+  );
+  assert.equal(powers, 1);
 });
