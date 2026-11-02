@@ -1803,27 +1803,28 @@
           const tiers =
             platformRoll < 0.09 ? [30, 54, 30] : platformRoll < 0.18 ? [52, 28] : [28, 50];
           const platformStart = Math.max(x, ...dangers.map((o) => o.x + o.w)) + 180;
+          const platformWidth = 240;
           for (const [i, height] of tiers.entries()) {
-            const px = platformStart + i * 154;
+            const px = platformStart + i * (platformWidth + 24);
             dangers.push({
               kind: "platform",
               variant: "ledge",
               x: px,
               y: import_config4.default.floor - height,
-              w: 130,
+              w: platformWidth,
               h: 6,
             });
-            for (let j = 0; j < 5; j++)
+            for (let coinX = 12; coinX < platformWidth - 12; coinX += 23)
               dangers.push({
                 kind: "ember",
                 variant: "platform",
-                x: px + 12 + j * 23,
+                x: px + coinX,
                 y: import_config4.default.floor - height - 12,
                 w: 5,
                 h: 6,
               });
             if (i === 1 && state.sector >= 2) {
-              const foe = enemy(state, px + 80, "crawler");
+              const foe = enemy(state, px + platformWidth * 0.65, "crawler");
               foe.y = foe.baseY = import_config4.default.floor - height - foe.h;
               foe.amplitude = 0;
               foe.extraSpeed = 0;
@@ -1847,17 +1848,17 @@
           ...safePlatformCoins,
         );
         const drop = import_random2.default.next(state.rng);
-        if (drop < 0.2)
+        if (drop < 0.05)
           state.objects.push({
             kind: "heart",
             variant: "heart",
-            rarity: drop < 0.04 ? "rare" : "uncommon",
+            rarity: drop < 0.01 ? "rare" : "uncommon",
             x: end + 35,
             y: import_config4.default.floor - 32,
             w: 9,
             h: 9,
           });
-        else if (drop < 0.32) {
+        else if (drop < 0.17) {
           const roll = import_random2.default.next(state.rng);
           state.objects.push({
             kind: "powerup",
@@ -4095,11 +4096,13 @@
             rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
             line(o.x - 3, o.y - 3, o.w + 6, color);
             if (o.kind === "heart") {
-              rect(o.x, o.y, 3, 3, color);
-              rect(o.x + 5, o.y, 3, 3, color);
-              rect(o.x, o.y + 2, 8, 3, color);
-              rect(o.x + 2, o.y + 5, 4, 2, color);
-              rect(o.x + 3, o.y + 7, 2, 1, color);
+              const heartColor = "#f06d78";
+              rect(o.x, o.y, 3, 3, heartColor);
+              rect(o.x + 5, o.y, 3, 3, heartColor);
+              rect(o.x, o.y + 2, 8, 3, heartColor);
+              rect(o.x + 2, o.y + 5, 4, 2, heartColor);
+              rect(o.x + 3, o.y + 7, 2, 1, heartColor);
+              rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
             } else {
               rect(o.x + 2, o.y, 5, 9, color);
               line(o.x, o.y + 4, 9, color);
@@ -6326,7 +6329,7 @@
           {
             username: usernameInput.value,
             password: passwordInput.value,
-            recoveryCode: recoveryInput.value,
+            ...(mode === "recover" ? { recoveryCode: recoveryInput.value } : {}),
           },
         );
         passwordInput.value = "";
@@ -6650,7 +6653,7 @@
           jump: [10, "#d3c294", 25],
           dash: [25, "#b6dbc3", 90],
           pickup: [12, "#ffcb7c", 50],
-          heal: [18, "#a6e4d1", 40],
+          heal: [18, "#f06d78", 40],
           "powerup-pickup": [22, "#e9cd91", 50],
           powerup: [35, "#ffae62", 75],
           explosion: [40, "#ffae62", 90],
