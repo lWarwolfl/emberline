@@ -1,5 +1,25 @@
 # EMBERLINE design
 
+## Account and route expansion
+
+The account dialog uses a Configure surface: labeled username/password fields,
+clear registration and recovery modes, download action for the backup code, and
+explicit cloud/device choices on a conflict. A compact account strip above the
+playfield explains guest persistence and reports signed-in sync state. Charcoal,
+parchment, amber, mint, Impact and Consolas retain the existing visual vocabulary.
+
+The Command / Inspect game surface gains a compact three-slot FIFO inventory,
+an activation button and an active-effect timer. Rarity is written in pickup labels
+and represented in pixel borders; healing hearts use distinct one/two-pip art.
+Platforms render behind couriers, evolution marks above enemies, and Titan/flight
+effects remain visible with particles disabled and reduced motion enabled.
+
+Design diagnostic before final review: 0/10 generic-design tells. The account form
+and ordered inventory prioritize their actions without feature tiles, accent rails,
+blur, gradient surfaces or a new type system. Static layout contracts and renderer
+tests verify structure; live browser visual QA remains unrun under the Emberline
+skill's standing no-browser restriction.
+
 Designed using the user's requested Hermes `claude-design` skill, found at
 `C:/Users/work/AppData/Local/hermes/skills/creative/claude-design/SKILL.md`.
 

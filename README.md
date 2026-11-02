@@ -59,11 +59,42 @@ The TypeScript source is in `src/`; only editing requires Node and a build.
 | Space / Up | Jump again in air; 2 normally, 3 with Triple Jump |
 | Shift      | Dash through enemies; jump over ground hazards    |
 | X / J      | Punch or shoot with the selected weapon           |
+| C          | Activate the next stored power-up                 |
 | L          | Open character, gear and difficulty setup         |
 | P          | Pause / resume                                    |
 | F          | Fullscreen / windowed                             |
 | M          | Sound on / off                                    |
 | Enter      | Start / retry / resume                            |
+
+## Accounts and the expanded route
+
+LOG IN / CREATE ACCOUNT opens username-and-password accounts. Download the backup
+code after registration; FORGOT PASSWORD accepts it with a new password. Recovery
+logs out all devices and supplies a replacement code. Accounts need a configured
+online host; local guest play still works offline. See [account setup](docs/ACCOUNTS.md)
+for the Neon database migration and server environment variables.
+
+Signed-in progression syncs every 30 seconds, on reconnect, and when the page is
+hidden. Coins, ownership, upgrades, equipped gear, difficulty, best score and
+preferences are included. Cloud and device differences require an explicit choice;
+concurrent saves cannot silently overwrite a newer revision. Runs and collected
+power-ups last for the current round; cloud saves preserve progression rather than
+resuming a live round.
+
+Enemy patrols arrive in groups and gain visible evolution marks and durability
+every 40 seconds, up to four stages. Uncommon hearts restore one lost integrity;
+rare hearts restore two. Random ledges alternate height and carry matching coin
+trails and occasional enemies. Jump through a ledge and land on its upper surface.
+
+Store up to three power-ups, then press C or tap POWER-UP to activate the oldest:
+rare Chain Blast explodes visible enemies, epic Titan makes you larger and stronger
+for 10 seconds, and legendary Jet Flight gives 12 seconds of flight. Jump repeatedly
+to climb while flying. A timed power must finish before the next one activates.
+
+All gunfire travels straight ahead. Jump or use platforms to align with enemies;
+enemy projectile hitboxes include a small vertical allowance. Scatter and Nova
+fire parallel volleys. The 25,000-coin Siegebreaker can breach armored obstacles.
+The outfitter also includes three new capes and three new jetpack skins.
 
 The default difficulty has three integrity points. Embers are the coins: collecting
 them gives a combo bonus, helps recharge your dash, and adds difficulty-scaled
