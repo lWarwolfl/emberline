@@ -2,9 +2,6 @@ import "dotenv/config";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Pool } from "pg";
-import { betterAuth } from "better-auth";
-import { username } from "better-auth/plugins";
-import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { validSave } from "../src/cloud-save";
 
 export async function readAccountBody(req: IncomingMessage & { body?: unknown }) {
@@ -36,7 +33,16 @@ export async function readAccountBody(req: IncomingMessage & { body?: unknown })
   return parsed as Record<string, unknown>;
 }
 
-export function createAccountService(connectionString: string, secret: string, baseURL: string) {
+export async function createAccountService(
+  connectionString: string,
+  secret: string,
+  baseURL: string,
+) {
+  const [{ betterAuth }, { username }, { hashPassword, verifyPassword }] = await Promise.all([
+    import("better-auth"),
+    import("better-auth/plugins"),
+    import("better-auth/crypto"),
+  ]);
   const pool = new Pool({ connectionString, max: 4, connectionTimeoutMillis: 15000 });
   const auth = betterAuth({
     database: pool,
@@ -326,6 +332,11 @@ export async function handleAccountRequest(req: IncomingMessage, res: ServerResp
     );
     return true;
   }
-  service ??= createAccountService(DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL);
-  return service.handle(req, res);
+  service ??= createAccountService(DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL).catch(
+    (error: unknown) => {
+      service = undefined;
+      throw error;
+    },
+  );
+  return (await service).handle(req, res);
 }

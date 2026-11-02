@@ -4,6 +4,8 @@
     "rootDir": "..",
     "outDir": "../.build/api",
     "noEmit": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "types": ["node"]
   },
   "include": ["**/*.ts", "../server/accounts.ts", "../src/cloud-save.ts"],

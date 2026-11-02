@@ -6,7 +6,7 @@ async function main() {
   const { DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL } = process.env;
   if (!DATABASE_URL || !BETTER_AUTH_SECRET || !BETTER_AUTH_URL)
     throw new Error("Set the three server environment variables from .env.example first.");
-  const service = createAccountService(DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL);
+  const service = await createAccountService(DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL);
   try {
     const migration = await getMigrations(service.auth.options);
     await migration.runMigrations();

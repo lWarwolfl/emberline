@@ -6,6 +6,7 @@ import path from "node:path";
 import { packageSite, files } from "../scripts/package-site";
 import vercel from "../vercel.json";
 import ts from "typescript";
+import { spawnSync } from "node:child_process";
 
 const root = path.resolve(__dirname, "..");
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "emberline-package-"));
@@ -43,7 +44,7 @@ test("packaging removes stale files from previous deployments", () => {
   assert(!fs.existsSync(stale));
 });
 
-test("Vercel can emit the account API with its nearest TypeScript configuration", () => {
+test("Vercel can emit and initialize accounts without requiring Better Auth ESM", (t) => {
   const entry = path.join(root, "api/account/[...action].ts");
   const configPath = ts.findConfigFile(path.dirname(entry), ts.sys.fileExists);
   assert(configPath);
@@ -56,9 +57,7 @@ test("Vercel can emit the account API with its nearest TypeScript configuration"
     sourceMap: true,
   });
   const outputs = new Map<string, string>();
-  const result = program.emit(program.getSourceFile(entry), (file, content) =>
-    outputs.set(file, content),
-  );
+  const result = program.emit(undefined, (file, content) => outputs.set(file, content));
   const diagnostics = ts.getPreEmitDiagnostics(program);
   assert.equal(
     result.emitSkipped,
@@ -75,4 +74,43 @@ test("Vercel can emit the account API with its nearest TypeScript configuration"
         file.endsWith("[...action].js") && content.includes("handleAccountRequest"),
     ),
   );
+  const serverOutput = [...outputs].find(([file]) => file.endsWith("server/accounts.js"))?.[1];
+  assert(serverOutput);
+  assert.match(serverOutput, /import\("better-auth"\)/);
+  assert.doesNotMatch(serverOutput, /require\("better-auth(?:\/plugins|\/crypto)?"\)/);
+  const buildRoot = path.join(root, ".build");
+  fs.mkdirSync(buildRoot, { recursive: true });
+  const runtime = fs.mkdtempSync(path.join(buildRoot, "account-runtime-"));
+  t.after(() => {
+    assert(path.resolve(runtime).startsWith(path.resolve(buildRoot) + path.sep));
+    fs.rmSync(runtime, { recursive: true, force: true });
+  });
+  for (const [file, content] of outputs) {
+    const relative = path.relative(parsed.options.outDir!, file);
+    const target = path.resolve(runtime, relative);
+    assert(target.startsWith(runtime + path.sep));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  }
+  const child = spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `
+    const Module = require('node:module');
+    const load = Module._load;
+    Module._load = function(id, ...args) {
+      if (/^better-auth(?:\\/|$)/.test(id)) throw new Error('ERR_REQUIRE_ESM: use native import');
+      return load.call(this, id, ...args);
+    };
+    const { createAccountService } = require('./server/accounts.js');
+    createAccountService('postgresql://test:test@localhost/unused', 'test-secret-for-module-loading-only-123456', 'http://localhost:4173')
+      .then(service => service.close()).then(() => console.log('account startup passed'))
+      .catch(error => { console.error(error); process.exitCode = 1; });
+  `,
+    ],
+    { cwd: runtime, encoding: "utf8", timeout: 20000 },
+  );
+  assert.equal(child.status, 0, child.stderr);
+  assert(child.stdout.includes("account startup passed"));
 });

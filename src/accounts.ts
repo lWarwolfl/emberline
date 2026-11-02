@@ -226,7 +226,7 @@ export function create(doc: Document, options: Options) {
         {
           username: usernameInput.value,
           password: passwordInput.value,
-          recoveryCode: recoveryInput.value,
+          ...(mode === "recover" ? { recoveryCode: recoveryInput.value } : {}),
         },
       );
       passwordInput.value = "";

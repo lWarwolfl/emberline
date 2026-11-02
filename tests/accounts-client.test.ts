@@ -44,6 +44,82 @@ class ElementStub {
   }
 }
 
+test("registration sends only credentials and offers the server backup code as a download", async () => {
+  const originals = ["location", "window", "fetch"].map(
+    (key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const,
+  );
+  const createURL = URL.createObjectURL;
+  const revokeURL = URL.revokeObjectURL;
+  const dialog = new ElementStub();
+  const link = new ElementStub();
+  let downloaded = false;
+  link.click = () => {
+    downloaded = true;
+  };
+  const doc = {
+    body: new ElementStub(),
+    createElement: (tag: string) => (tag === "a" ? link : dialog),
+    addEventListener() {},
+  } as unknown as Document;
+  let blob: Blob | undefined;
+  URL.createObjectURL = (value) => {
+    assert(value instanceof Blob);
+    blob = value;
+    return "blob:test";
+  };
+  URL.revokeObjectURL = () => {};
+  Object.defineProperty(globalThis, "location", {
+    configurable: true,
+    value: { protocol: "http:" },
+  });
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { addEventListener() {} },
+  });
+  const submissions: Record<string, unknown>[] = [];
+  const code = "server-generated-backup-code";
+  Object.defineProperty(globalThis, "fetch", {
+    configurable: true,
+    value: async (url: string, init: RequestInit) => {
+      let data: unknown;
+      if (url.endsWith("session")) data = { user: null };
+      else if (url.endsWith("register")) {
+        submissions.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+        data = { user: { id: "one", username: "courier" }, recoveryCode: code };
+      } else data = { data: { best: "0" }, version: 1 };
+      return new Response(JSON.stringify(data), { status: 200 });
+    },
+  });
+  const client = Accounts.create(doc, { capture: () => ({ best: "0" }), apply() {} });
+  const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+  try {
+    await tick();
+    dialog.querySelector('[data-mode="register"]').click();
+    dialog.querySelector("#account-username").value = "courier";
+    dialog.querySelector("#account-password").value = "a-long-password";
+    dialog.querySelector(".account-form").listeners.get("submit")!({
+      preventDefault() {},
+    } as Event);
+    await tick();
+    assert.deepEqual(submissions, [{ username: "courier", password: "a-long-password" }]);
+    assert.equal(dialog.querySelector(".account-code").textContent, code);
+    dialog.querySelector("[data-download]").click();
+    assert(downloaded);
+    assert(blob);
+    const text = await blob.text();
+    assert(text.includes("Username: courier"));
+    assert(text.includes("Backup code: " + code));
+  } finally {
+    client.destroy();
+    URL.createObjectURL = createURL;
+    URL.revokeObjectURL = revokeURL;
+    for (const [key, descriptor] of originals) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
 test("account retries hydration, serializes save flushes, and retains a cloud conflict when apply fails", async () => {
   const originals = ["location", "window", "fetch"].map(
     (key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const,

@@ -59,7 +59,7 @@ test(
     const address = server.address();
     assert.ok(address && typeof address !== "string");
     const origin = "http://127.0.0.1:" + address.port;
-    const service = createAccountService(
+    const service = await createAccountService(
       process.env.DATABASE_URL!,
       randomBytes(32).toString("hex"),
       origin,

@@ -33,6 +33,9 @@ does not configure a remote deployment.
 the repository as its source root and Node types enabled. The browser-only root
 configuration remains separate. The deployment regression test checks actual
 JavaScript emission for the account handler, including its server imports.
+The Node16 module setting preserves native dynamic imports for Better Auth's
+ES-module packages. Account service initialization is asynchronous so Vercel's
+CommonJS loader never tries to require those packages.
 
 ## Saved data and conflicts
 
