@@ -231,27 +231,28 @@ function spawn(state: GameState) {
   if (platformRoll < 0.28) {
     const tiers = platformRoll < 0.09 ? [30, 54, 30] : platformRoll < 0.18 ? [52, 28] : [28, 50];
     const platformStart = Math.max(x, ...dangers.map((o) => o.x + o.w)) + 180;
+    const platformWidth = 240;
     for (const [i, height] of tiers.entries()) {
-      const px = platformStart + i * 154;
+      const px = platformStart + i * (platformWidth + 24);
       dangers.push({
         kind: "platform",
         variant: "ledge",
         x: px,
         y: Config.floor - height,
-        w: 130,
+        w: platformWidth,
         h: 6,
       });
-      for (let j = 0; j < 5; j++)
+      for (let coinX = 12; coinX < platformWidth - 12; coinX += 23)
         dangers.push({
           kind: "ember",
           variant: "platform",
-          x: px + 12 + j * 23,
+          x: px + coinX,
           y: Config.floor - height - 12,
           w: 5,
           h: 6,
         });
       if (i === 1 && state.sector >= 2) {
-        const foe = enemy(state, px + 80, "crawler");
+        const foe = enemy(state, px + platformWidth * 0.65, "crawler");
         foe.y = foe.baseY = Config.floor - height - foe.h;
         foe.amplitude = 0;
         foe.extraSpeed = 0;
@@ -272,17 +273,17 @@ function spawn(state: GameState) {
     ...safePlatformCoins,
   );
   const drop = Random.next(state.rng);
-  if (drop < 0.2)
+  if (drop < 0.05)
     state.objects.push({
       kind: "heart",
       variant: "heart",
-      rarity: drop < 0.04 ? "rare" : "uncommon",
+      rarity: drop < 0.01 ? "rare" : "uncommon",
       x: end + 35,
       y: Config.floor - 32,
       w: 9,
       h: 9,
     });
-  else if (drop < 0.32) {
+  else if (drop < 0.17) {
     const roll = Random.next(state.rng);
     state.objects.push({
       kind: "powerup",

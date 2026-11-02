@@ -158,6 +158,7 @@ test("generated platform tiers have short traversable gaps and changing heights"
     s.objects = [];
     Generator.spawn(s);
     const platforms = s.objects.filter((o) => o.kind === "platform");
+    assert(platforms.every((platform) => platform.w >= 220));
     for (let j = 1; j < platforms.length; j++) {
       found = true;
       const gap = platforms[j].x - platforms[j - 1].x - platforms[j - 1].w;
@@ -166,6 +167,26 @@ test("generated platform tiers have short traversable gaps and changing heights"
     }
   }
   assert(found);
+});
+
+test("hearts are scarce while power-up odds remain unchanged", () => {
+  const s = run("scarce-hearts");
+  let hearts = 0,
+    rareHearts = 0,
+    powers = 0;
+  for (let i = 0; i < 10000; i++) {
+    s.objects = [];
+    Generator.spawn(s);
+    for (const object of s.objects) {
+      if (object.kind === "heart") {
+        hearts++;
+        if (object.rarity === "rare") rareHearts++;
+      } else if (object.kind === "powerup") powers++;
+    }
+  }
+  assert(hearts > 300 && hearts < 700, String(hearts));
+  assert(rareHearts > 50 && rareHearts < 150, String(rareHearts));
+  assert(powers > 900 && powers < 1500, String(powers));
 });
 test("wide platforms remain while still beneath the player", () => {
   const s = run();

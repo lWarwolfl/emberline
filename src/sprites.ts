@@ -395,11 +395,13 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
       line(o.x - 3, o.y - 3, o.w + 6, color);
       if (o.kind === "heart") {
-        rect(o.x, o.y, 3, 3, color);
-        rect(o.x + 5, o.y, 3, 3, color);
-        rect(o.x, o.y + 2, 8, 3, color);
-        rect(o.x + 2, o.y + 5, 4, 2, color);
-        rect(o.x + 3, o.y + 7, 2, 1, color);
+        const heartColor = "#f06d78";
+        rect(o.x, o.y, 3, 3, heartColor);
+        rect(o.x + 5, o.y, 3, 3, heartColor);
+        rect(o.x, o.y + 2, 8, 3, heartColor);
+        rect(o.x + 2, o.y + 5, 4, 2, heartColor);
+        rect(o.x + 3, o.y + 7, 2, 1, heartColor);
+        rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
       } else {
         rect(o.x + 2, o.y, 5, 9, color);
         line(o.x, o.y + 4, 9, color);

@@ -3,6 +3,25 @@ import { test } from "node:test";
 import Loadout from "../src/loadout";
 import Economy from "../src/economy";
 
+test("hearts keep a red silhouette at both rarities", () => {
+  const colors: string[] = [];
+  const ctx = {
+    fillStyle: "",
+    fillRect(this: { fillStyle: string }, _x: number, _y: number, w: number, h: number) {
+      if (w === 3 && h === 3) colors.push(String(this.fillStyle));
+    },
+  } as unknown as CanvasRenderingContext2D;
+  const sprites = Sprites.create(ctx, true);
+  for (const rarity of ["uncommon", "rare"] as const)
+    sprites.object({ kind: "heart", variant: "heart", rarity, x: 200, y: 100, w: 9, h: 9 }, 0);
+  assert.equal(colors.length, 4);
+  for (const color of colors) {
+    const red = parseInt(color.slice(1, 3), 16);
+    assert(red > parseInt(color.slice(3, 5), 16) + 40);
+    assert(red > parseInt(color.slice(5, 7), 16) + 40);
+  }
+});
+
 test("expanded skins have unique identities and purchasable prices", () => {
   assert.ok(Loadout.capes.length >= 7);
   assert.ok(Loadout.jetpacks.length >= 7);

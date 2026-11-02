@@ -195,7 +195,7 @@ function create(doc: Document) {
     jump: [10, "#d3c294", 25],
     dash: [25, "#b6dbc3", 90],
     pickup: [12, "#ffcb7c", 50],
-    heal: [18, "#a6e4d1", 40],
+    heal: [18, "#f06d78", 40],
     "powerup-pickup": [22, "#e9cd91", 50],
     powerup: [35, "#ffae62", 75],
     explosion: [40, "#ffae62", 90],

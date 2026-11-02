@@ -83,7 +83,8 @@ resuming a live round.
 
 Enemy patrols arrive in groups and gain visible evolution marks and durability
 every 40 seconds, up to four stages. Uncommon hearts restore one lost integrity;
-rare hearts restore two. Random ledges alternate height and carry matching coin
+rare hearts restore two. Red hearts appear in about 5% of encounters (4% uncommon,
+1% rare). Random 240px ledges alternate height and carry matching coin
 trails and occasional enemies. Jump through a ledge and land on its upper surface.
 
 Store up to three power-ups, then press C or tap POWER-UP to activate the oldest:
