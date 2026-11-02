@@ -19,6 +19,7 @@ function create(
   const loadout = Loadout.sanitize(equipment);
   const rules = Loadout.rules(loadout);
   return {
+    grounding: false,
     powerups: [],
     activePowerup: null,
     seed,
@@ -91,7 +92,8 @@ function addScore(state: GameState, points: number) {
   state.score += BigInt(points);
 }
 function jump(state: GameState) {
-  if (state.mode !== "playing" || state.player.jumps >= state.stats.maxJumps) return false;
+  if (state.mode !== "playing" || state.grounding || state.player.jumps >= state.stats.maxJumps)
+    return false;
   state.player.vy =
     state.player.jumps === 0
       ? state.stats.jumpVelocity
@@ -101,6 +103,27 @@ function jump(state: GameState) {
   state.player.jumps++;
   emit(state, "jump", state.player.x, state.player.y + 17);
   return true;
+}
+function ground(state: GameState) {
+  if (
+    state.mode !== "playing" ||
+    state.hits >= state.health ||
+    state.grounding ||
+    state.player.y >= Config.floor - Config.playerHeight
+  )
+    return false;
+  state.grounding = true;
+  state.player.vy = Math.max(520, state.player.vy);
+  if (state.activePowerup?.id === "flight") state.activePowerup = null;
+  emit(state, "ground", state.player.x, state.player.y + Config.playerHeight);
+  return true;
+}
+function groundStep(state: GameState) {
+  if (!state.grounding) return;
+  if (state.player.y >= Config.floor - Config.playerHeight) {
+    state.grounding = false;
+    emit(state, "ground-land", state.player.x, Config.floor);
+  } else state.player.vy = Math.max(520, state.player.vy);
 }
 function dash(state: GameState) {
   if (state.mode !== "playing" || state.cooldown > 0) return false;
@@ -187,6 +210,7 @@ function step(state: GameState, dt: number) {
       )
     : Math.max(Config.playerX, player.x - Config.dashReturnSpeed * dt);
   const previousY = player.y;
+  groundStep(state);
   player.vy += Config.gravity * dt;
   player.y += player.vy * dt;
   if (player.y >= Config.floor - Config.playerHeight) {
@@ -194,6 +218,7 @@ function step(state: GameState, dt: number) {
     player.vy = 0;
     player.jumps = 0;
   }
+  groundStep(state);
   Powerups.update(state, dt);
   Powerups.land(state, previousY, dt);
   if (state.distance >= state.next) Generator.spawn(state);
@@ -254,6 +279,8 @@ function update(state: GameState, seconds: number) {
   }
 }
 export = {
+  ground,
+  groundStep,
   powerup: Powerups.activate,
   activatePowerup: Powerups.activate,
   create,

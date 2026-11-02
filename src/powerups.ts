@@ -11,6 +11,7 @@ function activate(state: GameState) {
     state.mode !== "playing" ||
     state.hits >= state.health ||
     state.activePowerup ||
+    (state.grounding && state.powerups[0] === "flight") ||
     !state.powerups.length
   )
     return false;
@@ -76,7 +77,7 @@ function update(state: GameState, dt: number) {
 }
 function land(state: GameState, previousY: number, dt: number) {
   const p = state.player;
-  if (p.vy < 0 || state.activePowerup?.id === "flight") return;
+  if (p.vy < 0 || state.grounding || state.activePowerup?.id === "flight") return;
   for (const o of state.objects) {
     if (o.kind !== "platform" || o.dead) continue;
     if (

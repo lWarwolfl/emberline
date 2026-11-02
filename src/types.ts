@@ -109,6 +109,7 @@ export interface Encounter {
 }
 export type Mode = "menu" | "playing" | "paused" | "dead";
 export interface GameState {
+  grounding: boolean;
   powerups: PowerupId[];
   activePowerup: { id: PowerupId; remaining: number } | null;
   seed: Seed;
@@ -189,6 +190,8 @@ export interface Feedback {
   flash: number;
 }
 export interface Actions {
+  ground: () => void;
+  controls: () => void;
   powerup: () => void;
   start: () => void;
   setup: () => void;

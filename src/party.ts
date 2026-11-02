@@ -38,7 +38,7 @@ export interface PartyRun {
   earned: number;
   revision: number;
 }
-export type Action = "jump" | "dash" | "attack" | "front" | "powerup";
+export type Action = "jump" | "dash" | "attack" | "front" | "powerup" | "ground";
 export function progress(run: PartyRun) {
   return {
     value: Math.max(
@@ -198,7 +198,7 @@ function drain(run: PartyRun, m: Member) {
 function revive(run: PartyRun) {
   for (const m of run.members) {
     if (!m.connected || alive(m)) continue;
-    Object.assign(m.state, { hits: 0, invincible: 2, mode: "playing", dash: 0 });
+    Object.assign(m.state, { hits: 0, invincible: 2, mode: "playing", dash: 0, grounding: false });
     Object.assign(m.state.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
   }
   formation(run, true);
@@ -234,12 +234,14 @@ function step(run: PartyRun, dt: number) {
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
     m.frontCooldown = Math.max(0, m.frontCooldown - dt);
     const previousY = s.player.y;
+    Engine.groundStep(s);
     s.player.vy += Config.gravity * dt;
     s.player.y += s.player.vy * dt;
     Powerups.update(s, dt);
     Powerups.land(s, previousY, dt);
     if (s.player.y >= Config.floor - Config.playerHeight)
       Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
+    Engine.groundStep(s);
   }
   if (w.distance >= w.next) {
     const before = w.objects.length;
@@ -434,6 +436,7 @@ export function view(run: PartyRun, id: string): GameState {
         ...run.world,
         powerups: local.powerups,
         activePowerup: local.activePowerup,
+        grounding: local.grounding,
         player: local.player,
         health: local.health,
         hits: local.hits,
