@@ -46,3 +46,30 @@ test("LAN uses the target protocol and rejects unsafe addresses", (t) => {
   }
   assert.deepEqual(urls, []);
 });
+
+test("LAN relay check accepts this host and rejects a page with no relay", async () => {
+  const { createServer } = await import("node:http");
+  const { createLanServer } = await import("../scripts/lan-server");
+  const { once } = await import("node:events");
+  const app = createLanServer();
+  const plain = createServer((_req, res) => {
+    res.writeHead(404).end();
+  });
+  app.server.listen(0, "127.0.0.1");
+  plain.listen(0, "127.0.0.1");
+  await Promise.all([once(app.server, "listening"), once(plain, "listening")]);
+  const relay = app.server.address();
+  const other = plain.address();
+  assert(relay && typeof relay !== "string");
+  assert(other && typeof other !== "string");
+  try {
+    await Network.requireRelay(`http://127.0.0.1:${relay.port}/`);
+    await assert.rejects(
+      () => Network.requireRelay(`http://127.0.0.1:${other.port}/`),
+      /no LAN relay/,
+    );
+  } finally {
+    app.close();
+    plain.close();
+  }
+});

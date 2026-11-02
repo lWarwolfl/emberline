@@ -50,6 +50,25 @@ function identifier() {
   const bytes = crypto.getRandomValues(new Uint32Array(3));
   return Array.from(bytes, (b) => b.toString(36)).join("-");
 }
+export async function requireRelay(address = "") {
+  const target = address.trim() ? new URL(address.trim()) : new URL(location.href);
+  if (!/^https?:$/.test(target.protocol) || target.username || target.password)
+    throw new Error("Use the host's http:// LAN address without login details.");
+  let hosting = false;
+  try {
+    const response = await fetch(new URL("/host-info", target), { cache: "no-store" });
+    if (response.ok) {
+      const info = (await response.json()) as { hosting?: boolean };
+      hosting = info.hosting === true;
+    }
+  } catch {
+    hosting = false;
+  }
+  if (!hosting)
+    throw new Error(
+      "This page has no LAN relay. Follow the direct invite steps, or open the address printed by npm run host.",
+    );
+}
 export function create(callbacks: Callbacks) {
   let links = new Map<string, Link>();
   let peers = new Map<string, RTCPeerConnection>();
@@ -243,14 +262,18 @@ export function create(callbacks: Callbacks) {
         callbacks.status("LAN server unavailable. Open the address printed by npm run host.");
       }
     }, 7000);
+    let opened = false;
     ws.onopen = () => {
+      opened = true;
       clearTimeout(timeout);
       timers.delete(timeout);
     };
-    ws.onerror = () =>
-      callbacks.status(
-        "LAN connection failed. Open the address printed by npm run host on the same Wi-Fi.",
-      );
+    ws.onerror = () => {
+      if (!opened)
+        callbacks.status(
+          "LAN connection failed. Stay on the LAN host address, allow the firewall if asked, and try again.",
+        );
+    };
     ws.onmessage = (event) => {
       if (generation !== epoch || typeof event.data !== "string" || event.data.length > 300000)
         return;

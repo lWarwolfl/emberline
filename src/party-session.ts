@@ -246,38 +246,80 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     }
     refresh();
   }
+  function markDirect(id: string, index: number) {
+    const items = [...element(doc, id).querySelectorAll("li")];
+    for (const [i, item] of items.entries()) item.classList.toggle("is-current", i === index);
+  }
+  function setDirectRole(hosting: boolean) {
+    element(doc, "party-role-host", "button").setAttribute("aria-pressed", String(hosting));
+    element(doc, "party-role-join", "button").setAttribute("aria-pressed", String(!hosting));
+    element(doc, "party-host-steps").hidden = !hosting;
+    element(doc, "party-join-steps").hidden = hosting;
+    element(doc, "party-host-actions").hidden = !hosting;
+    element(doc, "party-join-actions").hidden = hosting;
+    element(doc, "party-input-label").textContent = hosting
+      ? "ANSWER FROM TEAMMATE"
+      : "INVITE FROM HOST";
+    element(doc, "party-output-label").textContent = hosting
+      ? "INVITE TO SEND"
+      : "ANSWER TO SEND BACK";
+    markDirect(hosting ? "party-host-steps" : "party-join-steps", 0);
+  }
+  function openDirect(hosting: boolean) {
+    const details = element(doc, "party-direct", "details");
+    details.open = true;
+    setDirectRole(hosting);
+    details.scrollIntoView({ block: "nearest" });
+  }
+  async function connectLan(hosting: boolean, roomCode: string) {
+    if (!/^https?:$/.test(location.protocol))
+      throw new Error("Start npm run host and open its LAN address first.");
+    const address = hosting ? "" : element(doc, "party-address", "input").value;
+    try {
+      await Network.requireRelay(address);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("no LAN relay")) openDirect(hosting);
+      throw error;
+    }
+    network.lan(hosting, roomCode, address);
+  }
   const clicks: Record<string, () => void | Promise<void>> = {
     "party-host": () => {
       network.host();
+      markDirect("party-host-steps", 1);
     },
     "party-invite": async () => {
       say("Preparing a unique invite for the next teammate…");
       output.value = await network.offer();
+      markDirect("party-host-steps", 2);
       say(
-        "Send this invite to one teammate. They paste it below, create an answer, and send it back. Keep this party open.",
+        "Send this whole invite to one teammate. When their answer comes back, paste it and accept it.",
       );
     },
     "party-answer": async () => {
       say("Preparing answer…");
       output.value = await network.answer(input.value);
-      say("Send this answer back to the host. Wait here while they accept it.");
+      markDirect("party-join-steps", 2);
+      say("Copy this answer and send the whole code back to the host. Stay on this page.");
     },
     "party-accept": async () => {
       await network.accept(input.value);
       input.value = "";
-      say("Answer accepted. Waiting for the direct connection…");
+      markDirect("party-host-steps", 3);
+      say("Answer accepted. For another teammate, create a new invite.");
     },
     "party-cancel-invites": () => {
       network.cancelPending();
       output.value = "";
       say("Pending invites cancelled. Connected teammates remain.");
     },
-    "party-lan-host": () => network.lan(true, ""),
+    "party-role-host": () => setDirectRole(true),
+    "party-role-join": () => setDirectRole(false),
+    "party-lan-host": () => connectLan(true, ""),
     "party-lan-join": () => {
       if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
         throw new Error("Enter the six-character LAN room code.");
-      const address = element(doc, "party-address", "input").value;
-      network.lan(false, room.value, address);
+      return connectLan(false, room.value);
     },
     "party-copy": async () => {
       if (!output.value) return;

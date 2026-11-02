@@ -1814,6 +1814,52 @@ dialog::backdrop {
 .party-divider {
   margin: 20px 0 12px;
 }
+.party-role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.party-role button {
+  min-height: 44px;
+}
+.party-role button[aria-pressed="true"] {
+  color: var(--ember);
+  border-color: var(--ember);
+}
+.party-steps {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.party-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.party-steps b {
+  color: var(--mint);
+  font-weight: normal;
+  letter-spacing: 1px;
+}
+.party-steps li.is-current {
+  color: var(--ink);
+}
+.party-step-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.party-step-actions > button {
+  width: 100%;
+  min-height: 44px;
+}
 .party-buttons {
   display: flex;
   flex-wrap: wrap;

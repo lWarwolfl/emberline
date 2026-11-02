@@ -220,6 +220,7 @@ async function main() {
         const invite = await directHost.inputValue("#party-output");
         const guest = await courier(`Direct ${i}`);
         await guest.locator(".party-path > summary").filter({ hasText: "DIRECT INVITES" }).click();
+        await guest.click("#party-role-join");
         await guest.fill("#party-input", invite);
         await guest.click("#party-answer");
         await guest.waitForFunction(() =>

@@ -127,17 +127,17 @@ setup occupies the main column; a separate crew inspector shows connection statu
 roster and host responsibilities. The body scrolls while header and actions remain
 available. Phones use the same full-height sheet and safe-area footer as setup.
 
-LAN is expanded first. Direct WebRTC exchanges live in a second native disclosure,
-with host/invite, paste/accept and share steps. Network prerequisites and the
-no-relay limitation stay beside the relevant method. Team-play instructions are
-optional rather than competing with connection controls. All existing party IDs,
-transport behavior and host/guest permissions remain unchanged.
+LAN is expanded first. Direct invites are the second disclosure and a Configure
+procedure: one side is selected, then only that side's numbered steps and actions
+are shown. The current step is ink; the others stay quiet. Host and join never
+share one mixed control row. A page that is not the LAN relay does not open a
+dead socket; it opens these host or join steps instead. Network limits stay beside
+the method. Team-play instructions are optional. All existing party IDs, transport
+behavior and host/guest permissions remain.
 
-Source-based design audit: 0/10 generic-design tells. The previous modal had an
-accent rail and competing ungrouped actions; the revised composition removes the
-rail, restores the shared amber start action and separates setup from lobby state.
-Static markup regression, lint, types, simulation/network tests and packaged build
-are the verification path; no browser or visual inspection was performed.
+Source-based design audit: 0/10 generic-design tells. No feature grid, accent rail,
+icon toppers, blur, or centered marketing stack. The role choice is two actions,
+and the procedure is a single column. Static markup checks cover the structure.
 
 ## Compact co-op instruments
 
