@@ -1,11 +1,36 @@
 # EMBERLINE design
 
+## Playfield-first cabinet and pinned outfitter
+
+Primary surface: Command / Inspect. The previous expansion stacked a masthead,
+statistics, account notice, inventory, keyboard legend and settings around the
+canvas. Diagnosis: 1/10 generic-design tells, wrong surface hierarchy: supporting
+controls competed with the game for height. The revision combines statistics,
+coins and account access into one header and menus/powers into one bottom dock.
+Keyboard help and particle preferences use a disclosure above the dock. The shell
+uses the viewport width with small gutters and the existing height-aware stage.
+
+The account button permanently reads “Save across devices” with login/create
+account help; transient connection status no longer replaces that explanation.
+Signed-in users see account/cloud-save help instead. The dialog also explains
+continuing on another device and the 30-second sync interval.
+
+The outfitter is a Configure surface with a fixed preview region, independently
+scrolling choices, and a persistent purchase/coin/Ready footer. On phones the
+preview becomes a compact pinned row above the category tabs. The buy button lives
+outside the replaceable tab panel, retaining its purchase validation and focus.
+
+Post-change source audit: 0/10 tells. Existing charcoal/parchment/mint typography,
+pixel art and square controls remain. Browser fixtures now assert canvas size and
+preview/purchase visibility across scrolling. Those rendered checks are unrun:
+the Emberline skill prohibits live browser verification in this session.
+
 ## Account and route expansion
 
 The account dialog uses a Configure surface: labeled username/password fields,
 clear registration and recovery modes, download action for the backup code, and
-explicit cloud/device choices on a conflict. A compact account strip above the
-playfield explains guest persistence and reports signed-in sync state. Charcoal,
+explicit cloud/device choices on a conflict. Account access in the compact header
+explains cross-device saving and reports signed-in sync state. Charcoal,
 parchment, amber, mint, Impact and Consolas retain the existing visual vocabulary.
 
 The Command / Inspect game surface gains a compact three-slot FIFO inventory,

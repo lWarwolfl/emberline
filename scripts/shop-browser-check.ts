@@ -109,6 +109,35 @@ async function main() {
     await page.click("#tab-weapon");
     await page.check('input[name="loadout-weapon"][value="scatter"]');
     await page.setViewportSize({ width: 390, height: 844 });
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const pinned = await page.evaluate(() => {
+        const panel = document.getElementById("loadout-panel")!;
+        panel.scrollTop = 0;
+        const preview = document.getElementById("loadout-preview")!;
+        const before = preview.getBoundingClientRect().top;
+        panel.scrollTop = panel.scrollHeight;
+        const footer = document
+          .querySelector("#setup-dialog .setup-footer")!
+          .getBoundingClientRect();
+        const buy = document.getElementById("shop-buy")!.getBoundingClientRect();
+        return {
+          before,
+          after: preview.getBoundingClientRect().top,
+          scrolled: panel.scrollTop,
+          footerTop: footer.top,
+          buyTop: buy.top,
+          buyBottom: buy.bottom,
+          dialogBottom: document.getElementById("setup-dialog")!.getBoundingClientRect().bottom,
+        };
+      });
+      assert(pinned.scrolled > 0);
+      assert.equal(pinned.before, pinned.after);
+      assert(pinned.buyTop >= pinned.footerTop && pinned.buyBottom <= pinned.dialogBottom);
+    }
     await page.screenshot({ path: path.join(root, "test-results/v4-shop-mobile.png") });
     assert.equal(
       await page.evaluate(

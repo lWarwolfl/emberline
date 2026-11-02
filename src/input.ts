@@ -65,7 +65,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     // Keep standard keyboard activation when deliberately tabbing through UI.
     if (
       event.target instanceof Element &&
-      event.target.matches("button,input,textarea,select,a") &&
+      event.target.matches("button,input,textarea,select,a,summary") &&
       ["Enter", " "].includes(event.key)
     )
       return;

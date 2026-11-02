@@ -103,9 +103,14 @@ function create(doc: Document) {
       if (session.active && session.isHost && state.mode === "playing") session.pause();
       else pauseIfPlaying();
     },
-    onStatus(message) {
+    onStatus(message, user) {
       const summary = doc.getElementById("account-summary");
-      if (summary) summary.textContent = message;
+      if (summary) {
+        summary.textContent = message;
+        summary.title = message;
+      }
+      const hint = doc.querySelector("#account span");
+      if (hint) hint.textContent = user ? "Your account / cloud save" : "Log in / create account";
     },
   });
   doc.getElementById("account")?.addEventListener("click", () => accounts.open());

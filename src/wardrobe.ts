@@ -53,7 +53,7 @@ function create(
   let controls: { input: HTMLInputElement; output: HTMLOutputElement; field: keyof CustomRules }[] =
     [];
   let previewChoice: { group: LoadoutGroup; id: string } | null = null;
-  let buyButton: HTMLButtonElement | null = null;
+  const buyButton = element(doc, "shop-buy", "button");
   const previewState = Engine.create("wardrobe", selection);
 
   function changed() {
@@ -186,7 +186,7 @@ function create(
     dialog.classList.toggle("upgrades-open", key === "upgrades");
     dialog.classList.toggle("settings-open", key === "settings");
     previewChoice = null;
-    buyButton = null;
+    buyButton.hidden = true;
     for (const tab of tabs.querySelectorAll("button")) {
       const selected = tab.dataset.tab === key;
       tab.setAttribute("aria-selected", String(selected));
@@ -218,7 +218,7 @@ function create(
       key === "difficulty"
         ? "Choose a preset, or tune your own route below. Applies to your next run."
         : key === "weapon"
-          ? "Press X / J or the attack button. Bright seams break; steel hazards resist."
+          ? "Shots fly straight: jump to line up. Siegebreaker breaches steel hazards."
           : "Preview any look. Buy it with earned coins to equip it permanently.";
     panel.append(note);
     const options = doc.createElement("div");
@@ -254,28 +254,6 @@ function create(
       options.append(row);
     }
     panel.append(options);
-    if (key !== "difficulty") {
-      buyButton = doc.createElement("button");
-      buyButton.id = "shop-buy";
-      buyButton.className = "primary shop-buy";
-      buyButton.addEventListener("click", () => {
-        if (!previewChoice) return;
-        const { group, id } = previewChoice;
-        const result = shop.buy(group, id);
-        if (result.ok) {
-          selection[group] = id;
-          changed();
-          byId("shop-message").textContent =
-            Loadout.find<{ id: string; name: string }>(groups[group], id).name +
-            " purchased and equipped.";
-          panel.querySelector<HTMLInputElement>(`input[value="${id}"]`)!.focus();
-        } else {
-          sync();
-          byId("shop-message").textContent = "Not enough coins for this item.";
-        }
-      });
-      panel.append(buyButton);
-    }
     if (key === "difficulty") {
       const tuning = doc.createElement("fieldset");
       tuning.className = "difficulty-tuning";
@@ -356,6 +334,22 @@ function create(
   }
   byId("setup-close").addEventListener("click", () => dialog.close());
   byId("setup-ready").addEventListener("click", () => dialog.close());
+  buyButton.addEventListener("click", () => {
+    if (!previewChoice) return;
+    const { group, id } = previewChoice;
+    const result = shop.buy(group, id);
+    if (result.ok) {
+      selection[group] = id;
+      changed();
+      byId("shop-message").textContent =
+        Loadout.find<{ id: string; name: string }>(groups[group], id).name +
+        " purchased and equipped.";
+      panel.querySelector<HTMLInputElement>(`input[value="${id}"]`)!.focus({ preventScroll: true });
+    } else {
+      sync();
+      byId("shop-message").textContent = "Not enough coins for this item.";
+    }
+  });
   dialog.addEventListener("close", () => {
     if (active === "settings") showTab("settings");
   });

@@ -84,41 +84,33 @@
             / ENDLESS ARCADE</span
           ></a
         >
+        <section class="instrument" aria-label="Run statistics">
+          <div class="readout">
+            <span class="label">SCORE</span><strong id="score">000000</strong>
+          </div>
+          <div class="readout best">
+            <span class="label">BEST</span><strong id="best">000000</strong>
+          </div>
+          <div class="sector">
+            <span class="label" id="sector">SECTOR 01</span><span id="zone">THE OUTSKIRTS</span>
+          </div>
+          <div class="speed-readout">
+            <span class="label" id="pace">CRUISE</span><strong id="velocity">98 PX/S</strong>
+          </div>
+        </section>
         <div class="system">
           <span class="wallet" title="Spendable earned coins"
             >COINS <strong id="coin-total">0000</strong></span
           >
-          <span class="led"></span> OFFLINE READY <span class="version">V.07</span>
+        </div>
+        <div class="account-access">
+          <button id="account" type="button" aria-describedby="account-summary">
+            <strong>SAVE ACROSS DEVICES</strong><span>Log in / create account</span>
+          </button>
+          <p id="account-summary" role="status">Guest · progress stays on this device</p>
         </div>
       </header>
-      <section class="instrument" aria-label="Run statistics">
-        <div class="readout">
-          <span class="label">SIGNAL / SCORE</span><strong id="score">000000</strong>
-        </div>
-        <div class="readout best">
-          <span class="label">PERSONAL BEST</span><strong id="best">000000</strong>
-        </div>
-        <div class="sector">
-          <span class="label" id="sector">SECTOR 01</span><span id="zone">THE OUTSKIRTS</span>
-        </div>
-        <div class="speed-readout">
-          <span class="label" id="pace">CRUISE</span><strong id="velocity">98 PX/S</strong>
-        </div>
-        <div class="toolbar">
-          <button id="party" title="Host or join up to four players">PARTY / LAN</button>
-          <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP / SETUP</button>
-          <button id="sound" title="Toggle sound (M)" aria-pressed="true">SOUND ON</button
-          ><button id="pause" title="Pause (P)">Ⅱ PAUSE</button
-          ><button id="fullscreen" title="Toggle fullscreen (F)">⛶ FULLSCREEN</button>
-        </div>
-      </section>
       <section id="party-hud" aria-label="Party health and formation order" hidden></section>
-      <section class="account-strip" aria-label="Account and cloud saves">
-        <p id="account-summary" role="status">
-          Playing as a guest. Log in or create an account to keep your progress backed up.
-        </p>
-        <button id="account" type="button">LOG IN / CREATE ACCOUNT</button>
-      </section>
       <div class="beacon-trail" id="beacon-trail" hidden>
         <label for="beacon-progress">NEXT REVIVE BEACON</label>
         <progress id="beacon-progress" max="1" value="0"></progress>
@@ -153,29 +145,41 @@
           </div>
         </section>
       </div>
-      <section class="powerup-tray" aria-label="Power-up inventory">
-        <span class="label">POWER-UPS <span id="powerup-count">0 / 3</span></span>
-        <ol id="powerup-queue" aria-label="Next power-ups in activation order">
-          <li>EMPTY</li>
-          <li>EMPTY</li>
-          <li>EMPTY</li>
-        </ol>
-        <span id="powerup-active" role="status">Collect rare drops along the route.</span>
-        <button id="powerup" class="attack-button" type="button" disabled>C / ACTIVATE</button>
-      </section>
-      <footer>
-        <div class="instructions">
-          <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
-          ><span><kbd>SHIFT</kbd> DASH</span><span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span
-          ><span><kbd>P</kbd> PAUSE</span><span><kbd>F</kbd> FULLSCREEN</span>
+      <footer class="control-dock">
+        <section class="powerup-tray" aria-label="Power-up inventory">
+          <span class="label">POWER-UPS <span id="powerup-count">0 / 3</span></span>
+          <ol id="powerup-queue" aria-label="Next power-ups in activation order">
+            <li>EMPTY</li>
+            <li>EMPTY</li>
+            <li>EMPTY</li>
+          </ol>
+          <span id="powerup-active" role="status">Collect rare drops along the route.</span>
+          <button id="powerup" class="attack-button" type="button" disabled>C / ACTIVATE</button>
+        </section>
+        <nav class="toolbar" aria-label="Game menus and settings">
+          <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP</button>
+          <button id="party" title="Host or join up to four players">PARTY / LAN</button>
+          <button id="sound" title="Toggle sound (M)" aria-pressed="true">SOUND ON</button>
+          <button id="pause" title="Pause (P)">Ⅱ PAUSE</button>
+          <button id="fullscreen" title="Toggle fullscreen (F)">⛶ FULLSCREEN</button>
+        </nav>
+        <div class="combat-actions">
+          <button id="take-front" class="attack-button" hidden>T / TAKE POINT</button>
+          <button id="attack" class="attack-button" disabled>X / PUNCH</button>
         </div>
-        <button id="take-front" class="attack-button" hidden>T / TAKE POINT</button>
-        <button id="attack" class="attack-button" disabled>X / PUNCH</button>
+        <details class="controls-help">
+          <summary title="Keyboard controls and effects">KEYS / FX</summary>
+          <div class="controls-help-body">
+            <div class="instructions">
+              <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
+              ><span><kbd>SHIFT</kbd> DASH</span><span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span
+              ><span><kbd>P</kbd> PAUSE</span><span><kbd>F</kbd> FULLSCREEN</span>
+            </div>
+            <p>Shots fly straight. Jump to aim. C activates your next power-up.</p>
+            <label><input id="effects" type="checkbox" checked /> PARTICLE FX</label>
+          </div>
+        </details>
       </footer>
-      <div class="subfooter">
-        <span>Shots fly straight. Jump to aim. C activates your next power-up.</span
-        ><label><input id="effects" type="checkbox" checked /> PARTICLE FX</label>
-      </div>
       <div class="touch-controls">
         <button id="touch-jump">JUMP / DOUBLE JUMP</button><button id="touch-dash">DASH</button
         ><button id="touch-attack">PUNCH</button
@@ -407,11 +411,6 @@
               <dt>DIFFICULTY</dt>
               <dd id="profile-difficulty"></dd>
             </dl>
-            <div class="shop-wallet">
-              <span class="label">YOUR COINS</span><strong id="shop-balance">0</strong
-              ><small>Earn on preset difficulties.<br />Custom runs earn no coins.</small>
-            </div>
-            <p id="shop-message" role="status" aria-live="polite"></p>
           </aside>
           <section class="setup-options">
             <nav id="loadout-tabs" role="tablist" aria-label="Setup category"></nav>
@@ -419,8 +418,16 @@
           </section>
         </div>
         <footer class="setup-footer">
-          <span>Purchases and gear autosave.<br />Upgrades &amp; difficulty apply next run.</span
-          ><button id="setup-ready" class="primary">READY <span>↗</span></button>
+          <div class="shop-summary">
+            <div class="shop-wallet">
+              <span class="label">YOUR COINS</span><strong id="shop-balance">0</strong>
+            </div>
+            <p id="shop-message" role="status" aria-live="polite"></p>
+          </div>
+          <button id="shop-buy" class="primary shop-buy" type="button" hidden>
+            BUY &amp; EQUIP
+          </button>
+          <button id="setup-ready" class="primary">READY <span>↗</span></button>
         </footer>
       </dialog>
     </main>

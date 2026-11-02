@@ -4457,7 +4457,7 @@
         const powerupButton = element(doc, "powerup", "button");
         const touchPowerup = element(doc, "touch-powerup", "button");
         const queue = element(doc, "powerup-queue");
-        const powerupNames = { blast: "CHAIN BLAST", titan: "TITAN", flight: "JET FLIGHT" };
+        const powerupNames = { blast: "BLAST", titan: "TITAN", flight: "FLIGHT" };
         const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
         let queueSignature = "";
         let announcementTime = 0;
@@ -4636,7 +4636,7 @@
           if (doc.querySelector("dialog[open]")) return;
           if (
             event.target instanceof Element &&
-            event.target.matches("button,input,textarea,select,a") &&
+            event.target.matches("button,input,textarea,select,a,summary") &&
             ["Enter", " "].includes(event.key)
           )
             return;
@@ -4927,7 +4927,7 @@
         let active = "upgrades";
         let controls = [];
         let previewChoice = null;
-        let buyButton = null;
+        const buyButton = element(doc, "shop-buy", "button");
         const previewState = import_engine3.default.create("wardrobe", selection);
         function changed() {
           previewChoice = null;
@@ -5067,7 +5067,7 @@
           dialog.classList.toggle("upgrades-open", key === "upgrades");
           dialog.classList.toggle("settings-open", key === "settings");
           previewChoice = null;
-          buyButton = null;
+          buyButton.hidden = true;
           for (const tab of tabs.querySelectorAll("button")) {
             const selected = tab.dataset.tab === key;
             tab.setAttribute("aria-selected", String(selected));
@@ -5100,7 +5100,7 @@
             key === "difficulty"
               ? "Choose a preset, or tune your own route below. Applies to your next run."
               : key === "weapon"
-                ? "Press X / J or the attack button. Bright seams break; steel hazards resist."
+                ? "Shots fly straight: jump to line up. Siegebreaker breaches steel hazards."
                 : "Preview any look. Buy it with earned coins to equip it permanently.";
           panel.append(note);
           const options = doc.createElement("div");
@@ -5136,27 +5136,6 @@
             options.append(row);
           }
           panel.append(options);
-          if (key !== "difficulty") {
-            buyButton = doc.createElement("button");
-            buyButton.id = "shop-buy";
-            buyButton.className = "primary shop-buy";
-            buyButton.addEventListener("click", () => {
-              if (!previewChoice) return;
-              const { group, id } = previewChoice;
-              const result = shop.buy(group, id);
-              if (result.ok) {
-                selection[group] = id;
-                changed();
-                byId("shop-message").textContent =
-                  import_loadout3.default.find(groups[group], id).name + " purchased and equipped.";
-                panel.querySelector(`input[value="${id}"]`).focus();
-              } else {
-                sync();
-                byId("shop-message").textContent = "Not enough coins for this item.";
-              }
-            });
-            panel.append(buyButton);
-          }
           if (key === "difficulty") {
             const tuning = doc.createElement("fieldset");
             tuning.className = "difficulty-tuning";
@@ -5239,6 +5218,21 @@
         }
         byId("setup-close").addEventListener("click", () => dialog.close());
         byId("setup-ready").addEventListener("click", () => dialog.close());
+        buyButton.addEventListener("click", () => {
+          if (!previewChoice) return;
+          const { group, id } = previewChoice;
+          const result = shop.buy(group, id);
+          if (result.ok) {
+            selection[group] = id;
+            changed();
+            byId("shop-message").textContent =
+              import_loadout3.default.find(groups[group], id).name + " purchased and equipped.";
+            panel.querySelector(`input[value="${id}"]`).focus({ preventScroll: true });
+          } else {
+            sync();
+            byId("shop-message").textContent = "Not enough coins for this item.";
+          }
+        });
         dialog.addEventListener("close", () => {
           if (active === "settings") showTab("settings");
         });
@@ -6133,7 +6127,7 @@
     dialog.setAttribute("aria-labelledby", "account-heading");
     dialog.innerHTML = `<header class="setup-header"><div><span class="label">COURIER ACCOUNT</span><h2 id="account-heading">KEEP YOUR SIGNAL.</h2></div><button type="button" class="close-button" aria-label="Close account">\u2715</button></header>
     <div class="account-body">
-      <p class="account-copy">Log in or create an account to keep your coins, equipment, upgrades, best score and settings backed up. Signed-in saves sync every 30 seconds.</p>
+      <p class="account-copy">Save your progress across devices. Log in or create an account to keep your coins, equipment, upgrades, best score and settings, then log in on another device to continue. Progress syncs every 30 seconds while signed in.</p>
       <p class="account-message" role="status" aria-live="polite"></p>
       <form class="account-form">
         <label for="account-username">USERNAME</label><input id="account-username" name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="courier_name">
@@ -6166,11 +6160,11 @@
     let conflict = null;
     let recoveryCode = "";
     let recoveryUsername = "";
-    let status = "Device save \xB7 Log in for cloud backup";
+    let status = "Guest \xB7 progress stays on this device";
     function report(message2) {
       status = message2;
       el(".account-message").textContent = message2;
-      options.onStatus?.(message2);
+      options.onStatus?.(message2, user);
     }
     function render() {
       form.hidden = !!user;
@@ -6571,9 +6565,15 @@
             if (session.active && session.isHost && state.mode === "playing") session.pause();
             else pauseIfPlaying();
           },
-          onStatus(message2) {
+          onStatus(message2, user) {
             const summary = doc.getElementById("account-summary");
-            if (summary) summary.textContent = message2;
+            if (summary) {
+              summary.textContent = message2;
+              summary.title = message2;
+            }
+            const hint = doc.querySelector("#account span");
+            if (hint)
+              hint.textContent = user ? "Your account / cloud save" : "Log in / create account";
           },
         });
         doc.getElementById("account")?.addEventListener("click", () => accounts.open());

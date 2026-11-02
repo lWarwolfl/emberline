@@ -41,6 +41,22 @@ async function main() {
     const url = pathToFileURL(path.join(root, "index.html"));
     url.search = "?seed=browser-check&dev=1";
     await page.goto(url.href);
+    assert((await page.locator("#account").innerText()).includes("SAVE ACROSS DEVICES"));
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 1440, height: 900 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const bounds = await page.evaluate(() => ({
+        stage: document.getElementById("stage")!.getBoundingClientRect().toJSON(),
+        dock: document.querySelector(".control-dock")!.getBoundingClientRect().toJSON(),
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      }));
+      assert(bounds.stage.height >= viewport.height * 0.72, JSON.stringify({ viewport, bounds }));
+      assert(bounds.dock.bottom <= viewport.height && !bounds.overflow);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
 
     assert.equal(await page.title(), site.title);
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute("href"), site.url);
@@ -97,7 +113,7 @@ async function main() {
     const footerInsets = await page.locator("#setup-dialog .setup-footer").evaluate((node) => {
       const footer = node.getBoundingClientRect();
       const description = node.querySelector("span")!.getBoundingClientRect();
-      const button = node.querySelector("button")!.getBoundingClientRect();
+      const button = node.querySelector("#setup-ready")!.getBoundingClientRect();
       return { left: description.left - footer.left, right: footer.right - button.right };
     });
     assert(footerInsets.left >= 16 && footerInsets.right >= 16, JSON.stringify(footerInsets));
@@ -115,7 +131,9 @@ async function main() {
     await page.keyboard.press("Space");
     await page.waitForTimeout(80);
     assert.equal(await page.evaluate(() => audioCount.tones), mutedCount);
+    await page.locator(".controls-help summary").click();
     await page.click("#effects");
+    await page.locator(".controls-help summary").click();
     assert.equal(await page.evaluate(() => EmberlineDebug.app.particles.enabled), false);
     assert.equal(await page.evaluate(() => EmberlineDebug.app.particles.items.length), 0);
 

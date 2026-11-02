@@ -4,7 +4,7 @@ interface Options {
   capture(): SavePayload;
   apply(data: SavePayload): void;
   beforeOpen?(): void;
-  onStatus?(message: string): void;
+  onStatus?(message: string, user: User | null): void;
 }
 interface User {
   id: string;
@@ -25,7 +25,7 @@ export function create(doc: Document, options: Options) {
   dialog.setAttribute("aria-labelledby", "account-heading");
   dialog.innerHTML = `<header class="setup-header"><div><span class="label">COURIER ACCOUNT</span><h2 id="account-heading">KEEP YOUR SIGNAL.</h2></div><button type="button" class="close-button" aria-label="Close account">✕</button></header>
     <div class="account-body">
-      <p class="account-copy">Log in or create an account to keep your coins, equipment, upgrades, best score and settings backed up. Signed-in saves sync every 30 seconds.</p>
+      <p class="account-copy">Save your progress across devices. Log in or create an account to keep your coins, equipment, upgrades, best score and settings, then log in on another device to continue. Progress syncs every 30 seconds while signed in.</p>
       <p class="account-message" role="status" aria-live="polite"></p>
       <form class="account-form">
         <label for="account-username">USERNAME</label><input id="account-username" name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="courier_name">
@@ -58,12 +58,12 @@ export function create(doc: Document, options: Options) {
   let conflict: CloudSave | null = null;
   let recoveryCode = "";
   let recoveryUsername = "";
-  let status = "Device save · Log in for cloud backup";
+  let status = "Guest · progress stays on this device";
 
   function report(message: string) {
     status = message;
     el(".account-message").textContent = message;
-    options.onStatus?.(message);
+    options.onStatus?.(message, user);
   }
   function render() {
     form.hidden = !!user;

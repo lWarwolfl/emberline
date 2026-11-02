@@ -4,9 +4,10 @@ import Input from "../src/input";
 import type { Actions } from "../src/types";
 
 test("closing any menu returns focus to gameplay without stealing open-menu focus", (t) => {
+  let summaryFocused = false;
   class Node extends EventTarget {
-    matches() {
-      return false;
+    matches(selector: string) {
+      return summaryFocused && selector.split(",").includes("summary");
     }
   }
   for (const [key, value] of Object.entries({ window: new EventTarget(), Element: Node })) {
@@ -59,6 +60,16 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     }),
   );
   assert.equal(powers, 1);
+  summaryFocused = true;
+  const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
+    code: "Space",
+    key: " ",
+    repeat: false,
+  });
+  doc.dispatchEvent(summarySpace);
+  assert.equal(summarySpace.defaultPrevented, false);
+  assert.equal(jumps, 3);
+  summaryFocused = false;
   open = true;
   focused = "nested-menu";
   doc.dispatchEvent(new Event("close"));

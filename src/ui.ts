@@ -47,7 +47,7 @@ function create(doc: Document) {
   const powerupButton = element(doc, "powerup", "button");
   const touchPowerup = element(doc, "touch-powerup", "button");
   const queue = element(doc, "powerup-queue");
-  const powerupNames = { blast: "CHAIN BLAST", titan: "TITAN", flight: "JET FLIGHT" };
+  const powerupNames = { blast: "BLAST", titan: "TITAN", flight: "FLIGHT" };
   const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
   let queueSignature = "";
   let announcementTime = 0;
