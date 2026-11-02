@@ -2493,7 +2493,7 @@ body {
 }
 #shell .masthead {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 20px;
   height: 64px;
   padding-bottom: 6px;
@@ -2583,7 +2583,7 @@ body {
 }
 #shell > .control-dock {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) auto auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 4px 0 0;
@@ -2597,6 +2597,7 @@ body {
   width: auto;
   margin: 0;
   gap: 4px;
+  justify-self: end;
 }
 #shell .control-dock .toolbar button {
   padding: 8px 10px;
@@ -2606,7 +2607,7 @@ body {
 }
 #shell .powerup-tray {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto;
   grid-template-rows: auto auto;
   gap: 3px 8px;
   padding: 0;
@@ -2623,15 +2624,18 @@ body {
 }
 #shell .powerup-tray li {
   min-width: 0;
-  padding: 10px 6px;
-  font-size: 9px;
+  flex: 0 0 40px;
+  width: 40px;
+  padding: 9px 2px;
+  font-size: 8px;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 #shell #powerup-active {
   display: block;
   grid-area: 2 / 1;
-  width: 100px;
+  width: 72px;
   min-width: 0;
   font-size: 8px;
   line-height: 11px;
@@ -2654,10 +2658,7 @@ body {
   padding: 8px;
   font-size: 9px;
 }
-.controls-help {
-  position: relative;
-}
-.controls-help > summary {
+.controls-button {
   display: grid;
   place-items: center;
   min-height: 44px;
@@ -2668,40 +2669,12 @@ body {
   cursor: pointer;
   font-size: 9px;
   white-space: nowrap;
+  background: var(--panel);
+  color: var(--ink);
 }
-.controls-help > summary::-webkit-details-marker {
-  display: none;
-}
-.controls-help > summary:focus-visible {
+.controls-button:focus-visible {
   outline: 2px solid var(--ember);
   outline-offset: 2px;
-}
-.controls-help-body {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  width: min(320px, calc(100vw - 24px));
-  z-index: 10;
-  padding: 16px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  box-shadow: 4px 4px 0 #090f0c;
-  color: var(--muted);
-}
-#shell .controls-help .instructions {
-  display: grid;
-  gap: 12px;
-}
-.controls-help-body p {
-  font-size: 10px;
-  line-height: 1.6;
-}
-.controls-help-body label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-height: 44px;
-  font-size: 10px;
 }
 @media (max-width: 1100px) {
   #shell .masthead {
@@ -2723,7 +2696,7 @@ body {
   .combat-actions {
     grid-area: 1 / 2;
   }
-  .controls-help {
+  .controls-button {
     grid-area: 2 / 2;
   }
 }
@@ -2734,7 +2707,7 @@ body {
     gap: 6px;
   }
   #shell .masthead {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     height: 52px;
     gap: 10px;
     padding-bottom: 4px;
@@ -2743,7 +2716,6 @@ body {
   #shell .control-dock {
     margin-inline: 8px;
   }
-  #shell .brand,
   #shell .speed-readout {
     display: none;
   }
@@ -2836,7 +2808,7 @@ body {
   #shell .control-dock .toolbar {
     grid-area: 1 / 2;
   }
-  .controls-help {
+  .controls-button {
     grid-area: 1 / 3;
   }
   .combat-actions {
@@ -2936,6 +2908,243 @@ body {
 #setup-dialog.upgrades-open .setup-body,
 #setup-dialog.settings-open .setup-body {
   grid-template-columns: minmax(0, 1fr);
+}
+.brand-wallet {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+#shell .brand-wallet .brand {
+  display: flex;
+  min-height: 44px;
+  padding: 0;
+}
+#shell .brand-wallet .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 20px;
+}
+#shell .powerup-tray {
+  justify-content: start;
+}
+#controls-dialog {
+  width: min(600px, calc(100% - 24px));
+  height: auto;
+  max-height: calc(100dvh - 24px);
+}
+.controls-body {
+  padding: 18px 24px;
+  min-height: 0;
+  overflow-y: auto;
+  color: var(--muted);
+}
+.controls-body p {
+  font-size: 11px;
+  line-height: 1.7;
+}
+#shell .controls-body .instructions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 12px;
+  padding: 20px 0;
+  color: var(--ink);
+}
+.effects-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: 10px;
+}
+.purchase-celebration,
+.record-celebration {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  text-align: center;
+}
+.purchase-celebration {
+  inset: 32px 18px auto 0;
+}
+.record-celebration {
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, 72%);
+}
+.celebration-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 14px;
+  color: var(--ink);
+  background: #15221ff5;
+  border: 2px solid var(--ember);
+  box-shadow: 0 0 0 4px #101514;
+  overflow: hidden;
+  animation: celebration-reveal 320ms ease-out both;
+}
+.celebration-mark {
+  color: var(--ember);
+  font-size: 36px;
+  line-height: 1;
+}
+.celebration-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--mint);
+}
+.celebration-card strong {
+  font-family: Impact, "Arial Narrow", sans-serif;
+  font-size: 27px;
+  font-weight: normal;
+  letter-spacing: 1px;
+  overflow-wrap: anywhere;
+}
+.celebration-detail {
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.purchase-celebration .celebration-card::after {
+  content: "";
+  position: absolute;
+  inset: -30% auto -30% -10px;
+  width: 3px;
+  background: var(--mint);
+  transform: rotate(20deg);
+  animation: purchase-sweep 700ms ease-out both;
+}
+.record-celebration .celebration-card {
+  padding: 12px 18px;
+  border-color: #ffe0a3;
+}
+.record-celebration .celebration-mark {
+  font-size: 28px;
+}
+.celebration-sparks {
+  position: absolute;
+  inset: 0;
+}
+.celebration-sparks i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: var(--ember);
+  animation: celebration-spark 1200ms ease-out var(--spark-delay) both;
+}
+.celebration-sparks i:nth-child(even) {
+  background: var(--mint);
+}
+@keyframes celebration-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes purchase-sweep {
+  from {
+    left: -10px;
+    opacity: 0.8;
+  }
+  to {
+    left: 115%;
+    opacity: 0;
+  }
+}
+@keyframes celebration-spark {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--spark-x), var(--spark-y)) scale(0.2);
+  }
+}
+@media (max-width: 700px), (max-height: 540px) and (orientation: landscape) {
+  #shell .touch-controls {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  #shell .touch-controls:has(#touch-front:not([hidden])) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .brand-wallet {
+    gap: 8px;
+  }
+  #shell .powerup-tray li {
+    flex-basis: 40px;
+    padding: 8px 2px;
+  }
+  #shell .masthead {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  #shell .controls-body .instructions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .purchase-celebration {
+    inset: 0 0 auto;
+  }
+  .purchase-celebration .celebration-card {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 3px 10px;
+    padding: 10px;
+  }
+  .purchase-celebration .celebration-mark {
+    grid-area: 1 / 1 / 4 / 2;
+    align-self: center;
+    font-size: 24px;
+  }
+  .purchase-celebration .celebration-label,
+  .purchase-celebration .celebration-card strong,
+  .purchase-celebration .celebration-detail {
+    grid-column: 2;
+  }
+  .purchase-celebration .celebration-card strong {
+    font-size: 18px;
+  }
+  .record-celebration .celebration-card {
+    gap: 3px;
+    padding: 8px;
+  }
+  .record-celebration .celebration-card strong {
+    font-size: 20px;
+  }
+}
+@media (max-width: 480px) {
+  #shell .best {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration-card,
+  .purchase-celebration .celebration-card::after,
+  .celebration-sparks i {
+    animation: none;
+  }
+  .purchase-celebration .celebration-card::after,
+  .celebration-sparks {
+    display: none;
+  }
 }
 #setup-dialog.upgrades-open .shop-wallet {
   display: none;

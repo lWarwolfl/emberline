@@ -22,7 +22,12 @@ function benefit(id: UpgradeId, levels: UpgradeLevels) {
       return stats.maxJumps + " jumps";
   }
 }
-function create(doc: Document, shop: Shop, onPurchase: () => void) {
+function create(
+  doc: Document,
+  shop: Shop,
+  onPurchase: () => void,
+  onUpgraded?: (id: UpgradeId, level: number) => void,
+) {
   let message = "";
   function element<K extends keyof HTMLElementTagNameMap>(
     tag: K,
@@ -129,10 +134,11 @@ function create(doc: Document, shop: Shop, onPurchase: () => void) {
             (track.id === "triple" ? " unlocked." : " upgraded to level " + result.level + ".") +
             " Active next run."
           : "Purchase unavailable. Check your balance and level.";
-        const scroller = doc.querySelector<HTMLElement>(".setup-body")!,
+        const scroller = panel,
           scroll = scroller.scrollTop;
         render(panel);
         onPurchase();
+        if (result.ok) onUpgraded?.(track.id, result.level!);
         scroller.scrollTop = scroll;
         const replacement = requiredElement(doc, "upgrade-" + track.id, "button");
         (replacement.disabled

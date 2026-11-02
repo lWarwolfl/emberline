@@ -89,6 +89,10 @@ async function main() {
     await page.waitForTimeout(80);
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.player.jumps), 2);
     assert(await page.evaluate(() => EmberlineDebug.app.state.cooldown > 0));
+    await page.keyboard.press("s");
+    await page.waitForFunction(
+      () => !EmberlineDebug.app.state.grounding && EmberlineDebug.app.state.player.jumps === 0,
+    );
     const audio = await page.evaluate(() => audioCount);
     assert(
       audio.tones >= 7 && audio.noise >= 1,
@@ -131,9 +135,10 @@ async function main() {
     await page.keyboard.press("Space");
     await page.waitForTimeout(80);
     assert.equal(await page.evaluate(() => audioCount.tones), mutedCount);
-    await page.locator(".controls-help summary").click();
+    await page.click("#controls");
     await page.click("#effects");
-    await page.locator(".controls-help summary").click();
+    await page.click("#controls-close");
+    await page.click("#pause");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.particles.enabled), false);
     assert.equal(await page.evaluate(() => EmberlineDebug.app.particles.items.length), 0);
 

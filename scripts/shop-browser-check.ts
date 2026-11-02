@@ -60,6 +60,8 @@ async function main() {
     assert(await page.locator("#shop-buy").isEnabled());
     await page.screenshot({ path: path.join(root, "test-results/v4-shop-affordable.png") });
     await page.click("#shop-buy");
+    assert(await page.locator("#purchase-feedback").isVisible());
+    assert((await page.locator("#purchase-feedback").innerText()).includes("Signal ribbons"));
     assert.equal(await balance(), "0");
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.loadout.cape), "signal");
     assert(await page.evaluate(() => EmberlineDebug.app.economy.owns("cape", "signal")));

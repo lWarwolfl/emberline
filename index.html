@@ -79,11 +79,16 @@
   <body>
     <main id="shell">
       <header class="masthead">
-        <a class="brand" href="#" aria-label="Emberline home"
-          ><span class="brand-mark">E</span> EMBERLINE<span class="edition">
-            / ENDLESS ARCADE</span
-          ></a
-        >
+        <div class="brand-wallet">
+          <a class="brand" href="#" aria-label="Emberline home"
+            ><span class="brand-mark">E</span></a
+          >
+          <div class="system">
+            <span class="wallet" title="Spendable earned coins"
+              >COINS <strong id="coin-total">0000</strong></span
+            >
+          </div>
+        </div>
         <section class="instrument" aria-label="Run statistics">
           <div class="readout">
             <span class="label">SCORE</span><strong id="score">000000</strong>
@@ -98,11 +103,6 @@
             <span class="label" id="pace">CRUISE</span><strong id="velocity">98 PX/S</strong>
           </div>
         </section>
-        <div class="system">
-          <span class="wallet" title="Spendable earned coins"
-            >COINS <strong id="coin-total">0000</strong></span
-          >
-        </div>
         <div class="account-access">
           <button id="account" type="button" aria-describedby="account-summary">
             <strong>SAVE ACROSS DEVICES</strong><span>Log in / create account</span>
@@ -139,6 +139,13 @@
             <div id="prompt">or press <kbd>ENTER</kbd></div>
           </div>
           <div id="announce" aria-live="polite"></div>
+          <div
+            id="record-feedback"
+            class="record-celebration"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
           <div class="stage-bottom">
             <span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
             ><span id="dash-state">DASH READY <i></i></span>
@@ -154,7 +161,7 @@
             <li>EMPTY</li>
           </ol>
           <span id="powerup-active" role="status">Collect rare drops along the route.</span>
-          <button id="powerup" class="attack-button" type="button" disabled>C / ACTIVATE</button>
+          <button id="powerup" class="attack-button" type="button" disabled>C / USE</button>
         </section>
         <nav class="toolbar" aria-label="Game menus and settings">
           <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP</button>
@@ -167,26 +174,58 @@
           <button id="take-front" class="attack-button" hidden>T / TAKE POINT</button>
           <button id="attack" class="attack-button" disabled>X / PUNCH</button>
         </div>
-        <details class="controls-help">
-          <summary title="Keyboard controls and effects">KEYS / FX</summary>
-          <div class="controls-help-body">
-            <div class="instructions">
-              <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span
-              ><span><kbd>SHIFT</kbd> DASH</span><span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span
-              ><span><kbd>P</kbd> PAUSE</span><span><kbd>F</kbd> FULLSCREEN</span>
-            </div>
-            <p>Shots fly straight. Jump to aim. C activates your next power-up.</p>
-            <label><input id="effects" type="checkbox" checked /> PARTICLE FX</label>
-          </div>
-        </details>
+        <button
+          id="controls"
+          class="controls-button"
+          type="button"
+          aria-haspopup="dialog"
+          title="Show controls (H)"
+        >
+          CONTROLS
+        </button>
       </footer>
       <div class="touch-controls">
-        <button id="touch-jump">JUMP / DOUBLE JUMP</button><button id="touch-dash">DASH</button
-        ><button id="touch-attack">PUNCH</button
+        <button id="touch-jump">JUMP ×2</button
+        ><button id="touch-ground" title="Pull to ground (S / ↓)">GROUND</button
+        ><button id="touch-dash">DASH</button><button id="touch-attack">PUNCH</button
         ><button id="touch-powerup" disabled>POWER-UP</button
         ><button id="touch-front" hidden>T / TAKE POINT</button>
       </div>
 
+      <dialog id="controls-dialog" aria-labelledby="controls-heading">
+        <header class="setup-header">
+          <div>
+            <span class="label">COURIER FIELD GUIDE</span>
+            <h2 id="controls-heading">HOW TO RUN</h2>
+          </div>
+          <button id="controls-close" class="close-button" aria-label="Close controls">✕</button>
+        </header>
+        <div class="controls-body">
+          <p>Jump to line up your shots. Keep the signal moving.</p>
+          <div class="instructions">
+            <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span>
+            <span><kbd>S</kbd> / <kbd>↓</kbd> MAGNET TO GROUND</span>
+            <span><kbd>SHIFT</kbd> DASH / DEFLECT</span>
+            <span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span>
+            <span><kbd>C</kbd> USE NEXT POWER-UP</span>
+            <span><kbd>T</kbd> TAKE POINT / PARTY</span>
+            <span><kbd>L</kbd> SHOP &amp; UPGRADES</span>
+            <span><kbd>P</kbd> PAUSE / RESUME</span>
+            <span><kbd>F</kbd> FULLSCREEN</span>
+            <span><kbd>M</kbd> SOUND ON / OFF</span>
+          </div>
+          <p>
+            Ground magnet pulls through platforms and ends jet flight. Hazards can still hurt you.
+          </p>
+          <p>
+            Keep up to three power-ups. Activate them in order; timed effects finish before the next
+            starts.
+          </p>
+          <label class="effects-option"
+            ><input id="effects" type="checkbox" checked /> PARTICLE EFFECTS</label
+          >
+        </div>
+      </dialog>
       <dialog id="party-dialog" aria-labelledby="party-heading">
         <header class="setup-header">
           <div>
@@ -411,6 +450,13 @@
               <dt>DIFFICULTY</dt>
               <dd id="profile-difficulty"></dd>
             </dl>
+            <div
+              id="purchase-feedback"
+              class="purchase-celebration"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
           </aside>
           <section class="setup-options">
             <nav id="loadout-tabs" role="tablist" aria-label="Setup category"></nav>

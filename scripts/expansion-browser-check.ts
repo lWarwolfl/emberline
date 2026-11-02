@@ -128,9 +128,10 @@ async function main() {
     assert(await page.evaluate(() => EmberlineDebug.app.state.player.vy < 0));
     await page.screenshot({ path: path.join(root, "test-results/expansion-jump-pad.png") });
     await page.waitForFunction(() => EmberlineDebug.app.state.traversalEffect === null);
-    await page.locator(".controls-help summary").click();
+    await page.click("#controls");
     await page.click("#effects");
-    await page.locator(".controls-help summary").click();
+    await page.click("#controls-close");
+    await page.click("#pause");
     const beforePortal = await page.evaluate(() => EmberlineDebug.app.state.distance);
     await page.evaluate(() => {
       const s = EmberlineDebug.app.state;

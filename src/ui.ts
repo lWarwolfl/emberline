@@ -61,7 +61,8 @@ function create(doc: Document) {
           const slot = doc.createElement("li");
           const id = state.powerups[i];
           slot.dataset.slot = String(i + 1);
-          slot.textContent = id ? `${i + 1} / ${powerupNames[id]}` : `${i + 1} / EMPTY`;
+          slot.textContent = id ? powerupNames[id] : "—";
+          slot.setAttribute("aria-label", `Slot ${i + 1}: ${id ? powerupNames[id] : "empty"}`);
           if (id) {
             slot.dataset.rarity = powerupRarities[id];
             slot.title = `${powerupRarities[id]} · ${i === 0 ? "Next to activate" : "Queued"}`;
@@ -73,10 +74,14 @@ function create(doc: Document) {
     byId("powerup-count").textContent = `${state.powerups.length} / 3`;
     const active = state.activePowerup;
     const powerReady =
-      state.mode === "playing" && state.hits < state.health && state.powerups.length > 0 && !active;
+      state.mode === "playing" &&
+      state.hits < state.health &&
+      state.powerups.length > 0 &&
+      !active &&
+      !(state.grounding && state.powerups[0] === "flight");
     powerupButton.disabled = !powerReady;
     touchPowerup.disabled = !powerReady;
-    powerupButton.textContent = "C / ACTIVATE";
+    powerupButton.textContent = "C / USE";
     touchPowerup.textContent = state.powerups[0] ? powerupNames[state.powerups[0]] : "POWER-UP";
     byId("powerup-active").textContent = active
       ? `${powerupNames[active.id]} · ${Math.ceil(active.remaining)}s`
@@ -91,10 +96,9 @@ function create(doc: Document) {
     el["touch-attack"].textContent = weapon;
     el["combat-state"].textContent = weapon + (ready ? " READY" : " CHARGING");
     byId("jump-count").textContent = "×" + state.stats.maxJumps;
-    byId("touch-jump").textContent =
-      state.stats.maxJumps === 3 ? "JUMP / TRIPLE JUMP" : "JUMP / DOUBLE JUMP";
+    byId("touch-jump").textContent = "JUMP ×" + state.stats.maxJumps;
     el.score.textContent = format(state.score);
-    el.best.textContent = format(best);
+    el.best.textContent = format(state.score > best ? state.score : best);
     el.sector.textContent = "SECTOR " + String(state.sector).padStart(2, "0");
     const biome = Content.biomes.find((item) => item.id === state.biome)!;
     const group = Content.groups.find((item) => item.biomes.some((entry) => entry.id === biome.id));

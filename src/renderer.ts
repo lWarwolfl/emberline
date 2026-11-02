@@ -122,6 +122,16 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       }
     }
     sprites.travelEffect(state);
+    for (const s of party
+      ? party.members.filter(Party.alive).map((member) => member.state)
+      : [state]) {
+      if (!s.grounding) continue;
+      for (let i = 0; i < 3; i++) {
+        const y = Math.min(Config.floor - 3, s.player.y + 25 + i * 8);
+        rect(s.player.x + i, y, 12 - i * 2, 1, "#a9e4e6");
+        rect(s.player.x + 5, y + 1, 2, 3, "#a9e4e6");
+      }
+    }
     for (const bolt of state.hostileProjectiles) {
       rect(bolt.x - 2, bolt.y - 2, 7, 6, "#702c47");
       rect(bolt.x, bolt.y - 1, 4, 4, bolt.color);

@@ -38,6 +38,7 @@ function create(
   onChange: (selection: LoadoutSelection) => void,
   shop: Shop,
   onReset: () => boolean,
+  onFeedback?: (kind: "purchase" | "upgrade", name: string) => void,
 ) {
   const byId = (id: string) => element(doc, id);
   const dialog = element(doc, "setup-dialog", "dialog");
@@ -114,7 +115,9 @@ function create(
       preset.name + (preset.coinReward ? ` / ×${preset.coinReward} COINS` : " / NO COINS");
   }
 
-  const upgradePanel = UpgradePanel.create(doc, shop, sync);
+  const upgradePanel = UpgradePanel.create(doc, shop, sync, (id) => {
+    onFeedback?.("upgrade", Upgrades.definition(id)!.name);
+  });
 
   function showUpgrades() {
     upgradePanel.render(panel);
@@ -344,6 +347,11 @@ function create(
       byId("shop-message").textContent =
         Loadout.find<{ id: string; name: string }>(groups[group], id).name +
         " purchased and equipped.";
+      if (result.reason === "purchased")
+        onFeedback?.(
+          "purchase",
+          Loadout.find<{ id: string; name: string }>(groups[group], id).name,
+        );
       panel.querySelector<HTMLInputElement>(`input[value="${id}"]`)!.focus({ preventScroll: true });
     } else {
       sync();

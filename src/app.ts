@@ -14,6 +14,9 @@ import * as PartySession from "./party-session";
 import * as Accounts from "./accounts";
 import { sameSave, saveKeys } from "./cloud-save";
 import type { GameEvent } from "./types";
+import Celebrations from "./celebrations";
+import Records from "./records";
+import { element } from "./dom";
 
 function create(doc: Document) {
   const ui = UI.create(doc);
@@ -29,6 +32,7 @@ function create(doc: Document) {
   const particles = Particles.create();
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const renderer = Renderer.create(ui.el.game, reducedMotion);
+  const celebrations = Celebrations.create(doc, reducedMotion, () => particles.enabled);
   const parameters = new URLSearchParams(location.search);
   const fixedSeed = parameters.get("seed");
   let economy = Economy.create(saves);
@@ -59,8 +63,16 @@ function create(doc: Document) {
       void accounts.sync().finally(() => window.location.reload());
       return true;
     },
+    (kind, name) => {
+      audio.unlock();
+      audio.play(kind);
+      if (kind === "purchase") celebrations.purchase(name);
+    },
   );
   let best = saves.best();
+  const records = Records.create(best);
+  let recordTime = 0;
+  let recordParty = false;
   let lastTime = 0;
   let animationTime = 0;
   const feedback = { shake: 0, flash: 0 };
@@ -137,6 +149,9 @@ function create(doc: Document) {
     audio.unlock();
     if (state.mode === "paused") state.mode = "playing";
     else {
+      records.reset(best);
+      recordTime = 0;
+      celebrations.clear();
       state = Engine.create(fixedSeed ?? undefined, loadout, economy.levels);
       state.mode = "playing";
       particles.clear();
@@ -166,6 +181,13 @@ function create(doc: Document) {
     if (state.mode === "paused") start();
     else pauseIfPlaying();
   }
+  const controlsDialog = element(doc, "controls-dialog", "dialog");
+  element(doc, "controls-close", "button").addEventListener("click", () => controlsDialog.close());
+  function controls() {
+    if (session.active && session.isHost && state.mode === "playing") session.pause();
+    else pauseIfPlaying();
+    if (!controlsDialog.open) controlsDialog.showModal();
+  }
 
   async function fullscreen() {
     try {
@@ -185,6 +207,8 @@ function create(doc: Document) {
   }
 
   const bursts: Record<string, [number, string, number]> = {
+    ground: [12, "#a9e4e6", 30],
+    "ground-land": [24, "#a9e4e6", 65],
     revive: [65, "#b1ffe3", 100],
     front: [20, "#9ee9ec", 50],
     down: [35, "#ec9865", 65],
@@ -280,6 +304,7 @@ function create(doc: Document) {
       start,
       pause,
       fullscreen,
+      controls,
       sound: toggleSound,
       pauseIfPlaying,
       enter() {
@@ -296,6 +321,11 @@ function create(doc: Document) {
         audio.unlock();
         if (session.active) session.action("dash");
         else Engine.dash(state);
+      },
+      ground() {
+        audio.unlock();
+        if (session.active) session.action("ground");
+        else Engine.ground(state);
       },
       front() {
         session.action("front");
@@ -372,6 +402,17 @@ function create(doc: Document) {
           state.dash > 0 ? "#b6dbc3" : "#e5a161",
           10,
         );
+    }
+    if (session.active !== recordParty || state.time < recordTime) {
+      records.reset(best);
+      recordParty = session.active;
+    }
+    recordTime = state.time;
+    if ((state.mode === "playing" || state.mode === "dead") && records.check(state.score)) {
+      saveBest();
+      celebrations.record(state.score);
+      audio.play("record");
+      if (!reducedMotion) particles.burst(state.player.x + 6, state.player.y, 45, "#ffe0a3", 100);
     }
     if (state.mode !== "paused") {
       particles.update(dt);

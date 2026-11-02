@@ -1,5 +1,30 @@
 # EMBERLINE design
 
+## Acquisition, personal records and compact controls
+
+The game remains a Command / Inspect surface. The header now groups the single
+Emberline mark and earned coins; the inventory uses fixed 40px slots. A labeled
+CONTROLS button opens a Configure-style field guide with keyboard actions and the
+particle setting, replacing the small disclosure. Ground pull has its own touch
+target and small downward pixel chevrons that remain visible with particles off.
+
+Equipment purchases reveal an ACQUIRED stamp over the pinned preview, a single
+mint sweep and radial pixel sparks. The celebration consumes no layout space and
+never captures input. Upgrades retain their level feedback and use only a brief
+metallic clank. A personal-record banner sits above the approach lane, pairs the
+real score with a separate fanfare, and triggers once per round after beating an
+existing record. Timers advance independently of paused gameplay so shop effects
+always finish. Reduced motion removes the sweep, scale and sparks while retaining
+the result; particle preferences independently control sparks.
+
+All three sounds are original deterministic synthesis: 2.00s purchase jingle,
+0.28s upgrade impact, 1.60s record fanfare. Cached Web Audio buffers share the mute
+gain with other game sounds. Exported WAVs match the samples used in-game.
+
+Source design audit: 0/10 generic-design tells; effects support real achievements
+within the existing square pixel vocabulary. Live browser visual QA remains
+unrun under the loaded Emberline skill's standing restriction.
+
 ## Playfield-first cabinet and pinned outfitter
 
 Primary surface: Command / Inspect. The previous expansion stacked a masthead,

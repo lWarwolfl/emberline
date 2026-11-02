@@ -58,13 +58,28 @@ The TypeScript source is in `src/`; only editing requires Node and a build.
 | ---------- | ------------------------------------------------- |
 | Space / Up | Jump again in air; 2 normally, 3 with Triple Jump |
 | Shift      | Dash through enemies; jump over ground hazards    |
+| S / Down   | Magnet back to the ground, cancelling jet flight  |
 | X / J      | Punch or shoot with the selected weapon           |
 | C          | Activate the next stored power-up                 |
 | L          | Open character, gear and difficulty setup         |
 | P          | Pause / resume                                    |
 | F          | Fullscreen / windowed                             |
 | M          | Sound on / off                                    |
+| H          | Show controls and particle settings               |
 | Enter      | Start / retry / resume                            |
+
+CONTROLS opens the complete field guide. Touch players also have a GROUND button.
+The magnetic pull passes through ledges and resets jumps after reaching the floor;
+hazards still hurt during descent. The header groups coins beside the icon, and
+the three power-up slots show compact names in activation order.
+
+Buying equipment triggers an acquired-item reveal and an original two-second
+arcade jingle. Upgrades play a short metal clank. Exceeding an existing best score
+triggers a separate record banner and fanfare once per round. Sound follows the
+mute setting; reduced motion and particle preferences keep feedback readable.
+Export the generated cues again with `npm run audio:generate`; the WAVs are under
+`assets/audio/`. In-game playback generates the same samples locally for offline
+and `file://` support.
 
 ## Accounts and the expanded route
 

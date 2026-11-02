@@ -12,21 +12,24 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     pause: actions.pause,
     sound: actions.sound,
     fullscreen: actions.fullscreen,
+    controls: actions.controls,
     "take-front": actions.front,
   };
   for (const [id, action] of Object.entries(clicks)) {
     byId(id).addEventListener("click", (event) => {
       action();
-      if (event.detail > 0 && !id.includes("setup")) canvas.focus({ preventScroll: true });
+      if (event.detail > 0 && !id.includes("setup") && !doc.querySelector("dialog[open]"))
+        canvas.focus({ preventScroll: true });
     });
   }
   byId("effects").addEventListener("change", (event) => {
     actions.effects((event.target as HTMLInputElement).checked);
-    canvas.focus({ preventScroll: true });
+    if (!doc.querySelector("dialog[open]")) canvas.focus({ preventScroll: true });
   });
   for (const [id, action] of [
     ["touch-jump", actions.jump],
     ["touch-dash", actions.dash],
+    ["touch-ground", actions.ground],
     ["touch-attack", actions.attack],
     ["touch-powerup", actions.powerup],
     ["touch-front", actions.front],
@@ -46,6 +49,9 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     KeyX: actions.attack,
     KeyJ: actions.attack,
     KeyC: actions.powerup,
+    KeyS: actions.ground,
+    ArrowDown: actions.ground,
+    KeyH: actions.controls,
     KeyL: actions.setup,
     KeyT: actions.front,
     KeyP: actions.pause,

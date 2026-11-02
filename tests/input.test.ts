@@ -22,6 +22,8 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   let focused: string;
   let jumps = 0;
   let powers = 0;
+  let grounds = 0;
+  let controls = 0;
   const canvas = Object.assign(new Node(), {
     focus(options: FocusOptions) {
       assert.equal(options.preventScroll, true);
@@ -33,7 +35,12 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     querySelector: () => (open ? new Node() : null),
   });
   const actions = new Proxy(
-    { jump: () => jumps++, powerup: () => powers++ },
+    {
+      jump: () => jumps++,
+      powerup: () => powers++,
+      ground: () => grounds++,
+      controls: () => controls++,
+    },
     {
       get: (target, key) => target[key as keyof typeof target] ?? (() => {}),
     },
@@ -60,6 +67,12 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     }),
   );
   assert.equal(powers, 1);
+  for (const code of ["KeyS", "ArrowDown", "KeyH"])
+    doc.dispatchEvent(
+      Object.assign(new Event("keydown", { cancelable: true }), { code, key: code, repeat: false }),
+    );
+  assert.equal(grounds, 2);
+  assert.equal(controls, 1);
   summaryFocused = true;
   const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
     code: "Space",
@@ -90,4 +103,12 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     }),
   );
   assert.equal(powers, 1);
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyS",
+      key: "s",
+      repeat: false,
+    }),
+  );
+  assert.equal(grounds, 2);
 });
