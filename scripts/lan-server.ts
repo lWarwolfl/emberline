@@ -17,6 +17,7 @@ export function createLanServer(root = path.resolve(__dirname, "../public"), des
     ".png": "image/png",
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon",
+    ".wav": "audio/wav",
   };
   const server = createServer(async (req, res) => {
     try {

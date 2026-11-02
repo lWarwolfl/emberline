@@ -1,9 +1,19 @@
+import FeedbackAudio from "./feedback-audio";
+
 function create(initialMuted = false) {
   let muted = initialMuted;
   let audio: AudioContext | undefined;
+  let master: GainNode | undefined;
+  let feedbackSource: AudioBufferSourceNode | undefined;
+  const buffers = new Map<string, AudioBuffer>();
   function bootAudio() {
     try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audio) {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+        master = audio.createGain();
+        master.gain.value = muted ? 0 : 1;
+        master.connect(audio.destination);
+      }
       if (audio.state === "suspended") audio.resume();
     } catch {}
   }
@@ -25,7 +35,7 @@ function create(initialMuted = false) {
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
     o.connect(g);
-    g.connect(audio.destination);
+    g.connect(master!);
     o.start(t);
     o.stop(t + duration + 0.02);
   }
@@ -39,11 +49,34 @@ function create(initialMuted = false) {
     s.buffer = n;
     g.gain.value = vol;
     s.connect(g);
-    g.connect(audio.destination);
+    g.connect(master!);
     s.start();
   }
   function sound(type: string, combo = 0) {
+    if (["purchase", "upgrade", "record"].includes(type)) {
+      if (muted || !audio) return;
+      let buffer = buffers.get(type);
+      if (!buffer) {
+        const generated = FeedbackAudio.generate(type as "purchase" | "upgrade" | "record");
+        buffer = audio.createBuffer(1, generated.samples.length, generated.sampleRate);
+        buffer.getChannelData(0).set(generated.samples);
+        buffers.set(type, buffer);
+      }
+      feedbackSource?.stop();
+      feedbackSource = audio.createBufferSource();
+      feedbackSource.buffer = buffer;
+      feedbackSource.connect(master!);
+      feedbackSource.start();
+      return;
+    }
     switch (type) {
+      case "ground":
+        tone(700, 0.18, "triangle", 0.035, 130);
+        break;
+      case "ground-land":
+        noise(0.09, 0.035);
+        tone(90, 0.12, "triangle", 0.04, 45);
+        break;
       case "revive":
         [330, 440, 660, 880].forEach((freq, i) =>
           tone(freq, 0.3, "sine", 0.04, freq * 1.1, i * 0.09),
@@ -130,6 +163,7 @@ function create(initialMuted = false) {
     play: sound,
     setMuted(value: boolean) {
       muted = value;
+      if (audio && master) master.gain.setValueAtTime(value ? 0 : 1, audio.currentTime);
     },
     get muted() {
       return muted;
