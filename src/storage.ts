@@ -1,3 +1,5 @@
+const progressKeys = ["economy", "coins", "loadout", "best", "muted", "effects"] as const;
+type Progress = Record<(typeof progressKeys)[number], string | null>;
 function create(storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null) {
   function read(key: string, fallback: string) {
     try {
@@ -39,6 +41,41 @@ function create(storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | n
     }
   }
   return {
+    exportProgress(): Progress {
+      return Object.fromEntries(
+        progressKeys.map((key) => {
+          try {
+            return [key, storage?.getItem("emberline." + key) ?? null];
+          } catch {
+            return [key, null];
+          }
+        }),
+      ) as Progress;
+    },
+    importProgress(data: Record<string, string | null>) {
+      const previous = new Map<string, string | null>();
+      try {
+        if (!storage) return false;
+        for (const key of progressKeys) {
+          if (data[key] !== null && typeof data[key] !== "string") return false;
+          previous.set(key, storage.getItem("emberline." + key));
+        }
+        for (const key of progressKeys) {
+          const value = data[key];
+          if (value === null) storage.removeItem("emberline." + key);
+          else storage.setItem("emberline." + key, value);
+        }
+        return true;
+      } catch {
+        for (const [key, value] of previous) {
+          try {
+            if (value === null) storage?.removeItem("emberline." + key);
+            else storage?.setItem("emberline." + key, value);
+          } catch {}
+        }
+        return false;
+      }
+    },
     best,
     resetProgress,
     coins() {

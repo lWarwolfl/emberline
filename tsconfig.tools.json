@@ -5,6 +5,13 @@
     "types": ["node"],
     "resolveJsonModule": true
   },
-  "include": ["scripts/**/*.ts", "tests/**/*.ts", "src/**/*.ts", "desktop/**/*.ts"],
+  "include": [
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "src/**/*.ts",
+    "desktop/**/*.ts",
+    "server/**/*.ts",
+    "api/**/*.ts"
+  ],
   "exclude": ["src/service-worker.ts"]
 }

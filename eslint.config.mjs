@@ -20,7 +20,14 @@ export default tseslint.config(
   { files: ["src/**/*.ts"], languageOptions: { globals: globals.browser } },
   { files: ["src/service-worker.ts"], languageOptions: { globals: globals.serviceworker } },
   {
-    files: ["scripts/**/*.ts", "tests/**/*.ts", "desktop/**/*.ts", "**/*.mjs"],
+    files: [
+      "scripts/**/*.ts",
+      "tests/**/*.ts",
+      "desktop/**/*.ts",
+      "server/**/*.ts",
+      "api/**/*.ts",
+      "**/*.mjs",
+    ],
     languageOptions: {
       globals: {
         ...globals.node,

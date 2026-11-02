@@ -43,6 +43,7 @@
   },
   "description": "Offline procedural pixel runner with strict TypeScript source",
   "scripts": {
+    "db:migrate": "node --import tsx server/migrate.ts",
     "test": "npm run build && node --import tsx --test tests/*.test.ts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "test:browser": "node --import tsx scripts/browser-check.ts && node --import tsx scripts/gear-browser-check.ts && node --import tsx scripts/shop-browser-check.ts && node --import tsx scripts/coins-browser-check.ts && node --import tsx scripts/upgrades-browser-check.ts && node --import tsx scripts/reset-browser-check.ts && node --import tsx scripts/expansion-browser-check.ts && node --import tsx scripts/party-browser-check.ts && node --import tsx scripts/pwa-browser-check.ts",
@@ -68,6 +69,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.2",
     "electron": "45.2.1",
     "electron-builder": "26.18.0",
@@ -82,6 +84,9 @@
     "typescript-eslint": "^8.72.1"
   },
   "dependencies": {
+    "better-auth": "^1.7.15",
+    "dotenv": "^18.0.9",
+    "pg": "^8.23.1",
     "ws": "^8.22.1"
   }
 }

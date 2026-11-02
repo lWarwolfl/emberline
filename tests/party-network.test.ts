@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import * as Network from "../src/party-network";
 
 test("LAN uses the target protocol and rejects unsafe addresses", (t) => {
@@ -50,7 +51,6 @@ test("LAN uses the target protocol and rejects unsafe addresses", (t) => {
 test("LAN relay check accepts this host and rejects a page with no relay", async () => {
   const { createServer } = await import("node:http");
   const { createLanServer } = await import("../scripts/lan-server");
-  const { once } = await import("node:events");
   const app = createLanServer();
   const plain = createServer((_req, res) => {
     res.writeHead(404).end();

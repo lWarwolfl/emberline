@@ -32,3 +32,37 @@ test("best score and preferences persist under the existing storage keys", () =>
   assert(!storage.effects());
   assert(values.has("emberline.best"));
 });
+
+test("cloud saves export every persisted setting and restore atomically", () => {
+  const values = new Map<string, string>([["other-app", "keep"]]);
+  let failOnce = false;
+  const saves = Storage.create({
+    getItem: (key) => values.get(key) ?? null,
+    setItem(key, value) {
+      if (failOnce && key === "emberline.best") {
+        failOnce = false;
+        throw new Error("quota");
+      }
+      values.set(key, value);
+    },
+    removeItem: (key) => {
+      values.delete(key);
+    },
+  });
+  saves.write("best", "12345678901234567890");
+  saves.write("effects", false);
+  saves.write("economy", '{"balance":"4500"}');
+  const saved = saves.exportProgress();
+  assert.equal(saved.best, "12345678901234567890");
+  assert.equal(saved.effects, "false");
+  assert.equal(saved.loadout, null);
+  assert.equal(saves.importProgress({ ...saved, best: "10", effects: "true" }), true);
+  assert.equal(saves.best(), 10n);
+  assert.equal(saves.effects(), true);
+  failOnce = true;
+  assert.equal(saves.importProgress(saved), false);
+  assert.equal(saves.best(), 10n);
+  assert.equal(saves.effects(), true);
+  assert.equal(values.get("other-app"), "keep");
+  assert.equal(Storage.create(null).importProgress(saved), false);
+});

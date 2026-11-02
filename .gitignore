@@ -4,3 +4,6 @@ test-results/
 .build/
 public/
 release/
+.env
+.env.*
+!.env.example

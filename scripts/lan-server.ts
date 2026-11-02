@@ -21,6 +21,11 @@ export function createLanServer(root = path.resolve(__dirname, "../public"), des
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
+      if (url.pathname.startsWith("/api/account/")) {
+        const { handleAccountRequest } = await import("../server/accounts");
+        await handleAccountRequest(req, res);
+        return;
+      }
       if (url.pathname === "/host-info" || (desktop && url.pathname === "/desktop-info")) {
         const address = server.address();
         const port = address && typeof address !== "string" ? address.port : 4173;
