@@ -2,7 +2,7 @@
 "use strict";
 (() => {
   // src/service-worker.ts
-  var CACHE = "emberline-v7.1.6";
+  var CACHE = "emberline-v7.1.7";
   var ASSETS = [
     "./",
     "./index.html",
@@ -40,6 +40,7 @@
     const url = new URL(request.url);
     if (url.origin !== location.origin) return;
     if (
+      url.pathname.startsWith("/api/") ||
       url.pathname === "/host-info" ||
       url.pathname === "/desktop-info" ||
       url.pathname === "/party"

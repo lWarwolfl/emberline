@@ -1,7 +1,7 @@
 export {};
 declare const self: ServiceWorkerGlobalScope;
 /* Offline cache for the static build. Bump CACHE when any cached file changes. */
-const CACHE = "emberline-v7.1.6";
+const CACHE = "emberline-v7.1.7";
 const ASSETS = [
   "./",
   "./index.html",
@@ -42,6 +42,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
   if (
+    url.pathname.startsWith("/api/") ||
     url.pathname === "/host-info" ||
     url.pathname === "/desktop-info" ||
     url.pathname === "/party"
