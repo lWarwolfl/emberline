@@ -683,6 +683,7 @@
           state.mode !== "playing" ||
           state.hits >= state.health ||
           state.activePowerup ||
+          (state.grounding && state.powerups[0] === "flight") ||
           !state.powerups.length
         )
           return false;
@@ -748,7 +749,7 @@
       }
       function land(state, previousY, dt) {
         const p = state.player;
-        if (p.vy < 0 || state.activePowerup?.id === "flight") return;
+        if (p.vy < 0 || state.grounding || state.activePowerup?.id === "flight") return;
         for (const o of state.objects) {
           if (o.kind !== "platform" || o.dead) continue;
           if (
@@ -2251,6 +2252,7 @@
         const loadout = import_loadout3.default.sanitize(equipment);
         const rules = import_loadout3.default.rules(loadout);
         return {
+          grounding: false,
           powerups: [],
           activePowerup: null,
           seed,
@@ -2322,7 +2324,12 @@
         state.score += BigInt(points);
       }
       function jump(state) {
-        if (state.mode !== "playing" || state.player.jumps >= state.stats.maxJumps) return false;
+        if (
+          state.mode !== "playing" ||
+          state.grounding ||
+          state.player.jumps >= state.stats.maxJumps
+        )
+          return false;
         state.player.vy =
           state.player.jumps === 0
             ? state.stats.jumpVelocity
@@ -2332,6 +2339,27 @@
         state.player.jumps++;
         emit(state, "jump", state.player.x, state.player.y + 17);
         return true;
+      }
+      function ground(state) {
+        if (
+          state.mode !== "playing" ||
+          state.hits >= state.health ||
+          state.grounding ||
+          state.player.y >= import_config4.default.floor - import_config4.default.playerHeight
+        )
+          return false;
+        state.grounding = true;
+        state.player.vy = Math.max(520, state.player.vy);
+        if (state.activePowerup?.id === "flight") state.activePowerup = null;
+        emit(state, "ground", state.player.x, state.player.y + import_config4.default.playerHeight);
+        return true;
+      }
+      function groundStep(state) {
+        if (!state.grounding) return;
+        if (state.player.y >= import_config4.default.floor - import_config4.default.playerHeight) {
+          state.grounding = false;
+          emit(state, "ground-land", state.player.x, import_config4.default.floor);
+        } else state.player.vy = Math.max(520, state.player.vy);
       }
       function dash(state) {
         if (state.mode !== "playing" || state.cooldown > 0) return false;
@@ -2425,6 +2453,7 @@
               player.x - import_config4.default.dashReturnSpeed * dt,
             );
         const previousY = player.y;
+        groundStep(state);
         player.vy += import_config4.default.gravity * dt;
         player.y += player.vy * dt;
         if (player.y >= import_config4.default.floor - import_config4.default.playerHeight) {
@@ -2432,6 +2461,7 @@
           player.vy = 0;
           player.jumps = 0;
         }
+        groundStep(state);
         import_powerups3.default.update(state, dt);
         import_powerups3.default.land(state, previousY, dt);
         if (state.distance >= state.next) import_generator3.default.spawn(state);
@@ -2491,6 +2521,8 @@
         }
       }
       module.exports = {
+        ground,
+        groundStep,
         powerup: import_powerups3.default.activate,
         activatePowerup: import_powerups3.default.activate,
         create: create5,
@@ -2698,7 +2730,13 @@
   function revive(run) {
     for (const m of run.members) {
       if (!m.connected || alive(m)) continue;
-      Object.assign(m.state, { hits: 0, invincible: 2, mode: "playing", dash: 0 });
+      Object.assign(m.state, {
+        hits: 0,
+        invincible: 2,
+        mode: "playing",
+        dash: 0,
+        grounding: false,
+      });
       Object.assign(m.state.player, {
         y: import_config.default.floor - import_config.default.playerHeight,
         vy: 0,
@@ -2738,6 +2776,7 @@
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
       m.frontCooldown = Math.max(0, m.frontCooldown - dt);
       const previousY = s.player.y;
+      import_engine.default.groundStep(s);
       s.player.vy += import_config.default.gravity * dt;
       s.player.y += s.player.vy * dt;
       import_powerups.default.update(s, dt);
@@ -2748,6 +2787,7 @@
           vy: 0,
           jumps: 0,
         });
+      import_engine.default.groundStep(s);
     }
     if (w.distance >= w.next) {
       const before = w.objects.length;
@@ -2950,6 +2990,7 @@
           ...run.world,
           powerups: local.powerups,
           activePowerup: local.activePowerup,
+          grounding: local.grounding,
           player: local.player,
           health: local.health,
           hits: local.hits,
@@ -3238,16 +3279,128 @@
     },
   });
 
+  // src/feedback-audio.ts
+  var require_feedback_audio = __commonJS({
+    "src/feedback-audio.ts"(exports, module) {
+      "use strict";
+      var sampleRate = 22050;
+      var durations = { purchase: 2, upgrade: 0.28, record: 1.6 };
+      function generate(kind) {
+        const samples = new Float32Array(Math.round(sampleRate * durations[kind]));
+        let seed = 99539473;
+        function noise() {
+          seed ^= seed << 13;
+          seed ^= seed >>> 17;
+          seed ^= seed << 5;
+          return (seed >>> 0) / 2147483648 - 1;
+        }
+        function mix(start2, duration, voice) {
+          const offset = Math.round(start2 * sampleRate);
+          const length = Math.min(Math.round(duration * sampleRate), samples.length - offset);
+          for (let i = 0; i < length; i++) samples[offset + i] += voice(i / sampleRate);
+        }
+        function note(midi, start2, duration, volume = 0.2) {
+          const hz = 440 * 2 ** ((midi - 69) / 12);
+          mix(start2, duration, (t) => {
+            const phase = Math.PI * 2 * hz * t;
+            const attack = Math.min(1, t / 6e-3);
+            const release = Math.min(1, Math.max(0, duration - t) / 0.045);
+            const body = Math.exp(-t * 3);
+            return (
+              (Math.sin(phase) + Math.sin(phase * 2) * 0.18 + Math.sin(phase * 3) * 0.1) *
+              attack *
+              release *
+              body *
+              volume
+            );
+          });
+        }
+        function kick(start2) {
+          mix(
+            start2,
+            0.13,
+            (t) =>
+              Math.sin(Math.PI * 2 * (48 * t + 2.2 * (1 - Math.exp(-t * 38)))) *
+              Math.exp(-t * 28) *
+              0.19,
+          );
+        }
+        function hat(start2, volume = 0.025) {
+          mix(start2, 0.055, (t) => noise() * Math.exp(-t * 80) * volume);
+        }
+        if (kind === "purchase") {
+          [72, 76, 79, 84, 81, 79, 83, 84].forEach((midi, i) => note(midi, i * 0.1875, 0.23));
+          [48, 55, 57, 53].forEach((midi, i) => {
+            note(midi, i * 0.375, 0.29, 0.15);
+            kick(i * 0.375);
+          });
+          for (let i = 0; i < 8; i++) hat(i * 0.1875 + 0.08);
+          [72, 76, 79, 84].forEach((midi) => note(midi, 1.5, 0.5, 0.13));
+          note(96, 1.63, 0.3, 0.07);
+        } else if (kind === "record") {
+          [67, 72, 76, 79, 84, 88].forEach((midi, i) => note(midi, i * 0.13, 0.22, 0.21));
+          [60, 72, 76, 79, 84].forEach((midi) => note(midi, 0.8, 0.8, 0.13));
+          [91, 88, 96, 91].forEach((midi, i) => note(midi, 0.88 + i * 0.13, 0.26, 0.075));
+          kick(0);
+          kick(0.39);
+          kick(0.8);
+          hat(0.8, 0.075);
+        } else {
+          let previousNoise = 0;
+          for (const [index, start2] of [0, 0.052, 0.104].entries()) {
+            const volume = index === 0 ? 0.29 : 0.075;
+            mix(start2, 0.28 - start2, (t) => {
+              const partials = [913, 1471, 2339, 3781, 5377].reduce(
+                (sum, hz, i) =>
+                  sum + (Math.sin(Math.PI * 2 * hz * t) * Math.exp(-t * (18 + i * 5))) / (i + 1),
+                0,
+              );
+              const nextNoise = noise();
+              const impact = (nextNoise - previousNoise) * Math.exp(-t * 115) * 0.3;
+              previousNoise = nextNoise;
+              return (partials + impact) * Math.min(1, t / 1e-3) * volume;
+            });
+          }
+        }
+        let peak = 0;
+        for (let i = 0; i < samples.length; i++) {
+          const fade = Math.min(
+            1,
+            i / (sampleRate * 4e-3),
+            (samples.length - 1 - i) / (sampleRate * 0.024),
+          );
+          samples[i] *= Math.max(0, fade);
+          peak = Math.max(peak, Math.abs(samples[i]));
+        }
+        const gain =
+          (kind === "upgrade" ? 0.55 : kind === "record" ? 0.7 : 0.65) / Math.max(peak, 1e-3);
+        for (let i = 0; i < samples.length; i++) samples[i] *= gain;
+        samples[0] = samples[samples.length - 1] = 0;
+        return { sampleRate, samples };
+      }
+      module.exports = { generate, durations, sampleRate };
+    },
+  });
+
   // src/audio.ts
   var require_audio = __commonJS({
     "src/audio.ts"(exports, module) {
       "use strict";
+      var import_feedback_audio = __toESM(require_feedback_audio());
       function create5(initialMuted = false) {
         let muted = initialMuted;
         let audio;
+        let master;
+        let feedbackSource;
+        const buffers = /* @__PURE__ */ new Map();
         function bootAudio() {
           try {
-            if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audio) {
+              audio = new (window.AudioContext || window.webkitAudioContext)();
+              master = audio.createGain();
+              master.gain.value = muted ? 0 : 1;
+              master.connect(audio.destination);
+            }
             if (audio.state === "suspended") audio.resume();
           } catch {}
         }
@@ -3262,7 +3415,7 @@
           g.gain.setValueAtTime(vol, t);
           g.gain.exponentialRampToValueAtTime(1e-4, t + duration);
           o.connect(g);
-          g.connect(audio.destination);
+          g.connect(master);
           o.start(t);
           o.stop(t + duration + 0.02);
         }
@@ -3276,11 +3429,34 @@
           s.buffer = n;
           g.gain.value = vol;
           s.connect(g);
-          g.connect(audio.destination);
+          g.connect(master);
           s.start();
         }
         function sound(type, combo = 0) {
+          if (["purchase", "upgrade", "record"].includes(type)) {
+            if (muted || !audio) return;
+            let buffer = buffers.get(type);
+            if (!buffer) {
+              const generated = import_feedback_audio.default.generate(type);
+              buffer = audio.createBuffer(1, generated.samples.length, generated.sampleRate);
+              buffer.getChannelData(0).set(generated.samples);
+              buffers.set(type, buffer);
+            }
+            feedbackSource?.stop();
+            feedbackSource = audio.createBufferSource();
+            feedbackSource.buffer = buffer;
+            feedbackSource.connect(master);
+            feedbackSource.start();
+            return;
+          }
           switch (type) {
+            case "ground":
+              tone(700, 0.18, "triangle", 0.035, 130);
+              break;
+            case "ground-land":
+              noise(0.09, 0.035);
+              tone(90, 0.12, "triangle", 0.04, 45);
+              break;
             case "revive":
               [330, 440, 660, 880].forEach((freq, i) =>
                 tone(freq, 0.3, "sine", 0.04, freq * 1.1, i * 0.09),
@@ -3366,6 +3542,7 @@
           play: sound,
           setMuted(value) {
             muted = value;
+            if (audio && master) master.gain.setValueAtTime(value ? 0 : 1, audio.currentTime);
           },
           get muted() {
             return muted;
@@ -4343,6 +4520,16 @@
             }
           }
           sprites.travelEffect(state);
+          for (const s of party
+            ? party.members.filter(alive).map((member) => member.state)
+            : [state]) {
+            if (!s.grounding) continue;
+            for (let i = 0; i < 3; i++) {
+              const y = Math.min(import_config4.default.floor - 3, s.player.y + 25 + i * 8);
+              rect(s.player.x + i, y, 12 - i * 2, 1, "#a9e4e6");
+              rect(s.player.x + 5, y + 1, 2, 3, "#a9e4e6");
+            }
+          }
           for (const bolt of state.hostileProjectiles) {
             rect(bolt.x - 2, bolt.y - 2, 7, 6, "#702c47");
             rect(bolt.x, bolt.y - 1, 4, 4, bolt.color);
@@ -4473,7 +4660,11 @@
                 const slot = doc.createElement("li");
                 const id = state.powerups[i];
                 slot.dataset.slot = String(i + 1);
-                slot.textContent = id ? `${i + 1} / ${powerupNames[id]}` : `${i + 1} / EMPTY`;
+                slot.textContent = id ? powerupNames[id] : "\u2014";
+                slot.setAttribute(
+                  "aria-label",
+                  `Slot ${i + 1}: ${id ? powerupNames[id] : "empty"}`,
+                );
                 if (id) {
                   slot.dataset.rarity = powerupRarities[id];
                   slot.title = `${powerupRarities[id]} \xB7 ${i === 0 ? "Next to activate" : "Queued"}`;
@@ -4488,10 +4679,11 @@
             state.mode === "playing" &&
             state.hits < state.health &&
             state.powerups.length > 0 &&
-            !active;
+            !active &&
+            !(state.grounding && state.powerups[0] === "flight");
           powerupButton.disabled = !powerReady;
           touchPowerup.disabled = !powerReady;
-          powerupButton.textContent = "C / ACTIVATE";
+          powerupButton.textContent = "C / USE";
           touchPowerup.textContent = state.powerups[0]
             ? powerupNames[state.powerups[0]]
             : "POWER-UP";
@@ -4511,10 +4703,9 @@
           el["touch-attack"].textContent = weapon;
           el["combat-state"].textContent = weapon + (ready ? " READY" : " CHARGING");
           byId("jump-count").textContent = "\xD7" + state.stats.maxJumps;
-          byId("touch-jump").textContent =
-            state.stats.maxJumps === 3 ? "JUMP / TRIPLE JUMP" : "JUMP / DOUBLE JUMP";
+          byId("touch-jump").textContent = "JUMP \xD7" + state.stats.maxJumps;
           el.score.textContent = format(state.score);
-          el.best.textContent = format(best);
+          el.best.textContent = format(state.score > best ? state.score : best);
           el.sector.textContent = "SECTOR " + String(state.sector).padStart(2, "0");
           const biome = import_content2.default.biomes.find((item) => item.id === state.biome);
           const group = import_content2.default.groups.find((item) =>
@@ -4588,21 +4779,24 @@
           pause: actions.pause,
           sound: actions.sound,
           fullscreen: actions.fullscreen,
+          controls: actions.controls,
           "take-front": actions.front,
         };
         for (const [id, action2] of Object.entries(clicks)) {
           byId(id).addEventListener("click", (event) => {
             action2();
-            if (event.detail > 0 && !id.includes("setup")) canvas.focus({ preventScroll: true });
+            if (event.detail > 0 && !id.includes("setup") && !doc.querySelector("dialog[open]"))
+              canvas.focus({ preventScroll: true });
           });
         }
         byId("effects").addEventListener("change", (event) => {
           actions.effects(event.target.checked);
-          canvas.focus({ preventScroll: true });
+          if (!doc.querySelector("dialog[open]")) canvas.focus({ preventScroll: true });
         });
         for (const [id, action2] of [
           ["touch-jump", actions.jump],
           ["touch-dash", actions.dash],
+          ["touch-ground", actions.ground],
           ["touch-attack", actions.attack],
           ["touch-powerup", actions.powerup],
           ["touch-front", actions.front],
@@ -4621,6 +4815,9 @@
           KeyX: actions.attack,
           KeyJ: actions.attack,
           KeyC: actions.powerup,
+          KeyS: actions.ground,
+          ArrowDown: actions.ground,
+          KeyH: actions.controls,
           KeyL: actions.setup,
           KeyT: actions.front,
           KeyP: actions.pause,
@@ -4738,7 +4935,7 @@
             return stats.maxJumps + " jumps";
         }
       }
-      function create5(doc, shop, onPurchase) {
+      function create5(doc, shop, onPurchase, onUpgraded) {
         let message2 = "";
         function element2(tag, className, text) {
           const node = doc.createElement(tag);
@@ -4850,10 +5047,11 @@
                     : " upgraded to level " + result.level + ".") +
                   " Active next run."
                 : "Purchase unavailable. Check your balance and level.";
-              const scroller = doc.querySelector(".setup-body"),
+              const scroller = panel,
                 scroll = scroller.scrollTop;
               render(panel);
               onPurchase();
+              if (result.ok) onUpgraded?.(track.id, result.level);
               scroller.scrollTop = scroll;
               const replacement = element(doc, "upgrade-" + track.id, "button");
               (replacement.disabled ? element(doc, "upgrade-row-" + track.id) : replacement).focus({
@@ -4913,7 +5111,7 @@
         difficulty: "Difficulty",
         settings: "Settings",
       };
-      function create5(doc, initial, onChange, shop, onReset) {
+      function create5(doc, initial, onChange, shop, onReset, onFeedback) {
         const byId = (id) => element(doc, id);
         const dialog = element(doc, "setup-dialog", "dialog");
         const tabs = byId("loadout-tabs");
@@ -5001,7 +5199,9 @@
           byId("profile-difficulty").textContent =
             preset.name + (preset.coinReward ? ` / \xD7${preset.coinReward} COINS` : " / NO COINS");
         }
-        const upgradePanel = import_upgrade_panel2.default.create(doc, shop, sync);
+        const upgradePanel = import_upgrade_panel2.default.create(doc, shop, sync, (id) => {
+          onFeedback?.("upgrade", import_upgrades3.default.definition(id).name);
+        });
         function showUpgrades() {
           upgradePanel.render(panel);
           sync();
@@ -5230,6 +5430,8 @@
             changed();
             byId("shop-message").textContent =
               import_loadout3.default.find(groups[group], id).name + " purchased and equipped.";
+            if (result.reason === "purchased")
+              onFeedback?.("purchase", import_loadout3.default.find(groups[group], id).name);
             panel.querySelector(`input[value="${id}"]`).focus({ preventScroll: true });
           } else {
             sync();
@@ -5812,7 +6014,7 @@
             refresh();
           } else if (data.type === "input") {
             if (
-              !["jump", "dash", "attack", "front", "powerup"].includes(data.action) ||
+              !["jump", "dash", "attack", "front", "powerup", "ground"].includes(data.action) ||
               !Number.isSafeInteger(data.sequence)
             )
               return;
@@ -6463,6 +6665,106 @@
     },
   });
 
+  // src/celebrations.ts
+  var require_celebrations = __commonJS({
+    "src/celebrations.ts"(exports, module) {
+      "use strict";
+      init_dom();
+      function create5(doc, reducedMotion, effects) {
+        const purchase = element(doc, "purchase-feedback");
+        const record = element(doc, "record-feedback");
+        const timers = /* @__PURE__ */ new Map();
+        function show(node, label, name, detail, duration) {
+          clearTimeout(timers.get(node));
+          const card = doc.createElement("div");
+          card.className = "celebration-card";
+          const mark = doc.createElement("span");
+          mark.className = "celebration-mark";
+          mark.setAttribute("aria-hidden", "true");
+          mark.textContent = "\u2726";
+          const kicker = doc.createElement("span");
+          kicker.className = "celebration-label";
+          kicker.textContent = label;
+          const title = doc.createElement("strong");
+          title.textContent = name;
+          const note = doc.createElement("span");
+          note.className = "celebration-detail";
+          note.textContent = detail;
+          card.append(mark, kicker, title, note);
+          node.replaceChildren(card);
+          if (!reducedMotion && effects()) {
+            const sparks = doc.createElement("div");
+            sparks.className = "celebration-sparks";
+            sparks.setAttribute("aria-hidden", "true");
+            for (let i = 0; i < 16; i++) {
+              const spark = doc.createElement("i");
+              const angle = (i * Math.PI) / 8;
+              const radius = 65 + (i % 3) * 25;
+              spark.style.setProperty("--spark-x", `${Math.cos(angle) * radius}px`);
+              spark.style.setProperty("--spark-y", `${Math.sin(angle) * radius}px`);
+              spark.style.setProperty("--spark-delay", `${(i % 4) * 35}ms`);
+              sparks.append(spark);
+            }
+            node.append(sparks);
+          }
+          node.hidden = false;
+          timers.set(
+            node,
+            setTimeout(() => {
+              node.hidden = true;
+              timers.delete(node);
+            }, duration),
+          );
+        }
+        return {
+          purchase(name) {
+            show(purchase, "ACQUIRED", name, "Added to your kit \xB7 equipped", 2200);
+          },
+          record(score) {
+            show(
+              record,
+              "PERSONAL BEST",
+              "RECORD BROKEN",
+              `${score.toLocaleString("en-US")} points \xB7 keep running`,
+              2800,
+            );
+          },
+          clear() {
+            for (const [node, timer] of timers) {
+              clearTimeout(timer);
+              node.hidden = true;
+            }
+            timers.clear();
+          },
+        };
+      }
+      module.exports = { create: create5 };
+    },
+  });
+
+  // src/records.ts
+  var require_records = __commonJS({
+    "src/records.ts"(exports, module) {
+      "use strict";
+      function create5(baseline) {
+        let target = baseline;
+        let celebrated = false;
+        return {
+          reset(best) {
+            target = best;
+            celebrated = false;
+          },
+          check(score) {
+            if (celebrated || target <= 0n || score <= target) return false;
+            celebrated = true;
+            return true;
+          },
+        };
+      }
+      module.exports = { create: create5 };
+    },
+  });
+
   // src/app.ts
   var require_app = __commonJS({
     "src/app.ts"(exports, module) {
@@ -6482,6 +6784,9 @@
       init_party_session();
       init_accounts();
       init_cloud_save();
+      var import_celebrations = __toESM(require_celebrations());
+      var import_records = __toESM(require_records());
+      init_dom();
       function create5(doc) {
         const ui = import_ui2.default.create(doc);
         let storage;
@@ -6495,6 +6800,11 @@
         const particles = import_particles2.default.create();
         const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
         const renderer = import_renderer2.default.create(ui.el.game, reducedMotion);
+        const celebrations = import_celebrations.default.create(
+          doc,
+          reducedMotion,
+          () => particles.enabled,
+        );
         const parameters = new URLSearchParams(location.search);
         const fixedSeed = parameters.get("seed");
         let economy = import_economy2.default.create(saves);
@@ -6525,8 +6835,16 @@
             void accounts.sync().finally(() => window.location.reload());
             return true;
           },
+          (kind, name) => {
+            audio.unlock();
+            audio.play(kind);
+            if (kind === "purchase") celebrations.purchase(name);
+          },
         );
         let best = saves.best();
+        const records = import_records.default.create(best);
+        let recordTime = 0;
+        let recordParty = false;
         let lastTime = 0;
         let animationTime = 0;
         const feedback = { shake: 0, flash: 0 };
@@ -6600,6 +6918,9 @@
           audio.unlock();
           if (state.mode === "paused") state.mode = "playing";
           else {
+            records.reset(best);
+            recordTime = 0;
+            celebrations.clear();
             state = import_engine3.default.create(fixedSeed ?? void 0, loadout, economy.levels);
             state.mode = "playing";
             particles.clear();
@@ -6627,6 +6948,15 @@
           if (state.mode === "paused") start2();
           else pauseIfPlaying();
         }
+        const controlsDialog = element(doc, "controls-dialog", "dialog");
+        element(doc, "controls-close", "button").addEventListener("click", () =>
+          controlsDialog.close(),
+        );
+        function controls() {
+          if (session.active && session.isHost && state.mode === "playing") session.pause();
+          else pauseIfPlaying();
+          if (!controlsDialog.open) controlsDialog.showModal();
+        }
         async function fullscreen() {
           try {
             if (doc.fullscreenElement) await doc.exitFullscreen();
@@ -6643,6 +6973,8 @@
           if (!audio.muted) audio.play("pickup");
         }
         const bursts = {
+          ground: [12, "#a9e4e6", 30],
+          "ground-land": [24, "#a9e4e6", 65],
           revive: [65, "#b1ffe3", 100],
           front: [20, "#9ee9ec", 50],
           down: [35, "#ec9865", 65],
@@ -6740,6 +7072,7 @@
             start: start2,
             pause,
             fullscreen,
+            controls,
             sound: toggleSound,
             pauseIfPlaying,
             enter() {
@@ -6756,6 +7089,11 @@
               audio.unlock();
               if (session.active) session.action("dash");
               else import_engine3.default.dash(state);
+            },
+            ground() {
+              audio.unlock();
+              if (session.active) session.action("ground");
+              else import_engine3.default.ground(state);
             },
             front() {
               session.action("front");
@@ -6836,6 +7174,18 @@
                 state.dash > 0 ? "#b6dbc3" : "#e5a161",
                 10,
               );
+          }
+          if (session.active !== recordParty || state.time < recordTime) {
+            records.reset(best);
+            recordParty = session.active;
+          }
+          recordTime = state.time;
+          if ((state.mode === "playing" || state.mode === "dead") && records.check(state.score)) {
+            saveBest();
+            celebrations.record(state.score);
+            audio.play("record");
+            if (!reducedMotion)
+              particles.burst(state.player.x + 6, state.player.y, 45, "#ffe0a3", 100);
           }
           if (state.mode !== "paused") {
             particles.update(dt);

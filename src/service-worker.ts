@@ -1,7 +1,7 @@
 export {};
 declare const self: ServiceWorkerGlobalScope;
 /* Offline cache for the static build. Bump CACHE when any cached file changes. */
-const CACHE = "emberline-v7.1.9";
+const CACHE = "emberline-v7.1.10";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,9 @@ const ASSETS = [
   "./dist/game.js",
   "./site.webmanifest",
   "./favicon.ico",
+  "./assets/audio/purchase.wav",
+  "./assets/audio/upgrade.wav",
+  "./assets/audio/record.wav",
   "./assets/favicon.svg",
   "./assets/icon-16.png",
   "./assets/icon-32.png",
