@@ -5,6 +5,19 @@ import Storage from "../src/storage";
 import Engine from "../src/engine";
 import Popups from "../src/popups";
 
+test("cloud snapshots preserve in-memory purchases when device storage is denied", () => {
+  const shop = Economy.create(Storage.create(null));
+  shop.credit(9007199254740993n);
+  assert.equal(shop.buy("weapon", "pulse").ok, true);
+  assert.equal(shop.upgrade("damage", 0).ok, true);
+  const data = shop.snapshot();
+  assert.equal(data.balance, (9007199254740993n - 1200n - 100n).toString());
+  assert(data.owned.includes("weapon:pulse"));
+  assert.equal(data.upgrades.damage, 1);
+  data.upgrades.damage = 10;
+  assert.equal(shop.levels.damage, 1);
+});
+
 function fixture(balance = 0n) {
   const values = new Map([["emberline.coins", String(balance)]]);
   const saves = Storage.create({

@@ -269,7 +269,7 @@ test("new weapons have distinct fire rates, spreads and three-target rail penetr
   armored.objects = [beetle];
   Engine.attack(armored);
   advance(armored, 0.05);
-  assert.equal(beetle.hp, 1.2, "A piercing bolt damages a target only once");
+  assert.equal(beetle.hp, 0.8, "A piercing bolt damages a target only once");
   assert.equal(Combat.durability(beetle), 3.2);
 });
 

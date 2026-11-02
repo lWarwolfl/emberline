@@ -14,9 +14,17 @@ const prices: Record<GearGroup, Record<string, number>> = {
     diver: 3500,
     specter: 4200,
   },
-  cape: { ember: 0, signal: 250, storm: 600, none: 0 },
-  jetpack: { ember: 0, twin: 400, coil: 800, none: 0 },
-  weapon: { punch: 0, pulse: 1200, scatter: 2400, repeater: 3600, rail: 5200, nova: 4400 },
+  cape: { ember: 0, signal: 250, storm: 600, aurora: 1500, cinder: 1100, relay: 1800, none: 0 },
+  jetpack: { ember: 0, twin: 400, coil: 800, comet: 1600, halo: 2200, forge: 2800, none: 0 },
+  weapon: {
+    punch: 0,
+    pulse: 1200,
+    scatter: 2400,
+    repeater: 3600,
+    rail: 5200,
+    nova: 4400,
+    siegebreaker: 25000,
+  },
 };
 const keyOf = (group: string, id: string) => group + ":" + id;
 function price(group: string, id: string) {
@@ -44,17 +52,17 @@ function create(saves: SaveStore) {
       if (cost === 0 || (Array.isArray(saved?.owned) && saved.owned.includes(key))) owned.add(key);
     }
   }
+  function snapshot() {
+    return {
+      version: 2,
+      balance: balance.toString(),
+      owned: [...owned].sort(),
+      upgrades: { ...levels },
+    };
+  }
   function save() {
     // Ownership and debit share one localStorage write: no half-purchase state.
-    saves.write(
-      "economy",
-      JSON.stringify({
-        version: 2,
-        balance: balance.toString(),
-        owned: [...owned],
-        upgrades: levels,
-      }),
-    );
+    saves.write("economy", JSON.stringify(snapshot()));
   }
   function owns(group: string, id: string) {
     if (group === "difficulty") return Loadout.difficulties.some((item) => item.id === id);
@@ -97,6 +105,7 @@ function create(saves: SaveStore) {
   // Migrate the previous lifetime coin counter into the spendable wallet once.
   if (!saved || saved.version !== 2) save();
   return {
+    snapshot,
     buy,
     upgrade,
     get levels() {

@@ -34,13 +34,16 @@ export interface Player {
   vy: number;
   jumps: number;
 }
+export type PowerupId = "blast" | "titan" | "flight";
 export interface WorldObject {
-  kind: "hazard" | "enemy" | "ember";
+  kind: "hazard" | "enemy" | "ember" | "heart" | "powerup" | "platform";
   variant: string;
   x: number;
   y: number;
   w: number;
   h: number;
+  rarity?: "uncommon" | "rare" | "epic" | "legendary";
+  evolution?: number;
   dead?: boolean;
   passed?: boolean;
   hp?: number;
@@ -65,6 +68,7 @@ export interface Projectile {
   life: number;
   damage: number;
   color: string;
+  armored?: boolean;
   pierce?: number;
   hitTargets?: WorldObject[];
 }
@@ -105,6 +109,8 @@ export interface Encounter {
 }
 export type Mode = "menu" | "playing" | "paused" | "dead";
 export interface GameState {
+  powerups: PowerupId[];
+  activePowerup: { id: PowerupId; remaining: number } | null;
   seed: Seed;
   loadout: Loadout;
   rules: Rules;
@@ -183,6 +189,7 @@ export interface Feedback {
   flash: number;
 }
 export interface Actions {
+  powerup: () => void;
   start: () => void;
   setup: () => void;
   attack: () => void;

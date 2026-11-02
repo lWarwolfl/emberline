@@ -27,10 +27,23 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
           definition.trim!,
         );
       } else {
-        const notch = definition.id === "storm" && i > columns.length - 7 ? (i % 4 < 2 ? 3 : 0) : 0;
+        const notch =
+          (definition.id === "storm" || definition.id === "aurora") && i > columns.length - 7
+            ? i % 4 < 2
+              ? 3
+              : 0
+            : 0;
         rect(x + point.x, y + point.y, 1, point.width - notch, definition.color!);
         rect(x + point.x, y + point.y + point.width - 2 - notch, 1, 2, definition.shade!);
-        if (definition.id === "storm" ? i % 5 < 2 : i > columns.length - 4)
+        if (
+          definition.id === "relay"
+            ? i % 10 < 3
+            : definition.id === "cinder"
+              ? i % 4 < 2
+              : definition.id === "storm"
+                ? i % 5 < 2
+                : i > columns.length - 4
+        )
           rect(
             x + point.x,
             y + point.y + 1,
@@ -45,7 +58,28 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   function jetpack(x: number, y: number, time: number, definition: Jetpack, active: boolean) {
     if (definition.kind === "none") return;
     const flame = active ? 7 + Math.round(Math.sin(time * 45) * 3) : 0;
-    if (definition.kind === "twin") {
+    if (definition.kind === "halo") {
+      rect(x - 10, y, 8, 2, definition.color!);
+      rect(x - 12, y + 2, 2, 7, definition.color!);
+      rect(x - 2, y + 2, 2, 7, definition.color!);
+      rect(x - 10, y + 9, 8, 2, definition.color!);
+      rect(x - 8, y + 4, 4, 3, definition.flame!);
+      if (active) line(x - 14 - flame, y + 5, flame + 4, definition.flame!);
+    } else if (definition.kind === "forge") {
+      for (let i = 0; i < 3; i++) {
+        rect(x - 8, y + i * 4, 8, 3, definition.color!);
+        rect(x - 9, y + i * 4, 2, 3, "#435c55");
+        if (active) line(x - 10 - flame, y + i * 4 + 1, flame + 2, definition.flame!);
+      }
+    } else if (definition.kind === "comet") {
+      rect(x - 8, y + 2, 7, 7, definition.color!);
+      rect(x - 5, y, 4, 12, definition.color!);
+      line(x - 9, y + 3, 8, "#ffe0a3");
+      if (active) {
+        rect(x - 11 - flame, y + 5, flame + 4, 3, definition.flame!);
+        line(x - 16 - flame, y + 6, flame + 3, "#ce805b");
+      }
+    } else if (definition.kind === "twin") {
       for (const shift of [0, 6]) {
         rect(x - 5, y + shift, 5, 5, definition.color!);
         rect(x - 6, y + shift + 1, 2, 3, "#5c7d7c");
@@ -74,15 +108,33 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   }
 
   function courier(x: number, y: number, time: number, dashing: boolean, state: GameState) {
+    ctx.save();
+    if (state.activePowerup?.id === "titan") {
+      ctx.translate(x, y + Config.playerHeight);
+      ctx.scale(1.6, 1.6);
+      x = 0;
+      y = -Config.playerHeight;
+    }
     const equipment = state.loadout || Loadout.defaults;
     const person = Loadout.find(Loadout.characters, equipment.character);
     const capeType = Loadout.find(Loadout.capes, equipment.cape);
-    const pack = Loadout.find(Loadout.jetpacks, equipment.jetpack);
+    const pack = Loadout.find(
+      Loadout.jetpacks,
+      state.activePowerup?.id === "flight" && equipment.jetpack === "none"
+        ? "ember"
+        : equipment.jetpack,
+    );
     const weapon = Loadout.find(Loadout.weapons, equipment.weapon);
     const step = state.player.jumps ? 0 : Math.floor(time * 13) % 4;
     const leg = [0, 3, 0, -3][step];
     cape(x + 1, y + 6, time, capeType, state);
-    jetpack(x, y + 7, time, pack, dashing || state.player.jumps > 0);
+    jetpack(
+      x,
+      y + 7,
+      time,
+      pack,
+      dashing || state.player.jumps > 0 || state.activePowerup?.id === "flight",
+    );
     if (dashing) {
       line(x - 34, y + 2, 18, "#b9e4d0");
       line(x - 43, y + 15, 24, "#779e90");
@@ -166,10 +218,20 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       rect(
         x + 13,
         y + 8,
-        weapon.id === "rail" ? 18 : weapon.id === "scatter" || weapon.id === "nova" ? 12 : 9,
+        weapon.id === "siegebreaker"
+          ? 21
+          : weapon.id === "rail"
+            ? 18
+            : weapon.id === "scatter" || weapon.id === "nova"
+              ? 12
+              : 9,
         4,
         "#9da995",
       );
+      if (weapon.id === "siegebreaker") {
+        rect(x + 15, y + 6, 9, 8, "#65776c");
+        rect(x + 29, y + 7, 5, 6, weapon.color);
+      }
       if (weapon.id === "rail") {
         line(x + 16, y + 7, 15, weapon.color);
         rect(x + 19, y + 11, 6, 3, "#685784");
@@ -188,6 +250,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(x + 26, y + 9, 5, 2, "#fff2c9");
       }
     }
+    ctx.restore();
   }
   const hazards: Record<string, (o: WorldObject, t: number) => void> = {
     crate(o: WorldObject) {
@@ -316,7 +379,39 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
 
   function object(o: WorldObject, time: number) {
     if (o.x > Config.width + 35 || o.x + o.w < -10) return;
-    if (o.kind === "ember") {
+    if (o.kind === "platform") {
+      rect(o.x, o.y, o.w, o.h, "#52685c");
+      line(o.x, o.y, o.w, "#b6dbc3");
+      for (let i = 8; i < o.w - 4; i += 18) rect(o.x + i, o.y + 3, 7, 2, "#83967e");
+    } else if (o.kind === "heart" || o.kind === "powerup") {
+      const color =
+        o.rarity === "legendary"
+          ? "#ffe0a3"
+          : o.rarity === "epic"
+            ? "#c6b3df"
+            : o.rarity === "rare"
+              ? "#9bd7e5"
+              : "#b6dbc3";
+      rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
+      line(o.x - 3, o.y - 3, o.w + 6, color);
+      if (o.kind === "heart") {
+        rect(o.x, o.y, 3, 3, color);
+        rect(o.x + 5, o.y, 3, 3, color);
+        rect(o.x, o.y + 2, 8, 3, color);
+        rect(o.x + 2, o.y + 5, 4, 2, color);
+        rect(o.x + 3, o.y + 7, 2, 1, color);
+      } else {
+        rect(o.x + 2, o.y, 5, 9, color);
+        line(o.x, o.y + 4, 9, color);
+        ctx.font = "5px monospace";
+        ctx.fillStyle = color;
+        ctx.fillText(
+          o.variant === "blast" ? "BLAST" : o.variant === "titan" ? "TITAN" : "FLIGHT",
+          o.x - 7,
+          o.y - 7,
+        );
+      }
+    } else if (o.kind === "ember") {
       const thin = Math.sin(time * 5 + o.x * 0.025) > 0.7;
       rect(o.x - 2, o.y - 2, 9, 10, "#594e2e");
       rect(o.x + (thin ? 2 : 0), o.y, thin ? 2 : 5, 6, "#ffae62");
@@ -339,6 +434,10 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(o.x - 4, o.y + o.h / 2 - 2, 5, 5, "#ffe1ae");
       }
       (enemies[o.variant] || enemies.drone)(o, time);
+      if ((o.evolution ?? 0) > 0) {
+        const color = o.evolution! >= 3 ? "#ffe0a3" : "#ffae62";
+        for (let i = 0; i < Math.min(4, o.evolution!); i++) rect(o.x + i * 4, o.y - 5, 3, 2, color);
+      }
     } else {
       (hazards[o.variant] || hazards.crate)(o, time);
       // Breakable seams glow warm; armored hazards carry a pale steel marker.

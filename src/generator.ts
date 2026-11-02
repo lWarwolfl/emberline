@@ -1,4 +1,5 @@
 import type { GameState, WorldObject } from "./types";
+import Combat from "./combat";
 import Config from "./config";
 import Random from "./random";
 import Content from "./content";
@@ -40,6 +41,10 @@ function enemy(state: GameState, x: number, variant?: string): WorldObject {
       : Random.range(state.rng, -4, 4);
   const baseY = Config.floor - definition.altitude + altitudeJitter;
   return {
+    evolution: Math.min(4, Math.floor(state.time / 40)),
+    hp:
+      Combat.durability({ kind: "enemy", variant: definition.id }) *
+      (1 + Math.min(4, Math.floor(state.time / 40)) * 0.3),
     kind: "enemy",
     variant: definition.id,
     x,
@@ -134,6 +139,7 @@ function coinPath(state: GameState, pattern: string, startX: number, width: numb
 }
 
 function overlapsDanger(coin: WorldObject, object: WorldObject) {
+  if (object.kind !== "hazard" && object.kind !== "enemy") return false;
   const clearance = Config.generation.coinClearance;
   const amplitude = object.amplitude || 0;
   // Reserve the entire motion envelope, rather than just the current frame.
@@ -188,9 +194,7 @@ function spawn(state: GameState) {
     case "escort":
     case "patrol":
       dangers.push(enemy(state, x));
-      // Patrols grow more frequent in the shuffle pool and gain an escort later.
-      if (state.sector >= 4 && Random.next(state.rng) < Math.min(0.65, 0.15 + state.sector * 0.035))
-        dangers.push(enemy(state, x + Math.max(separation, safetySpeed * 1.7)));
+      dangers.push(enemy(state, x + Math.max(155, safetySpeed * 1.25)));
       break;
     case "steps":
       dangers.push(obstacle(state, x), obstacle(state, x + separation));
@@ -223,12 +227,73 @@ function spawn(state: GameState) {
       throw new Error("Unknown encounter: " + pattern);
   }
 
+  const platformRoll = Random.next(state.rng);
+  if (platformRoll < 0.28) {
+    const tiers = platformRoll < 0.09 ? [30, 54, 30] : platformRoll < 0.18 ? [52, 28] : [28, 50];
+    const platformStart = Math.max(x, ...dangers.map((o) => o.x + o.w)) + 180;
+    for (const [i, height] of tiers.entries()) {
+      const px = platformStart + i * 154;
+      dangers.push({
+        kind: "platform",
+        variant: "ledge",
+        x: px,
+        y: Config.floor - height,
+        w: 130,
+        h: 6,
+      });
+      for (let j = 0; j < 5; j++)
+        dangers.push({
+          kind: "ember",
+          variant: "platform",
+          x: px + 12 + j * 23,
+          y: Config.floor - height - 12,
+          w: 5,
+          h: 6,
+        });
+      if (i === 1 && state.sector >= 2) {
+        const foe = enemy(state, px + 80, "crawler");
+        foe.y = foe.baseY = Config.floor - height - foe.h;
+        foe.amplitude = 0;
+        foe.extraSpeed = 0;
+        dangers.push(foe);
+      }
+    }
+  }
   const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
   const coins = coinPath(state, coinPattern, x - 24, Math.max(115, end - x + 95));
   const safeCoins = coins.filter((coin) => !dangers.some((danger) => overlapsDanger(coin, danger)));
   // Every chunk retains a reward even if a new content definition blocks its trail.
   if (safeCoins.length < 2) safeCoins.push(...coinPath(state, "ground", end + 25, 90));
-  state.objects.push(...dangers, ...safeCoins);
+  const platformCoins = dangers.filter((o) => o.kind === "ember");
+  const safePlatformCoins = platformCoins.filter((c) => !dangers.some((d) => overlapsDanger(c, d)));
+  state.objects.push(
+    ...dangers.filter((o) => o.kind !== "ember"),
+    ...safeCoins,
+    ...safePlatformCoins,
+  );
+  const drop = Random.next(state.rng);
+  if (drop < 0.2)
+    state.objects.push({
+      kind: "heart",
+      variant: "heart",
+      rarity: drop < 0.04 ? "rare" : "uncommon",
+      x: end + 35,
+      y: Config.floor - 32,
+      w: 9,
+      h: 9,
+    });
+  else if (drop < 0.32) {
+    const roll = Random.next(state.rng);
+    state.objects.push({
+      kind: "powerup",
+      variant: roll < 0.65 ? "blast" : roll < 0.92 ? "titan" : "flight",
+      rarity: roll < 0.65 ? "rare" : roll < 0.92 ? "epic" : "legendary",
+      x: end + 35,
+      y: Config.floor - 40,
+      w: 12,
+      h: 12,
+    });
+  }
   // One combined 5% roll per encounter, split equally between the two devices.
   let travelEnd = end;
   if (Random.next(state.rng) < Config.traversal.spawnChance) {
@@ -262,6 +327,15 @@ function spawn(state: GameState) {
   return state.lastEncounter;
 }
 
+function evolve(object: WorldObject, time: number) {
+  if (object.kind !== "enemy" || object.variant === "boss") return;
+  const level = Math.min(4, Math.floor(time / 40));
+  const previous = object.evolution ?? 0;
+  if (level <= previous) return;
+  object.hp =
+    (object.hp ?? Combat.durability(object)) + Combat.durability(object) * (level - previous) * 0.3;
+  object.evolution = level;
+}
 function move(object: WorldObject, speed: number, dt: number) {
   if (object.variant === "boss") {
     object.age = (object.age ?? 0) + dt;
@@ -278,4 +352,4 @@ function move(object: WorldObject, speed: number, dt: number) {
   }
 }
 
-export = { spawn, obstacle, enemy, coinPath, overlapsDanger, move };
+export = { evolve, spawn, obstacle, enemy, coinPath, overlapsDanger, move };

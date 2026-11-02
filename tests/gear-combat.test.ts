@@ -210,8 +210,9 @@ test("pulse fire damages an airborne drone which survives one basic hit", () => 
       phase: 0,
     },
   ];
+  state.player.y = 142;
   Engine.attack(state);
-  advance(state, 0.75);
+  advance(state, 0.25);
   assert.equal(state.objects.length, 1);
   assert.equal(state.hits, 0);
   assert.equal(state.objects[0].hp, 0.2);

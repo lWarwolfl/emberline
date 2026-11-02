@@ -1,5 +1,6 @@
 import type { Seed } from "./types";
 import type { GameEvent, GameState, Player, WorldObject } from "./types";
+import Powerups from "./powerups";
 import Config from "./config";
 import Random from "./random";
 import Difficulty from "./difficulty";
@@ -18,6 +19,8 @@ function create(
   const loadout = Loadout.sanitize(equipment);
   const rules = Loadout.rules(loadout);
   return {
+    powerups: [],
+    activePowerup: null,
     seed,
     loadout,
     rules,
@@ -137,6 +140,10 @@ function collect(state: GameState, object: WorldObject) {
   });
 }
 function hit(state: GameState, object: WorldObject) {
+  if (state.activePowerup?.id === "titan" && object.kind === "enemy") {
+    Combat.damage(state, object, 10, "titan");
+    return;
+  }
   if (state.dash > 0 && object.kind === "enemy") {
     if (object.lastDash !== state.dashId) {
       object.lastDash = state.dashId;
@@ -179,6 +186,7 @@ function step(state: GameState, dt: number) {
         player.x + state.stats.dashLungeSpeed * dt,
       )
     : Math.max(Config.playerX, player.x - Config.dashReturnSpeed * dt);
+  const previousY = player.y;
   player.vy += Config.gravity * dt;
   player.y += player.vy * dt;
   if (player.y >= Config.floor - Config.playerHeight) {
@@ -186,10 +194,13 @@ function step(state: GameState, dt: number) {
     player.vy = 0;
     player.jumps = 0;
   }
+  Powerups.update(state, dt);
+  Powerups.land(state, previousY, dt);
   if (state.distance >= state.next) Generator.spawn(state);
   const previousPositions = new Map();
   for (const object of state.objects) {
     previousPositions.set(object, object.x);
+    Generator.evolve(object, state.time);
     Generator.move(object, state.runSpeed, dt);
   }
   // Attacks resolve before body collisions, so a well-timed punch saves the run.
@@ -208,17 +219,18 @@ function step(state: GameState, dt: number) {
   state.hostileProjectiles = state.hostileProjectiles.filter((bolt) => bolt.life > 0);
   for (const object of state.objects) {
     if (state.hits >= state.health) break;
-    if (object.dead) continue;
+    if (object.dead || object.kind === "platform") continue;
     if (
       !object.passed &&
       collides(player, object, previousPositions.get(object)!, previousPlayerX)
     ) {
+      if (Powerups.collect(state, object)) continue;
       if (object.kind === "ember") collect(state, object);
       else hit(state, object);
     }
     if (
       !object.dead &&
-      object.kind !== "ember" &&
+      (object.kind === "hazard" || object.kind === "enemy") &&
       !object.passed &&
       object.x + object.w < player.x
     ) {
@@ -230,7 +242,7 @@ function step(state: GameState, dt: number) {
   }
   state.dash = Math.max(0, state.dash - dt);
   state.attackTime = Math.max(0, state.attackTime - dt);
-  state.objects = state.objects.filter((object) => !object.dead && object.x > -40);
+  state.objects = state.objects.filter((object) => !object.dead && object.x + object.w > -40);
 }
 function update(state: GameState, seconds: number) {
   if (state.mode !== "playing" || !Number.isFinite(seconds)) return;
@@ -241,4 +253,15 @@ function update(state: GameState, seconds: number) {
     remaining -= dt;
   }
 }
-export = { create, update, jump, dash, attack: Combat.attack, collides, hit, collect };
+export = {
+  powerup: Powerups.activate,
+  activatePowerup: Powerups.activate,
+  create,
+  update,
+  jump,
+  dash,
+  attack: Combat.attack,
+  collides,
+  hit,
+  collect,
+};

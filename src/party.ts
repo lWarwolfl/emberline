@@ -1,5 +1,6 @@
 import type { GameState, Loadout, Seed, UpgradeLevels } from "./types";
 import Engine from "./engine";
+import Powerups from "./powerups";
 import Config from "./config";
 import Difficulty from "./difficulty";
 import Generator from "./generator";
@@ -37,7 +38,7 @@ export interface PartyRun {
   earned: number;
   revision: number;
 }
-export type Action = "jump" | "dash" | "attack" | "front";
+export type Action = "jump" | "dash" | "attack" | "front" | "powerup";
 export function progress(run: PartyRun) {
   return {
     value: Math.max(
@@ -181,7 +182,10 @@ export function action(run: PartyRun, id: string, action: Action) {
     run.revision++;
     return true;
   }
-  return Engine[action](s);
+  const previousScore = s.score;
+  const acted = Engine[action](s);
+  run.world.score += s.score - previousScore;
+  return acted;
 }
 function drain(run: PartyRun, m: Member) {
   for (const event of m.state.events.splice(0)) {
@@ -229,8 +233,11 @@ function step(run: PartyRun, dt: number) {
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
     m.frontCooldown = Math.max(0, m.frontCooldown - dt);
+    const previousY = s.player.y;
     s.player.vy += Config.gravity * dt;
     s.player.y += s.player.vy * dt;
+    Powerups.update(s, dt);
+    Powerups.land(s, previousY, dt);
     if (s.player.y >= Config.floor - Config.playerHeight)
       Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
   }
@@ -240,10 +247,14 @@ function step(run: PartyRun, dt: number) {
     const scale = scaling(run.members.filter((m) => m.connected).length);
     // Scaling applies once, only to newly spawned enemies.
     for (const object of w.objects.slice(before))
-      if (object.kind === "enemy") object.hp = Combat.durability(object) * scale.armor;
+      if (object.kind === "enemy")
+        object.hp = (object.hp ?? Combat.durability(object)) * scale.armor;
   }
   const previous = new Map(w.objects.map((o) => [o, o.x]));
-  for (const object of w.objects) Generator.move(object, w.runSpeed, dt);
+  for (const object of w.objects) {
+    Generator.evolve(object, w.time);
+    Generator.move(object, w.runSpeed, dt);
+  }
   // Front courier is the locked-aim target. Any courier in the line can intercept the shot.
   w.player = live[0].state.player;
   const beforeTravel = w.distance;
@@ -295,13 +306,20 @@ function step(run: PartyRun, dt: number) {
   }
   w.hostileProjectiles = w.hostileProjectiles.filter((b) => b.life > 0);
   for (const object of w.objects) {
-    if (object.dead || object.passed) continue;
+    if (object.dead || object.passed || object.kind === "platform") continue;
     const target = live.find(
-      (m) => alive(m) && Engine.collides(m.state.player, object, previous.get(object) ?? object.x),
+      (m) =>
+        alive(m) &&
+        (object.kind !== "powerup" || m.state.powerups.length < 3) &&
+        Engine.collides(m.state.player, object, previous.get(object) ?? object.x),
     );
     if (target) {
       const s = target.state,
         score = s.score;
+      if (Powerups.collect(s, object)) {
+        w.score += s.score - score;
+        continue;
+      }
       if (object.kind === "ember") {
         Engine.collect(s, object);
         w.embers += s.rules.coinReward;
@@ -312,7 +330,7 @@ function step(run: PartyRun, dt: number) {
     if (
       !object.dead &&
       !object.passed &&
-      object.kind !== "ember" &&
+      (object.kind === "hazard" || object.kind === "enemy") &&
       object.x + object.w < Math.min(...live.filter(alive).map((m) => m.state.player.x))
     ) {
       object.passed = true;
@@ -367,7 +385,7 @@ function step(run: PartyRun, dt: number) {
     m.state.attackTime = Math.max(0, m.state.attackTime - dt);
     drain(run, m);
   }
-  w.objects = w.objects.filter((o) => !o.dead && o.x > -40);
+  w.objects = w.objects.filter((o) => !o.dead && o.x + o.w > -40);
   if (!run.members.some(alive)) {
     w.mode = "dead";
     w.events.push({ type: "death", x: w.player.x, y: w.player.y });
@@ -414,6 +432,8 @@ export function view(run: PartyRun, id: string): GameState {
   return local
     ? {
         ...run.world,
+        powerups: local.powerups,
+        activePowerup: local.activePowerup,
         player: local.player,
         health: local.health,
         hits: local.hits,

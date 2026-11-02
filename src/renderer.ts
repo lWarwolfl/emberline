@@ -51,7 +51,10 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       sprites.object({ kind: "hazard", variant: "barrier", x: 440, y: 178, w: 25, h: 18 }, time);
     } else {
       for (const device of state.traversals) sprites.traversal(device);
-      for (const object of state.objects) sprites.object(object, time);
+      for (const object of state.objects)
+        if (object.kind === "platform") sprites.object(object, time);
+      for (const object of state.objects)
+        if (object.kind !== "platform") sprites.object(object, time);
       if (party) {
         const beacon = party.checkpoint;
         if (beacon) {

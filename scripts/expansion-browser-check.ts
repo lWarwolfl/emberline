@@ -22,11 +22,11 @@ async function main() {
     await page.evaluate(() =>
       localStorage.setItem(
         "emberline.economy",
-        JSON.stringify({ version: 2, balance: "50000", owned: [], upgrades: {} }),
+        JSON.stringify({ version: 2, balance: "75000", owned: [], upgrades: {} }),
       ),
     );
     await page.reload();
-    let balance = 50000n;
+    let balance = 75000n;
     for (const [id, price] of [
       ["lynx", 2000n],
       ["moth", 2800n],
@@ -48,6 +48,7 @@ async function main() {
     for (const [id, price, count] of [
       ["repeater", 3600n, 1],
       ["rail", 5200n, 1],
+      ["siegebreaker", 25000n, 1],
       ["nova", 4400n, 5],
     ] as const) {
       await page.click("#setup");
@@ -76,7 +77,7 @@ async function main() {
       );
       assert(
         await page.evaluate(() =>
-          EmberlineDebug.app.state.projectiles.every((b) => Number.isFinite(b.vx)),
+          EmberlineDebug.app.state.projectiles.every((b) => Number.isFinite(b.vx) && b.vy === 0),
         ),
       );
       await page.screenshot({ path: path.join(root, `test-results/new-gun-${id}.png`) });

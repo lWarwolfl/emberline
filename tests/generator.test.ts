@@ -55,7 +55,8 @@ test("all obstacle, enemy, encounter and coin variants occur", () => {
     previousCoins = encounter.coinPattern;
     patterns.add(encounter.pattern);
     coins.add(encounter.coinPattern);
-    for (const object of state.objects) if (object.kind !== "ember") variants.add(object.variant);
+    for (const object of state.objects)
+      if (["hazard", "enemy"].includes(object.kind)) variants.add(object.variant);
     state.objects = [];
   }
   for (const item of [...Content.obstacles, ...Content.enemies])
@@ -72,7 +73,7 @@ test("10,000 generated chunks respect bounds, rewards, clearance and spacing", (
       state.time = i * Config.sectorSeconds;
       state.speed = 98 + i * 3;
       const encounter = Generator.spawn(state);
-      const dangers = state.objects.filter((object) => object.kind !== "ember");
+      const dangers = state.objects.filter((object) => ["hazard", "enemy"].includes(object.kind));
       const coins = state.objects.filter((object) => object.kind === "ember");
       assert(coins.length >= 2);
       for (const coin of coins) {
@@ -82,7 +83,8 @@ test("10,000 generated chunks respect bounds, rewards, clearance and spacing", (
       }
       assert(encounter.gap >= Config.generation.minimumGapSeconds);
       assert(state.next > state.distance + encounter.width + state.speed * encounter.gap);
-      for (let j = 1; j < dangers.length; j++) assert(dangers[j].x - dangers[j - 1].x >= 155);
+      const ordered = dangers.sort((a, b) => a.x - b.x);
+      for (let j = 1; j < ordered.length; j++) assert(ordered[j].x - ordered[j - 1].x >= 155);
       state.objects = [];
     }
   }
@@ -92,7 +94,7 @@ test("early runs do not spawn locked content", () => {
   const state = run();
   for (let i = 0; i < 100; i++) {
     Generator.spawn(state);
-    for (const object of state.objects.filter((item) => item.kind !== "ember")) {
+    for (const object of state.objects.filter((item) => ["hazard", "enemy"].includes(item.kind))) {
       const definition = [...Content.obstacles, ...Content.enemies].find(
         (item) => item.id === object.variant,
       );

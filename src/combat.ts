@@ -23,11 +23,12 @@ function durability(object: Pick<WorldObject, "kind" | "variant">) {
   return armor[object.variant] || 0;
 }
 function breakable(object: WorldObject) {
-  return object.kind !== "ember" && durability(object) > 0;
+  return (object.kind === "hazard" || object.kind === "enemy") && durability(object) > 0;
 }
 
 function damage(state: GameState, object: WorldObject, amount: number, method: string) {
   if (object.dead || !breakable(object)) return false;
+  if (method !== "shot" && state.activePowerup?.id === "titan") amount *= 2.5;
   object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1000) / 1000;
   if (object.hp > 0) {
     state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
@@ -41,7 +42,14 @@ function damage(state: GameState, object: WorldObject, amount: number, method: s
     x: object.x,
     y: object.y,
     points,
-    label: method === "dash" ? "DASH" : object.kind === "enemy" ? "ENEMY" : "BREAK",
+    label:
+      method === "blast"
+        ? "BLAST"
+        : method === "dash"
+          ? "DASH"
+          : object.kind === "enemy"
+            ? "ENEMY"
+            : "BREAK",
   });
   return true;
 }
@@ -60,38 +68,20 @@ function attack(state: GameState) {
   if (weapon.id === "punch") return true;
   const x = state.player.x + 15,
     y = state.player.y + 9;
-  const target = state.objects
-    .filter(
-      (object) =>
-        !object.dead &&
-        breakable(object) &&
-        object.x > x &&
-        object.x - x < 270 &&
-        Math.abs(object.y + object.h / 2 - y) < 70,
-    )
-    .sort((a, b) => a.x - b.x)[0];
-  let angle = 0;
-  if (target) {
-    const travelTime = Math.max(
-      0.05,
-      (target.x - x) / (weapon.speed! + state.runSpeed + (target.extraSpeed || 0)),
-    );
-    angle = Math.atan2((target.y + target.h / 2 - y) / travelTime, weapon.speed!);
-  }
   const spread =
-    weapon.id === "nova"
-      ? [-0.24, -0.12, 0, 0.12, 0.24]
-      : weapon.id === "scatter"
-        ? [-0.16, 0, 0.16]
-        : [0];
+    weapon.id === "nova" ? [-4, -2, 0, 2, 4] : weapon.id === "scatter" ? [-3, 0, 3] : [0];
   for (const offset of spread)
     state.projectiles.push({
       x,
-      y,
-      vx: Math.cos(angle + offset) * weapon.speed!,
-      vy: Math.sin(angle + offset) * weapon.speed!,
+      y: y + offset,
+      vx: weapon.speed!,
+      vy: 0,
+      armored: weapon.id === "siegebreaker",
       life: weapon.life!,
-      damage: weapon.damage * state.stats.damageMultiplier,
+      damage:
+        weapon.damage *
+        state.stats.damageMultiplier *
+        (state.activePowerup?.id === "titan" ? 2.5 : 1),
       color: weapon.color,
       pierce: weapon.pierce ?? 0,
       hitTargets: [],
@@ -123,17 +113,39 @@ function update(state: GameState, dt: number, moveProjectiles = true) {
     bolt.y += bolt.vy * dt;
     bolt.life -= dt;
     for (const object of state.objects) {
-      if (object.dead || object.kind === "ember" || bolt.hitTargets?.includes(object)) continue;
+      if (
+        object.dead ||
+        !["enemy", "hazard"].includes(object.kind) ||
+        bolt.hitTargets?.includes(object)
+      )
+        continue;
       if (
         Math.max(bolt.x, previousX) + 3 >= object.x &&
         Math.min(bolt.x, previousX) <= object.x + object.w &&
-        Math.max(bolt.y, previousY) + 2 >= object.y &&
-        Math.min(bolt.y, previousY) <= object.y + object.h
+        Math.max(bolt.y, previousY) + 2 >= object.y - (object.kind === "enemy" ? 5 : 0) &&
+        Math.min(bolt.y, previousY) <= object.y + object.h + (object.kind === "enemy" ? 5 : 0)
       ) {
-        damage(state, object, bolt.damage, "shot");
-        if (!breakable(object))
+        if (bolt.armored && object.kind === "hazard" && !breakable(object)) object.hp ??= 5;
+        if (bolt.armored && object.kind === "hazard" && !breakable(object)) {
+          object.hp! -= bolt.damage;
+          if (object.hp! <= 0) {
+            object.dead = true;
+            state.score += 100n;
+            state.events.push({
+              type: "smash",
+              x: object.x,
+              y: object.y,
+              points: 100,
+              label: "BREACH",
+            });
+          }
+        } else damage(state, object, bolt.damage, "shot");
+        if (!breakable(object) && !object.dead)
           state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
-        if (breakable(object) && (bolt.pierce ?? 0) > 0) {
+        if (
+          (breakable(object) || (bolt.armored && object.kind === "hazard")) &&
+          (bolt.pierce ?? 0) > 0
+        ) {
           bolt.pierce!--;
           (bolt.hitTargets ??= []).push(object);
         } else {
