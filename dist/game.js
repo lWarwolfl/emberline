@@ -5174,8 +5174,10 @@
             const l = m.state.stats.levels;
             levels.textContent = `DASH ${l.dash} \xB7 JUMP ${l.jump} \xB7 DAMAGE ${l.damage} \xB7 ${m.state.stats.maxJumps} JUMPS`;
             row.title = `${title.textContent} \xB7 ${health.textContent} \xB7 ${levels.textContent}`;
-            if (container === hud && !alive(m) && m.connected) health.textContent = "DOWN";
-            row.append(title, health, levels);
+            if (container === hud) {
+              if (!alive(m) && m.connected) health.textContent = "DOWN";
+              row.append(health, title);
+            } else row.append(title, health, levels);
             container.append(row);
           }
         }

@@ -8,7 +8,11 @@ const css = fs.readFileSync(path.resolve(__dirname, "../style.css"), "utf8");
 
 test("gameplay player HUD stays compact while lobby retains detailed stats", () => {
   assert.match(css, /#party-hud\s*\{[^}]*padding:\s*4px;[^}]*gap:\s*4px;/);
-  assert.match(css, /#party-hud \.party-member\s*\{[^}]*padding:\s*2px 6px;/);
+  assert.match(
+    css,
+    /#party-hud \.party-member\s*\{[^}]*display:\s*flex;[^}]*padding:\s*2px 6px;[^}]*white-space:\s*nowrap;/,
+  );
+  assert.match(css, /#party-hud \.party-member span\s*\{[^}]*display:\s*inline;/);
   assert.match(css, /#party-hud \.party-member small\s*\{\s*display:\s*none;/);
   assert.match(
     css,

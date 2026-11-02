@@ -142,8 +142,8 @@ are the verification path; no browser or visual inspection was performed.
 ## Compact co-op instruments
 
 Claude Design surface: Command / Inspect. Keep the gameplay canvas dominant.
-The in-game party strip uses two fixed-height text lines per courier: name/order
-and HP or DOWN. Upgrade details remain in the Party menu and the full status is
+The in-game party strip uses one line per courier: HP or DOWN, then name and
+order. Upgrade details remain in the Party menu and the full status is
 available on hover. Existing parchment/mint/down-state colors and Consolas stay
 unchanged; no new controls or decorative panels. Names truncate rather than wrap.
 Four columns on desktop and two on narrow screens bound the HUD height.

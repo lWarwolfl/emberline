@@ -83,8 +83,10 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           const l = m.state.stats.levels;
           levels.textContent = `DASH ${l.dash} · JUMP ${l.jump} · DAMAGE ${l.damage} · ${m.state.stats.maxJumps} JUMPS`;
           row.title = `${title.textContent} · ${health.textContent} · ${levels.textContent}`;
-          if (container === hud && !Party.alive(m) && m.connected) health.textContent = "DOWN";
-          row.append(title, health, levels);
+          if (container === hud) {
+            if (!Party.alive(m) && m.connected) health.textContent = "DOWN";
+            row.append(health, title);
+          } else row.append(title, health, levels);
           container.append(row);
         }
       }
