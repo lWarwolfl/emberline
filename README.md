@@ -18,9 +18,11 @@ browser, Node installation, terminal, or internet connection for solo play.
 The build is unsigned; Windows may show a publisher/SmartScreen warning.
 
 The desktop app starts its LAN server automatically on port 4174. In PARTY / LAN,
-choose HOST LAN ROOM and share a displayed LAN address plus the room code. On
-another installed copy, enter that host address and room code, then JOIN LAN.
-A teammate can also open the shared address in a browser. Keep the host app open.
+choose HOST LAN ROOM. Teammates on the same Wi-Fi scan the join code or open the
+join link, set a name, and join. A six-character room code still works. On
+another installed copy, paste the join link or enter the host address and room
+code, then JOIN LAN. A teammate can also open the link in a browser. Keep the
+host app open.
 Allow the app through Windows Firewall on private networks if prompted. Guest
 Wi-Fi isolation or VPN routing can still prevent connections. This is a trusted
 local-network service, not an authenticated public internet server.
@@ -394,13 +396,13 @@ committed root `index.html` through `file://` to preserve double-click playback.
 
 Open **PARTY / LAN** before starting a run. Equip gear and buy upgrades first; each courier brings their own saved gear and upgrade levels. The host's difficulty sets the shared route and starting health. New arrivals join in lobby order, up to four players. Join before the run starts. The host starts, pauses and restarts; a host departure ends the party, preserving coins already earned. Keep the host browser visible while playing. There is no automatic host migration or mid-run reconnect.
 
-**LAN (same network, no internet required after installation):** install Node 24, run `npm ci` once, then `npm run host` (Windows can use `Host-LAN.cmd`). Keep that terminal open. It prints `http://localhost:4173/` and the computer's LAN addresses. Every device opens the same printed LAN address; one player chooses **HOST LAN ROOM**, and the others choose **JOIN LAN** with the host's six-character code. Allow Node through the computer's firewall on the private network if asked. Guest Wi-Fi isolation can block device-to-device traffic. `PORT=...` changes the port. The relay serves only the packaged public build, rejects cross-site browser connections, locks started rooms, limits rooms to four sockets and routes guest input only to the host.
+**LAN (same network, no internet required after installation):** install Node 24, run `npm ci` once, then `npm run host` (Windows can use `Host-LAN.cmd`). Keep that terminal open. It prints `http://localhost:4173/` and the computer's LAN addresses. One player opens a printed address and chooses **HOST LAN ROOM**. The panel shows a join link and a scannable code for that room. Teammates open the link, set a name, and choose **JOIN LAN**. The link fills the room code. Pasting the whole link into the address field also works, as does typing the six-character code. Allow Node through the computer's firewall on the private network if asked. Guest Wi-Fi isolation can block device-to-device traffic. `PORT=...` changes the port. The relay serves only the packaged public build, rejects cross-site browser connections, locks started rooms, limits rooms to four sockets and routes guest input only to the host.
 
 **Direct browser invites (including the public site):** open **PARTY / LAN**, then **DIRECT INVITES**, and choose **HOST STEPS** or **JOIN STEPS**.
 
-Host: **HOST PARTY**, then **NEW INVITE**. Send that whole code to one teammate. Paste the answer they send back and choose **ACCEPT ANSWER**. Repeat with a new invite for each teammate.
+Host: **HOST PARTY**, then **NEW INVITE**. In the same room, let the teammate scan the code. Otherwise copy the whole code. Scan or paste the answer they send back and choose **ACCEPT ANSWER**. Repeat with a new invite for each teammate.
 
-Join: paste the host's whole invite, choose **JOIN / CREATE ANSWER**, then send the answer code back and stay on the page.
+Join: scan or paste the host's whole invite, choose **JOIN / CREATE ANSWER**, then show or send the answer code back and stay on the page. Scanning uses the device camera where the browser allows it.
 
 Pending invites expire in three minutes and can be cancelled. Connections use WebRTC data channels and a public STUN server for address discovery; no game server account is needed. Some routers, VPNs and firewalls block a direct route, and no TURN relay is bundled. On the same Wi-Fi, open the address printed by `npm run host` and use **HOST LAN ROOM** there. The public site has no LAN relay, so **HOST LAN ROOM** on that site opens these direct steps instead of a failed socket.
 

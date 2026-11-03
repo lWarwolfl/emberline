@@ -1,6 +1,8 @@
 import * as Party from "./party";
 import Config from "./config";
 import * as Network from "./party-network";
+import { isLoopback, joinAddresses, joinUrl, parseJoin } from "./party-link";
+import { drawQr } from "./qr";
 import { element } from "./dom";
 import type { GameEvent } from "./types";
 
@@ -31,6 +33,12 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     fingerprint = "";
   let pendingEvents: GameEvent[] = [];
   let unsentEvents: GameEvent[] = [];
+  let advertised: string[] = [];
+  let selectedAddress = "";
+  let joinLink = "";
+  let scanning = 0;
+  let scanTimer = 0;
+  let scanStream: MediaStream | null = null;
   const inputs = new Map<string, { seq: number; time: number; count: number }>();
   function say(text: string) {
     status.textContent = text;
@@ -139,6 +147,9 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     fingerprint = "";
     output.value = "";
     input.value = "";
+    clearCode();
+    hideLanShare();
+    stopScan();
     say(message);
     refresh();
     ended();
@@ -161,7 +172,10 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           ? `HOST / ${code} · Choose gear before hosting. Start when everyone appears below.`
           : "Connected. Waiting for the host's lobby.",
       );
-      if (/^[A-F0-9]{6}$/.test(code)) room.value = code;
+      if (/^[A-F0-9]{6}$/.test(code)) {
+        room.value = code;
+        if (hosting) showLanShare(code);
+      } else hideLanShare();
       refresh();
     },
     message(sender, data) {
@@ -283,17 +297,178 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     setDirectRole(hosting);
     details.scrollIntoView({ block: "nearest" });
   }
+  function stopScan() {
+    scanning++;
+    window.clearTimeout(scanTimer);
+    scanStream?.getTracks().forEach((track) => track.stop());
+    scanStream = null;
+    const video = element(doc, "party-scan-video", "video");
+    video.srcObject = null;
+    element(doc, "party-scan-view").hidden = true;
+  }
+  function clearCode() {
+    element(doc, "party-code-qr", "canvas").hidden = true;
+    element(doc, "party-code-note").hidden = true;
+  }
+  function hideLanShare() {
+    joinLink = "";
+    selectedAddress = "";
+    element(doc, "party-lan-share").hidden = true;
+    element(doc, "party-lan-choices").replaceChildren();
+  }
+  function showLanShare(code: string) {
+    const options = joinAddresses(location.href, advertised);
+    if (!selectedAddress || !options.includes(selectedAddress)) selectedAddress = options[0] ?? "";
+    const share = element(doc, "party-lan-share");
+    if (!selectedAddress) {
+      share.hidden = true;
+      return;
+    }
+    joinLink = joinUrl(selectedAddress, code);
+    element(doc, "party-lan-link").textContent = joinLink;
+    drawQr(element(doc, "party-lan-qr", "canvas"), joinLink);
+    const choices = element(doc, "party-lan-choices");
+    choices.replaceChildren();
+    if (options.length > 1)
+      for (const option of options) {
+        const button = doc.createElement("button");
+        button.type = "button";
+        button.className = "secondary";
+        button.textContent = new URL(option).host;
+        button.setAttribute("aria-pressed", String(option === selectedAddress));
+        button.addEventListener("click", () => {
+          selectedAddress = option;
+          showLanShare(code);
+        });
+        choices.append(button);
+      }
+    element(doc, "party-lan-reach").textContent = isLoopback(selectedAddress)
+      ? "This link only works on this computer. Choose a network address for phones on the same Wi-Fi."
+      : "Teammates on this Wi-Fi open the link or scan the code, set a name, and join.";
+    element(doc, "party-share-link", "button").hidden = typeof navigator.share !== "function";
+    share.hidden = false;
+  }
+  async function showCode(code: string) {
+    output.value = code;
+    const canvas = element(doc, "party-code-qr", "canvas");
+    const note = element(doc, "party-code-note");
+    note.hidden = false;
+    try {
+      drawQr(canvas, await Network.compressed(code), "L");
+      canvas.hidden = false;
+      note.textContent = "Same room: scan this code. Anywhere else: copy it.";
+    } catch {
+      canvas.hidden = true;
+      note.textContent = "This code is too long to scan. Copy it instead.";
+    }
+  }
   async function connectLan(hosting: boolean, roomCode: string) {
     if (!/^https?:$/.test(location.protocol))
       throw new Error("Start npm run host and open its LAN address first.");
-    const address = hosting ? "" : element(doc, "party-address", "input").value;
+    let address = hosting ? "" : element(doc, "party-address", "input").value;
+    let code = roomCode;
+    const parsed = address.trim() ? parseJoin(address) : null;
+    if (parsed) {
+      address = new URL(parsed.address).origin === location.origin ? "" : parsed.address;
+      code = parsed.room;
+      element(doc, "party-address", "input").value = address;
+      room.value = code;
+    }
+    if (!hosting && !/^[A-F0-9]{6}$/i.test(code.trim()))
+      throw new Error("Enter the six-character LAN room code.");
     try {
       await Network.requireRelay(address);
     } catch (error) {
       if (error instanceof Error && error.message.includes("no LAN relay")) openDirect(hosting);
       throw error;
     }
-    network.lan(hosting, roomCode, address);
+    network.lan(hosting, code, address);
+  }
+  async function applyScanned(text: string) {
+    const join = parseJoin(text);
+    if (join) {
+      const target = new URL(joinUrl(join.address, join.room));
+      if (target.origin !== location.origin) {
+        say("Opening the host's address on this network…");
+        location.assign(target.href);
+        return;
+      }
+      if (active) throw new Error("Leave this party before joining another room.");
+      room.value = join.room;
+      element(doc, "party-address", "input").value = "";
+      say(`Joining room ${join.room}…`);
+      await connectLan(false, join.room);
+      return;
+    }
+    const invite = await Network.read(text);
+    input.value = text.trim();
+    if (invite.type === "offer") {
+      if (active) throw new Error("Leave this party before answering a new invite.");
+      setDirectRole(false);
+      await showCode(await network.answer(text));
+      markDirect("party-join-steps", 2);
+      say("Answer ready. Show this code to the host, or copy it. Stay on this page.");
+      return;
+    }
+    if (!network.isHost) throw new Error("Only the host can accept an answer.");
+    await network.accept(text);
+    input.value = "";
+    markDirect("party-host-steps", 3);
+    say("Answer accepted. Waiting for your teammate to appear in the crew.");
+  }
+  async function scan() {
+    const Detector = (
+      globalThis as {
+        BarcodeDetector?: new (options: { formats: string[] }) => {
+          detect(source: CanvasImageSource): Promise<{ rawValue: string }[]>;
+        };
+      }
+    ).BarcodeDetector;
+    if (!Detector || !navigator.mediaDevices?.getUserMedia)
+      throw new Error("This browser can't scan codes. Paste the invite or join link instead.");
+    stopScan();
+    const epoch = scanning;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" } },
+    });
+    if (epoch !== scanning) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    scanStream = stream;
+    const video = element(doc, "party-scan-video", "video");
+    video.srcObject = stream;
+    await video.play();
+    element(doc, "party-scan-view").hidden = false;
+    const detector = new Detector({ formats: ["qr_code"] });
+    let busy = false;
+    const tick = () => {
+      if (epoch !== scanning) return;
+      if (!busy && video.readyState >= 2) {
+        busy = true;
+        void detector
+          .detect(video)
+          .then(async (codes) => {
+            const text = codes
+              .map((code) => code.rawValue)
+              .find((value) => /EMBER7C?\.|https?:\/\//i.test(value));
+            if (!text || epoch !== scanning) return;
+            stopScan();
+            try {
+              await applyScanned(text);
+            } catch (error) {
+              say(error instanceof Error ? error.message : "Connection failed.");
+            }
+          })
+          .catch(() => undefined)
+          .finally(() => {
+            busy = false;
+          });
+      }
+      if (epoch === scanning) scanTimer = window.setTimeout(tick, 200);
+    };
+    scanTimer = window.setTimeout(tick, 200);
   }
   const clicks: Record<string, () => void | Promise<void>> = {
     "party-host": () => {
@@ -302,17 +477,15 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     },
     "party-invite": async () => {
       say("Preparing a unique invite for the next teammate…");
-      output.value = await network.offer();
+      await showCode(await network.offer());
       markDirect("party-host-steps", 2);
-      say(
-        "Send this whole invite to one teammate. When their answer comes back, paste it and accept it.",
-      );
+      say("Let your teammate scan this code, or copy it. Then scan or paste their answer.");
     },
     "party-answer": async () => {
       say("Preparing answer…");
-      output.value = await network.answer(input.value);
+      await showCode(await network.answer(input.value));
       markDirect("party-join-steps", 2);
-      say("Copy this answer and send the whole code back to the host. Stay on this page.");
+      say("Show this answer to the host, or copy it. Stay on this page.");
     },
     "party-accept": async () => {
       const button = element(doc, "party-accept", "button");
@@ -336,15 +509,41 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     "party-cancel-invites": () => {
       network.cancelPending();
       output.value = "";
+      clearCode();
       say("Pending invites cancelled. Connected teammates remain.");
     },
     "party-role-host": () => setDirectRole(true),
     "party-role-join": () => setDirectRole(false),
     "party-lan-host": () => connectLan(true, ""),
     "party-lan-join": () => {
-      if (!/^[A-Fa-f0-9]{6}$/.test(room.value.trim()))
+      const parsed = parseJoin(element(doc, "party-address", "input").value);
+      const code = parsed?.room ?? room.value;
+      if (!/^[A-Fa-f0-9]{6}$/.test(code.trim()))
         throw new Error("Enter the six-character LAN room code.");
-      return connectLan(false, room.value);
+      return connectLan(false, code);
+    },
+    "party-copy-link": async () => {
+      if (!joinLink) return;
+      try {
+        await navigator.clipboard.writeText(joinLink);
+        say("Join link copied.");
+      } catch {
+        say("Select the join link and copy it.");
+      }
+    },
+    "party-share-link": async () => {
+      if (!joinLink || typeof navigator.share !== "function") return;
+      try {
+        await navigator.share({ title: "EMBERLINE", url: joinLink });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        throw error;
+      }
+    },
+    "party-scan": () => scan(),
+    "party-scan-stop": () => {
+      stopScan();
+      say("Scan stopped.");
     },
     "party-copy": async () => {
       if (!output.value) return;
@@ -371,7 +570,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   element(doc, "party-direct").addEventListener("paste", (event) => {
     if (!(event instanceof ClipboardEvent) || event.target === input) return;
     const text = event.clipboardData?.getData("text") ?? "";
-    if (!text.includes("EMBER7.")) return;
+    if (!text.includes("EMBER7.") && !text.includes("EMBER7C.")) return;
     event.preventDefault();
     input.value = text;
     input.focus();
@@ -400,13 +599,23 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       .then((info: { desktop?: boolean; hosting?: boolean; addresses?: unknown } | null) => {
         if (!info?.hosting || !Array.isArray(info.addresses)) return;
         element(doc, "party-lan-instructions").textContent = info.desktop
-          ? "LAN hosting starts automatically with this app. Host a room, then share one of these addresses and its room code. Keep the app open."
-          : "LAN hosting is running for this web page. Host a room, then share one of these addresses and its room code. Keep this tab open.";
-        element(doc, "party-lan-addresses").textContent = info.addresses
-          .filter((address): address is string => typeof address === "string")
-          .join(" · ");
+          ? "LAN hosting starts automatically with this app. Host a room, then let teammates scan the join code or open its link. Keep the app open."
+          : "LAN hosting is running for this web page. Host a room, then let teammates scan the join code or open its link. Keep this tab open.";
+        advertised = info.addresses.filter(
+          (address): address is string => typeof address === "string",
+        );
+        element(doc, "party-lan-addresses").textContent = advertised.join(" · ");
+        if (host && /^[A-F0-9]{6}$/.test(room.value)) showLanShare(room.value);
       })
       .catch(() => {});
+  dialog.addEventListener("close", () => stopScan());
+  const linked = /^https?:$/.test(location.protocol) ? parseJoin(location.href) : null;
+  if (linked) {
+    room.value = linked.room;
+    say(`Room ${linked.room} is ready. Set your name, then Join LAN.`);
+    dialog.showModal();
+    name.focus();
+  }
   refresh();
   return {
     get active() {

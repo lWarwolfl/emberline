@@ -246,23 +246,42 @@
             </div>
             <details class="party-path" open>
               <summary>
-                <span>LAN / SAME WI-FI</span><small>Room code · local network</small>
+                <span>LAN / SAME WI-FI</span><small>Scan to join · local network</small>
               </summary>
               <div class="party-path-body">
                 <p id="party-lan-instructions">
-                  The desktop app and the local web host start LAN rooms on this network. Open
-                  Host-LAN or the installed app, then share the address shown here. The public site
-                  cannot open a LAN port; use a direct invite there.
+                  The desktop app and the local web host start LAN rooms on this network. Host a
+                  room, then let teammates scan the join code. The public site cannot open a LAN
+                  port; use a direct invite there.
                 </p>
                 <p id="party-lan-addresses" class="setup-note"></p>
                 <button id="party-lan-host" class="secondary">HOST LAN ROOM</button>
+                <div id="party-lan-share" hidden>
+                  <p id="party-lan-link" class="setup-note"></p>
+                  <canvas id="party-lan-qr" aria-label="LAN join code"></canvas>
+                  <div id="party-lan-choices"></div>
+                  <div class="party-step-actions">
+                    <button id="party-copy-link" class="secondary" type="button">
+                      COPY JOIN LINK
+                    </button>
+                    <button id="party-share-link" class="secondary" type="button" hidden>
+                      SHARE LINK
+                    </button>
+                  </div>
+                  <small id="party-lan-reach"
+                    >Teammates on this Wi-Fi open the link or scan the code, set a name, and
+                    join.</small
+                  >
+                </div>
                 <div class="party-divider">OR JOIN A ROOM</div>
                 <div class="party-field">
-                  <label for="party-address">HOST LAN ADDRESS / LEAVE EMPTY FOR THIS SERVER</label>
+                  <label for="party-address"
+                    >HOST ADDRESS, JOIN LINK, OR EMPTY ON THIS SERVER</label
+                  >
                   <input
                     id="party-address"
                     type="url"
-                    placeholder="http://192.168.1.10:4174/"
+                    placeholder="http://192.168.1.10:4174/?room=A1B2C3"
                     autocomplete="off"
                     spellcheck="false"
                   />
@@ -308,12 +327,15 @@
                   <li>
                     <b>02</b
                     ><span
-                      >Choose New Invite. Copy the whole code and send it to one teammate.</span
+                      >Choose New Invite. A teammate in the room can scan the code, or you can copy
+                      it.</span
                     >
                   </li>
                   <li>
                     <b>03</b
-                    ><span>Paste the answer they send back, then choose Accept Answer.</span>
+                    ><span
+                      >Scan or paste the answer they send back, then choose Accept Answer.</span
+                    >
                   </li>
                   <li>
                     <b>04</b
@@ -325,14 +347,17 @@
                 </ol>
                 <ol id="party-join-steps" class="party-steps" hidden>
                   <li class="is-current">
-                    <b>01</b><span>Paste the host's whole invite into the code box.</span>
+                    <b>01</b><span>Scan or paste the host's whole invite into the code box.</span>
                   </li>
                   <li>
                     <b>02</b
                     ><span>Choose Join / Create Answer. Wait until your answer appears.</span>
                   </li>
                   <li>
-                    <b>03</b><span>Copy that answer and send the whole code back to the host.</span>
+                    <b>03</b
+                    ><span
+                      >Show or copy that answer so the host can scan it. Stay on this page.</span
+                    >
                   </li>
                   <li>
                     <b>04</b><span>Stay on this page until your name appears in the crew.</span>
@@ -357,6 +382,8 @@
                       spellcheck="false"
                       placeholder="Your code appears here"
                     ></textarea>
+                    <canvas id="party-code-qr" hidden aria-label="Invite code"></canvas>
+                    <p id="party-code-note" class="setup-note" hidden></p>
                   </div>
                   <div id="party-copy-actions" class="party-step-actions">
                     <button id="party-copy" class="secondary" type="button">COPY CODE</button>
@@ -370,8 +397,17 @@
                       spellcheck="false"
                       autocapitalize="off"
                       autocomplete="off"
-                      placeholder="Paste the whole EMBER7 code here"
+                      placeholder="Paste or scan the whole EMBER7 code"
                     ></textarea>
+                    <div class="party-step-actions">
+                      <button id="party-scan" class="secondary" type="button">SCAN A CODE</button>
+                    </div>
+                    <div id="party-scan-view" hidden>
+                      <video id="party-scan-video" muted playsinline></video>
+                      <button id="party-scan-stop" class="secondary" type="button">
+                        STOP SCAN
+                      </button>
+                    </div>
                   </div>
                   <div id="party-accept-actions" class="party-step-actions">
                     <button id="party-accept" class="secondary" type="button">ACCEPT ANSWER</button>
@@ -383,8 +419,9 @@
                   </div>
                 </div>
                 <small
-                  >One invite per teammate. Unused invites expire after three minutes. Some routers
-                  and VPNs block a direct connection. There is no internet relay.</small
+                  >One invite per teammate. In the same room, scan the code instead of copying it.
+                  Unused invites expire after three minutes. Some routers and VPNs block a direct
+                  connection. There is no internet relay.</small
                 >
               </div>
             </details>

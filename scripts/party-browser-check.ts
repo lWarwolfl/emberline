@@ -50,6 +50,24 @@ async function main() {
     await host.waitForFunction(() => EmberlineDebug.app.session.active);
     const room = await host.inputValue("#party-room");
     assert.match(room, /^[A-F0-9]{6}$/);
+    await host.waitForSelector("#party-lan-share:not([hidden])");
+    const joinLink = (await host.locator("#party-lan-link").textContent()) ?? "";
+    assert.match(joinLink, new RegExp(`[?&]room=${room}(?:&|$)`));
+    assert.ok(
+      (await host.evaluate(
+        () => (document.getElementById("party-lan-qr") as HTMLCanvasElement).width,
+      )) > 20,
+    );
+    const linked = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    const joiner = await linked.newPage();
+    joiner.on("pageerror", (error) => errors.push(error.message));
+    const deepLink = new URL(url);
+    deepLink.searchParams.set("room", room);
+    await joiner.goto(deepLink.toString());
+    await joiner.waitForSelector("#party-dialog[open]");
+    assert.equal(await joiner.inputValue("#party-room"), room);
+    assert.match((await joiner.locator("#party-message").textContent()) ?? "", new RegExp(room));
+    await linked.close();
     const pages = [host];
     for (let i = 1; i <= 3; i++) {
       const page = await courier(`Player ${i}`, i === 3);
@@ -217,6 +235,9 @@ async function main() {
             "EMBER7.",
           ),
         );
+        if (direct.length === 1) {
+          assert.equal(await directHost.locator("#party-code-note").isVisible(), true);
+        }
         const invite = await directHost.inputValue("#party-output");
         const guest = await courier(`Direct ${i}`);
         await guest.locator(".party-path > summary").filter({ hasText: "DIRECT INVITES" }).click();

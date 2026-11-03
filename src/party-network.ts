@@ -21,25 +21,93 @@ interface Invite {
   type: "offer" | "answer";
   sdp: string;
 }
-function unpack(code: string): Invite {
+function valid(data: Invite) {
+  return (
+    !!data &&
+    data.version === 7 &&
+    (data.type === "offer" || data.type === "answer") &&
+    typeof data.sdp === "string" &&
+    data.sdp.length <= 24000 &&
+    /^[a-z0-9-]{1,64}$/i.test(data.slot)
+  );
+}
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function base32(bytes: Uint8Array) {
+  let bits = 0,
+    value = 0,
+    out = "";
+  for (const byte of bytes) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      out += BASE32[(value >> bits) & 31];
+    }
+  }
+  if (bits) out += BASE32[(value << (5 - bits)) & 31];
+  return out;
+}
+function unbase32(text: string) {
+  let bits = 0,
+    value = 0;
+  const out: number[] = [];
+  for (const char of text) {
+    const index = BASE32.indexOf(char);
+    if (index < 0) continue;
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      out.push((value >> bits) & 255);
+    }
+  }
+  return Uint8Array.from(out);
+}
+function copyBytes(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy;
+}
+async function deflate(text: string) {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function inflate(bytes: Uint8Array) {
+  const stream = new Blob([copyBytes(bytes).buffer])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Response(stream).text();
+}
+async function unpackCompressed(payload: string) {
+  const raw = payload.toUpperCase().replace(/[^A-Z2-7]/g, "");
+  for (let trim = 0; trim <= 40 && raw.length - trim >= 8; trim++) {
+    try {
+      const data = JSON.parse(await inflate(unbase32(raw.slice(0, raw.length - trim)))) as Invite;
+      if (valid(data)) return data;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+async function unpack(code: string): Promise<Invite> {
   if (code.length > 32000) throw new Error("Invite is too long.");
   const compact = code.replace(/[\s\u200b-\u200d\ufeff]/g, "");
-  const start = compact.indexOf("EMBER7.");
-  if (start < 0) throw new Error("Paste the whole EMBER7 code.");
-  const raw = compact.slice(start + "EMBER7.".length).replace(/[^A-Za-z0-9+/=]/g, "");
+  const compressedAt = compact.indexOf("EMBER7C.");
+  const plainAt = compact.indexOf("EMBER7.");
+  if (compressedAt >= 0 && (plainAt < 0 || compressedAt < plainAt)) {
+    const invite = await unpackCompressed(compact.slice(compressedAt + "EMBER7C.".length));
+    if (invite) return invite;
+    throw new Error("That code is incomplete. Copy the whole answer and paste it again.");
+  }
+  if (plainAt < 0) throw new Error("Paste the whole EMBER7 code.");
+  const raw = compact.slice(plainAt + "EMBER7.".length).replace(/[^A-Za-z0-9+/=]/g, "");
   for (let trim = 0; trim <= 40 && raw.length - trim >= 8; trim++) {
     const slice = raw.slice(0, raw.length - trim);
     const padded = slice + "=".repeat((4 - (slice.length % 4)) % 4);
     try {
       const data = JSON.parse(atob(padded)) as Invite;
-      if (
-        data.version === 7 &&
-        (data.type === "offer" || data.type === "answer") &&
-        typeof data.sdp === "string" &&
-        data.sdp.length <= 24000 &&
-        /^[a-z0-9-]{1,64}$/i.test(data.slot)
-      )
-        return data;
+      if (valid(data)) return data;
     } catch {
       continue;
     }
@@ -48,6 +116,26 @@ function unpack(code: string): Invite {
 }
 function pack(data: Invite) {
   return "EMBER7." + btoa(JSON.stringify(data));
+}
+function sameNetworkSdp(sdp: string) {
+  const lines = sdp.split(/\r?\n/);
+  const local = lines.filter(
+    (line) => line.startsWith("a=candidate:") && / typ host\b|\.local\b/i.test(line),
+  );
+  if (!local.length) return sdp;
+  return lines
+    .filter((line) => !line.startsWith("a=candidate:") || local.includes(line))
+    .join("\r\n");
+}
+/** Short uppercase form of an invite, small enough for a same-room scan. */
+export async function compressed(code: string) {
+  const invite = await unpack(code);
+  invite.sdp = sameNetworkSdp(invite.sdp);
+  return "EMBER7C." + base32(await deflate(JSON.stringify(invite)));
+}
+export async function read(code: string) {
+  const invite = await unpack(code);
+  return { type: invite.type, slot: invite.slot, sdp: invite.sdp };
 }
 function message(text: unknown): Message | null {
   if (typeof text !== "string" || text.length > 250000) return null;
@@ -233,7 +321,7 @@ export function create(callbacks: Callbacks) {
     }
   }
   async function answer(code: string) {
-    const invite = unpack(code);
+    const invite = await unpack(code);
     if (invite.type !== "offer") throw new Error("Paste the host's invite here.");
     close();
     role = "guest";
@@ -250,7 +338,7 @@ export function create(callbacks: Callbacks) {
   }
   async function accept(code: string) {
     if (role !== "host") throw new Error("Only the host can accept answers.");
-    const invite = unpack(code),
+    const invite = await unpack(code),
       pc = peers.get(invite.slot);
     if (invite.type !== "answer" || !pc || pc.signalingState !== "have-local-offer")
       throw new Error(

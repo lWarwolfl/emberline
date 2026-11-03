@@ -1904,6 +1904,55 @@ dialog::backdrop {
   letter-spacing: 3px;
   font-size: 16px;
 }
+#party-lan-share {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 12px;
+}
+#party-lan-share[hidden],
+#party-scan-view[hidden],
+#party-code-qr[hidden],
+#party-code-note[hidden],
+#party-share-link[hidden] {
+  display: none;
+}
+#party-lan-link,
+#party-code-note {
+  overflow-wrap: anywhere;
+}
+#party-lan-qr,
+#party-code-qr {
+  width: 196px;
+  height: auto;
+  background: var(--ink);
+  image-rendering: pixelated;
+}
+#party-lan-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#party-lan-choices:empty {
+  display: none;
+}
+#party-lan-choices button {
+  width: auto;
+  min-height: 44px;
+}
+#party-lan-choices button[aria-pressed="true"] {
+  color: var(--ember);
+  border-color: var(--ember);
+}
+#party-scan-view {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+#party-scan-video {
+  width: min(100%, 280px);
+  background: var(--bg);
+}
 .party-path {
   border-top: 1px solid var(--line);
   margin-top: 20px;

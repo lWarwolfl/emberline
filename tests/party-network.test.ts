@@ -135,4 +135,34 @@ test("a line-broken answer still matches the waiting invite", async (t) => {
   const answer = await guest.answer(offer);
   const wrapped = `answer:\n${answer.slice(0, 16)}\n${answer.slice(16)}\nthanks`;
   await host.accept(wrapped);
+
+  const host2 = Network.create(callbacks);
+  const guest2 = Network.create(callbacks);
+  t.after(() => {
+    host2.close();
+    guest2.close();
+  });
+  host2.host();
+  const offer2 = await host2.offer();
+  const compactOffer = await Network.compressed(offer2);
+  assert.match(compactOffer, /^EMBER7C\.[A-Z2-7]+$/);
+  assert.equal((await Network.read(compactOffer)).type, "offer");
+  assert.equal((await Network.read(compactOffer)).slot, (await Network.read(offer2)).slot);
+  const compactAnswer = await Network.compressed(await guest2.answer(compactOffer));
+  assert.equal((await Network.read(compactAnswer)).type, "answer");
+  await host2.accept(`scan:\n${compactAnswer}`);
+});
+
+test("a scannable invite keeps LAN candidates and drops public ones", async () => {
+  const sdp = [
+    "v=0",
+    "a=candidate:1 1 udp 1 10.0.0.2 9 typ host",
+    "a=candidate:2 1 udp 1 8.8.8.8 9 typ srflx",
+    "",
+  ].join("\r\n");
+  const code = "EMBER7." + btoa(JSON.stringify({ version: 7, slot: "abc", type: "offer", sdp }));
+  const invite = await Network.read(await Network.compressed(code));
+  assert.match(invite.sdp, /10\.0\.0\.2/);
+  assert.match(invite.sdp, /typ host/);
+  assert.doesNotMatch(invite.sdp, /8\.8\.8\.8/);
 });
