@@ -402,6 +402,314 @@ export function update(run: PartyRun, seconds: number) {
     remaining -= dt;
   }
 }
+function coast(run: PartyRun, dt: number) {
+  const w = run.world;
+  w.time += dt;
+  w.biomeBlend = Math.min(1, w.biomeBlend + dt / Config.generation.themeFadeSeconds);
+  w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
+  if (w.traversalEffect) {
+    w.traversalEffect.life -= dt;
+    if (w.traversalEffect.life <= 0) w.traversalEffect = null;
+  }
+  const distance = w.runSpeed * dt;
+  w.distance += distance;
+  formation(run, false, dt);
+  for (const m of sorted(run).filter(alive)) {
+    const s = m.state;
+    s.time = w.time;
+    s.distance = w.distance;
+    s.runSpeed = w.runSpeed;
+    s.objects = w.objects;
+    s.dash = Math.max(0, s.dash - dt);
+    s.attackTime = Math.max(0, s.attackTime - dt);
+    s.cooldown = Math.max(0, s.cooldown - dt);
+    s.invincible = Math.max(0, s.invincible - dt);
+    s.attackCooldown = Math.max(0, s.attackCooldown - dt);
+    m.frontCooldown = Math.max(0, m.frontCooldown - dt);
+    if (s.grounding) {
+      if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
+      else s.player.vy = Math.max(520, s.player.vy);
+    }
+    const previousY = s.player.y;
+    s.player.vy += Config.gravity * dt;
+    s.player.y += s.player.vy * dt;
+    Powerups.update(s, dt);
+    Powerups.land(s, previousY, dt);
+    if (s.player.y >= Config.floor - Config.playerHeight)
+      Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
+  }
+  for (const object of w.objects) Generator.move(object, w.runSpeed, dt);
+  for (const bolt of w.projectiles) {
+    bolt.x += bolt.vx * dt;
+    bolt.y += bolt.vy * dt;
+  }
+  for (const bolt of w.hostileProjectiles) {
+    bolt.previousX = bolt.x;
+    bolt.previousY = bolt.y;
+    bolt.x += bolt.vx * dt;
+    bolt.y += bolt.vy * dt;
+  }
+  for (const device of w.traversals) {
+    device.x -= distance;
+    device.age += dt;
+  }
+  if (run.checkpoint) {
+    run.checkpoint.x -= distance;
+    run.checkpoint.age += dt;
+    run.checkpoint.flash = Math.max(0, run.checkpoint.flash - dt);
+  }
+}
+const catchupLimit = 0.25;
+/** Guest-only motion. Spawning, hits and score stay with the host snapshot. */
+export function glide(run: PartyRun, seconds: number) {
+  if (run.world.mode !== "playing" || !Number.isFinite(seconds) || seconds <= 0) return;
+  let remaining = Math.min(catchupLimit, seconds);
+  while (remaining > 1e-9 && run.world.mode === "playing") {
+    const dt = Math.min(Config.simulationStep, remaining);
+    coast(run, dt);
+    remaining -= dt;
+  }
+}
+function approach(current: number, next: number, amount: number, limit: number) {
+  const delta = next - current;
+  return Math.abs(delta) > limit ? next : current + delta * amount;
+}
+function copyMember(member: Member): Member {
+  const copy = JSON.parse(
+    JSON.stringify(member, (_key, value) => (typeof value === "bigint" ? value.toString() : value)),
+  ) as Member;
+  copy.state.score = BigInt(copy.state.score);
+  return copy;
+}
+function takeClosest<T>(pool: T[], score: (item: T) => number | null) {
+  let best = -1;
+  let bestScore = Infinity;
+  for (let i = 0; i < pool.length; i++) {
+    const value = score(pool[i]);
+    if (value === null || value >= bestScore) continue;
+    best = i;
+    bestScore = value;
+  }
+  return best < 0 ? null : pool.splice(best, 1)[0];
+}
+/** Pull a guest's moving picture toward a host snapshot without teleporting small gaps. */
+export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
+  const amount = 1 - Math.exp(-18 * Math.max(0, seconds));
+  const from = authority.world;
+  const to = shown.world;
+  to.distance = approach(to.distance, from.distance, amount, 80);
+  if (Math.abs(from.distance - to.distance) > 80) to.parallax = from.parallax;
+  to.mode = from.mode;
+  to.rules = from.rules;
+  to.speed = from.speed;
+  to.targetSpeed = from.targetSpeed;
+  to.runSpeed = from.runSpeed;
+  to.pace = from.pace;
+  to.nextPaceTime = from.nextPaceTime;
+  to.paceBag = from.paceBag;
+  to.sector = from.sector;
+  to.biome = from.biome;
+  to.previousBiome = from.previousBiome;
+  to.biomeBlend = from.biomeBlend;
+  to.biomeBag = from.biomeBag;
+  to.groupIndex = from.groupIndex;
+  to.biomeIndex = from.biomeIndex;
+  to.bossActive = from.bossActive;
+  to.score = from.score;
+  to.scoreRemainder = from.scoreRemainder;
+  to.embers = from.embers;
+  to.pickups = from.pickups;
+  to.combo = from.combo;
+  to.seed = from.seed;
+  to.loadout = from.loadout;
+  to.stats = from.stats;
+  to.next = from.next;
+  to.rng = from.rng;
+  to.sceneryRng = from.sceneryRng;
+  to.paceRng = from.paceRng;
+  to.patternBag = from.patternBag;
+  to.coinBag = from.coinBag;
+  to.patternPool = from.patternPool;
+  to.lastVariant = from.lastVariant;
+  to.lastPattern = from.lastPattern;
+  to.lastCoinPattern = from.lastCoinPattern;
+  to.lastEncounter = from.lastEncounter;
+  to.encounterCount = from.encounterCount;
+  to.traversalEffect = from.traversalEffect ? { ...from.traversalEffect } : null;
+  const objects = shown.world.objects.slice();
+  shown.world.objects = from.objects.map((target) => {
+    let current = takeClosest(objects, (item) =>
+      item.kind === target.kind && item.variant === target.variant
+        ? Math.hypot(item.x - target.x, item.y - target.y)
+        : null,
+    );
+    if (current && Math.hypot(current.x - target.x, current.y - target.y) > 36) {
+      objects.push(current);
+      current = null;
+    }
+    if (!current) return { ...target };
+    current.x = approach(current.x, target.x, amount, 48);
+    current.y = approach(current.y, target.y, amount, 36);
+    Object.assign(current, {
+      w: target.w,
+      h: target.h,
+      hp: target.hp,
+      dead: target.dead,
+      passed: target.passed,
+      evolution: target.evolution,
+      baseY: target.baseY,
+      amplitude: target.amplitude,
+      frequency: target.frequency,
+      extraSpeed: target.extraSpeed,
+      phase: target.phase,
+      age: target.age,
+      charge: target.charge,
+      aimX: target.aimX,
+      aimY: target.aimY,
+      shotCooldown: target.shotCooldown,
+      rarity: target.rarity,
+    });
+    return current;
+  });
+  const bolts = shown.world.projectiles.slice();
+  shown.world.projectiles = from.projectiles.map((target) => {
+    let current = takeClosest(bolts, (item) =>
+      item.color === target.color ? Math.hypot(item.x - target.x, item.y - target.y) : null,
+    );
+    if (current && Math.hypot(current.x - target.x, current.y - target.y) > 48) {
+      bolts.push(current);
+      current = null;
+    }
+    if (!current) return { ...target, hitTargets: [] };
+    current.x = approach(current.x, target.x, amount, 48);
+    current.y = approach(current.y, target.y, amount, 36);
+    Object.assign(current, {
+      vx: target.vx,
+      vy: target.vy,
+      life: target.life,
+      damage: target.damage,
+      armored: target.armored,
+      pierce: target.pierce,
+    });
+    return current;
+  });
+  const hostile = shown.world.hostileProjectiles.slice();
+  shown.world.hostileProjectiles = from.hostileProjectiles.map((target) => {
+    let current = takeClosest(hostile, (item) => Math.hypot(item.x - target.x, item.y - target.y));
+    if (current && Math.hypot(current.x - target.x, current.y - target.y) > 48) {
+      hostile.push(current);
+      current = null;
+    }
+    if (!current) return { ...target, hitTargets: [] };
+    current.x = approach(current.x, target.x, amount, 48);
+    current.y = approach(current.y, target.y, amount, 36);
+    current.previousX = current.x;
+    current.previousY = current.y;
+    Object.assign(current, {
+      vx: target.vx,
+      vy: target.vy,
+      life: target.life,
+      damage: target.damage,
+      color: target.color,
+    });
+    return current;
+  });
+  const devices = shown.world.traversals.slice();
+  shown.world.traversals = from.traversals.map((target) => {
+    let current = takeClosest(devices, (item) =>
+      item.kind === target.kind && item.role === target.role ? Math.abs(item.x - target.x) : null,
+    );
+    if (current && Math.abs(current.x - target.x) > 80) {
+      devices.push(current);
+      current = null;
+    }
+    if (!current) return { ...target };
+    current.x = approach(current.x, target.x, amount, 80);
+    current.age = target.age;
+    return current;
+  });
+  shown.members = authority.members.map((source) => {
+    const member = shown.members.find((item) => item.id === source.id) ?? copyMember(source);
+    member.name = source.name;
+    member.connected = source.connected;
+    member.frontCooldown = source.frontCooldown;
+    const local = member.state;
+    const remote = source.state;
+    Object.assign(local, {
+      mode: remote.mode,
+      hits: remote.hits,
+      health: remote.health,
+      dash: remote.dash,
+      cooldown: remote.cooldown,
+      invincible: remote.invincible,
+      attackCooldown: remote.attackCooldown,
+      attackTime: remote.attackTime,
+      attackId: remote.attackId,
+      dashId: remote.dashId,
+      grounding: remote.grounding,
+      loadout: remote.loadout,
+      stats: remote.stats,
+      rules: remote.rules,
+      powerups: remote.powerups.slice(),
+      activePowerup: remote.activePowerup ? { ...remote.activePowerup } : null,
+    });
+    local.player.vy = remote.player.vy;
+    local.player.jumps = remote.player.jumps;
+    local.player.x = approach(local.player.x, remote.player.x, amount, 48);
+    local.player.y = approach(local.player.y, remote.player.y, amount, 64);
+    return member;
+  });
+  shown.order = authority.order.slice();
+  shown.beaconDistance = authority.beaconDistance;
+  shown.earned = authority.earned;
+  shown.revision = authority.revision;
+  shown.started = authority.started;
+  if (!authority.checkpoint) shown.checkpoint = null;
+  else if (!shown.checkpoint) shown.checkpoint = { ...authority.checkpoint };
+  else {
+    shown.checkpoint.x = approach(shown.checkpoint.x, authority.checkpoint.x, amount, 80);
+    shown.checkpoint.age = authority.checkpoint.age;
+    shown.checkpoint.used = authority.checkpoint.used;
+    shown.checkpoint.flash = authority.checkpoint.flash;
+  }
+  const front = sorted(shown).find(alive);
+  if (front) shown.world.player = front.state.player;
+}
+export function clone(run: PartyRun) {
+  return decode(encode(run));
+}
+function overwrite(target: PartyRun, source: PartyRun) {
+  const copy = clone(source);
+  target.world = copy.world;
+  target.members = copy.members;
+  target.order = copy.order.slice();
+  target.checkpoint = copy.checkpoint;
+  target.beaconDistance = copy.beaconDistance;
+  target.started = copy.started;
+  target.earned = copy.earned;
+  target.revision = copy.revision;
+}
+/** Move a late host snapshot forward to the guest's clock, or hard-reset a large gap. */
+export function rebase(shown: PartyRun, incoming: PartyRun) {
+  const skew = shown.world.time - incoming.world.time;
+  const playing = shown.world.mode === "playing" && incoming.world.mode === "playing";
+  if (!playing || Math.abs(skew) > catchupLimit) {
+    overwrite(shown, incoming);
+    return clone(shown);
+  }
+  if (skew > 0) glide(incoming, skew);
+  return incoming;
+}
+/** Keep simulating the guest view, then merge it toward the host. */
+export function present(shown: PartyRun, authority: PartyRun, seconds: number) {
+  if (shown.world.mode !== "playing" || authority.world.mode !== "playing") {
+    overwrite(shown, authority);
+    return;
+  }
+  glide(shown, seconds);
+  glide(authority, seconds);
+  ease(shown, authority, seconds);
+}
 /** Serializable snapshot: all clients render the host's exact order and positions. */
 export function encode(run: PartyRun) {
   const snapshot = {

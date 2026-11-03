@@ -20,6 +20,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   const startButton = element(doc, "party-start", "button");
   const front = element(doc, "touch-front", "button");
   let run: Party.PartyRun | null = null;
+  let authority: Party.PartyRun | null = null;
   let id = "host",
     host = false,
     elapsed = 0,
@@ -139,6 +140,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     network.close();
     active = false;
     run = null;
+    authority = null;
     pendingEvents = [];
     unsentEvents = [];
     pendingCoins = 0;
@@ -226,7 +228,12 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
             !received.members.some((m) => m.id === id)
           )
             return;
-          run = received;
+          if (!run || !authority) {
+            run = received;
+            authority = Party.clone(received);
+          } else authority = Party.rebase(run, received);
+          if (run.world.mode === "playing" && authority.world.mode === "playing")
+            Party.ease(run, authority, 1 / 20);
           quiet = 0;
           if (data.eventId > seenEvent && Array.isArray(data.events)) {
             pendingEvents.push(...data.events.slice(0, 100));
@@ -664,6 +671,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           leave("Connection timed out. Party ended; earned coins are saved.");
           return;
         }
+        if (run && authority) Party.present(run, authority, dt);
       }
       refresh();
     },
