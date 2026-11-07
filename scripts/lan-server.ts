@@ -22,6 +22,11 @@ export function createLanServer(root = path.resolve(__dirname, "../public"), des
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
+      if (url.pathname === "/api/party/ice") {
+        const { handlePartyIceRequest } = await import("../server/party-ice");
+        handlePartyIceRequest(req, res);
+        return;
+      }
       if (url.pathname.startsWith("/api/account/")) {
         const { handleAccountRequest } = await import("../server/accounts");
         await handleAccountRequest(req, res);

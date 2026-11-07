@@ -47,6 +47,7 @@
     "db:migrate": "node --import tsx server/migrate.ts",
     "test": "npm run build && node --import tsx --test tests/*.test.ts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "test:party-connect": "npm run build:site && node --import tsx scripts/party-connect-browser-check.ts",
     "test:browser": "node --import tsx scripts/browser-check.ts && node --import tsx scripts/gear-browser-check.ts && node --import tsx scripts/shop-browser-check.ts && node --import tsx scripts/coins-browser-check.ts && node --import tsx scripts/upgrades-browser-check.ts && node --import tsx scripts/reset-browser-check.ts && node --import tsx scripts/expansion-browser-check.ts && node --import tsx scripts/party-browser-check.ts && node --import tsx scripts/pwa-browser-check.ts",
     "format": "prettier --write .",
     "metadata": "node --import tsx scripts/update-metadata.ts",

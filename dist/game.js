@@ -6027,6 +6027,70 @@
     },
   });
 
+  // src/party-ice.ts
+  async function roomIce(fetcher = fetch) {
+    if (!/^https?:$/.test(location.protocol)) return DIRECT_ICE;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5e3);
+    try {
+      const response = await fetcher("/api/party/ice", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (response.status === 404) return DIRECT_ICE;
+      if (!response.ok) throw new Error("The room relay is unavailable. Try again shortly.");
+      const data = await response.json();
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("iceServers" in data) ||
+        !Array.isArray(data.iceServers)
+      )
+        throw new Error("The room relay returned an invalid configuration.");
+      const iceServers = data.iceServers.map((server) => {
+        if (!server || typeof server !== "object" || !("urls" in server))
+          throw new Error("The room relay returned an invalid server.");
+        const urls = typeof server.urls === "string" ? [server.urls] : server.urls;
+        if (
+          !Array.isArray(urls) ||
+          !urls.length ||
+          urls.some((url) => typeof url !== "string" || !/^(?:stun|turn)s?:/.test(url))
+        )
+          throw new Error("The room relay returned an invalid server address.");
+        const username =
+          "username" in server && typeof server.username === "string" ? server.username : void 0;
+        const credential =
+          "credential" in server && typeof server.credential === "string"
+            ? server.credential
+            : void 0;
+        if (urls.some((url) => /^turns?:/.test(url)) && (!username || !credential))
+          throw new Error("The room relay credentials are missing.");
+        return { urls, ...(username ? { username } : {}), ...(credential ? { credential } : {}) };
+      });
+      return { iceServers };
+    } catch (error) {
+      if (controller.signal.aborted)
+        throw new Error("Room setup timed out. Check your connection and try again.", {
+          cause: error,
+        });
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  var DIRECT_ICE;
+  var init_party_ice = __esm({
+    "src/party-ice.ts"() {
+      "use strict";
+      DIRECT_ICE = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ],
+      };
+    },
+  });
+
   // node_modules/peerjs-js-binarypack/dist/binarypack.mjs
   function $e8379818650e2442$var$concatArrayBuffers(bufs) {
     let size = 0;
@@ -13534,7 +13598,10 @@
       throw new Error("Use the host's http:// LAN address without login details.");
     let hosting = false;
     try {
-      const response = await fetch(new URL("/host-info", target), { cache: "no-store" });
+      const response = await fetch(new URL("/host-info", target), {
+        cache: "no-store",
+        signal: AbortSignal.timeout(4e3),
+      });
       if (response.ok) {
         const info = await response.json();
         hosting = info.hosting === true;
@@ -13547,7 +13614,7 @@
         "This page has no LAN relay. Host a room here for an internet join link, or open the address printed by npm run host.",
       );
   }
-  function create2(callbacks) {
+  function create2(callbacks, options = {}) {
     let links = /* @__PURE__ */ new Map();
     let peers = /* @__PURE__ */ new Map();
     let socket = null;
@@ -13556,6 +13623,7 @@
     let localId = "host",
       hostId = "host";
     let generation = 0;
+    let cancelOpening = null;
     const timers = /* @__PURE__ */ new Set();
     function later(fn, ms) {
       const timer = setTimeout(() => {
@@ -13566,6 +13634,9 @@
       return timer;
     }
     function close() {
+      const cancel = cancelOpening;
+      cancelOpening = null;
+      cancel?.();
       generation++;
       const previous = links;
       links = /* @__PURE__ */ new Map();
@@ -13754,8 +13825,9 @@
       }).toString();
       const ws = new WebSocket(url);
       socket = ws;
+      let welcomed = false;
       const timeout = later(() => {
-        if (ws.readyState !== WebSocket.OPEN) {
+        if (generation === epoch && !welcomed) {
           ws.close();
           callbacks.status("LAN server unavailable. Open the address printed by npm run host.");
         }
@@ -13763,8 +13835,6 @@
       let opened = false;
       ws.onopen = () => {
         opened = true;
-        clearTimeout(timeout);
-        timers.delete(timeout);
       };
       ws.onerror = () => {
         if (!opened)
@@ -13778,6 +13848,9 @@
         try {
           const envelope = JSON.parse(event.data);
           if (envelope.kind === "welcome") {
+            welcomed = true;
+            clearTimeout(timeout);
+            timers.delete(timeout);
             localId = envelope.id;
             hostId = envelope.host;
             callbacks.ready(localId, host2, envelope.room);
@@ -13810,89 +13883,162 @@
       close();
       role = hosting ? "host" : "guest";
       const epoch = generation;
-      const { default: Peer } = await Promise.resolve().then(
-        () => (init_bundler(), bundler_exports),
-      );
-      const ice = {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-        ],
-      };
+      const ice = await roomIce();
+      if (generation !== epoch) throw new Error("Connection cancelled.");
       const hostPeerId = `emberline8${room.toLowerCase()}`;
-      const peer2 = hosting
-        ? new Peer(hostPeerId, { config: ice, debug: 0 })
-        : new Peer({ config: ice, debug: 0 });
-      broker = peer2;
-      const fail = (error) => {
-        if (generation !== epoch) return;
-        const kind = error.type ?? "";
-        callbacks.status(
-          kind === "unavailable-id"
-            ? "That room is already open. Host again to get a new link."
-            : kind === "peer-unavailable"
-              ? "That room is not open. Ask the host to keep the page open and send the link again."
-              : "Could not open the room link. Check the internet connection and try again.",
-        );
-        close();
-      };
-      const bind = (id, channel, opened) => {
-        channel.on("open", () => {
-          if (generation !== epoch) {
-            channel.close();
-            return;
-          }
-          if (role === "host" && links.size >= 3) {
-            channel.close();
-            callbacks.status("The room is full.");
-            return;
-          }
-          links.set(id, {
-            send(data) {
-              channel.send(data);
-            },
-            close() {
-              channel.close();
-            },
-          });
-          opened?.();
-          if (!opened) callbacks.status("Courier connected.");
-        });
-        channel.on("data", (data) => {
-          if (generation !== epoch) return;
-          const parsed = message(typeof data === "string" ? data : JSON.stringify(data));
-          if (parsed) callbacks.message(id, parsed);
-        });
-        const lost = () => {
-          if (generation !== epoch || !links.has(id)) return;
-          links.delete(id);
-          callbacks.disconnected(id);
-        };
-        channel.on("close", lost);
-        channel.on("error", lost);
-      };
-      peer2.on("error", (error) => fail(error ?? {}));
-      peer2.on("disconnected", () => {
-        if (generation === epoch) peer2.reconnect();
-      });
-      if (hosting) {
-        peer2.on("open", () => {
-          if (generation !== epoch) return;
-          localId = hostId = "host";
-          callbacks.ready(localId, true, room);
-        });
-        peer2.on("connection", (value) => bind(value.peer, value));
-      } else
-        peer2.on("open", () => {
-          if (generation !== epoch) return;
-          localId = peer2.id;
-          hostId = hostPeerId;
-          bind(
-            hostPeerId,
-            peer2.connect(hostPeerId, { reliable: true, serialization: "json" }),
-            () => callbacks.ready(localId, false, room),
+      const createPeer =
+        options.roomPeer ??
+        (async (id, config) => {
+          const { default: Peer } = await Promise.resolve().then(
+            () => (init_bundler(), bundler_exports),
           );
+          return id ? new Peer(id, { config, debug: 0 }) : new Peer({ config, debug: 0 });
         });
+      const peer2 = await createPeer(hosting ? hostPeerId : void 0, ice);
+      if (generation !== epoch) {
+        peer2.destroy();
+        throw new Error("Connection cancelled.");
+      }
+      broker = peer2;
+      const routeError = ice.iceServers?.some((server) =>
+        (typeof server.urls === "string" ? [server.urls] : server.urls).some((url) =>
+          /^turns?:/.test(url),
+        ),
+      )
+        ? "Could not reach the host through the room relay. Check both connections and try again."
+        : "These networks could not connect. This site has no relay enabled yet; try the same Wi-Fi or another network.";
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timeout = later(() => fail({ type: "timeout" }), options.connectionTimeoutMs ?? 3e4);
+        const clear = () => {
+          clearTimeout(timeout);
+          timers.delete(timeout);
+          cancelOpening = null;
+        };
+        cancelOpening = () => {
+          if (settled) return;
+          settled = true;
+          clear();
+          reject(new Error("Connection cancelled."));
+        };
+        const ready = () => {
+          if (settled || generation !== epoch) return;
+          settled = true;
+          clear();
+          callbacks.ready(localId, hosting, room);
+          resolve();
+        };
+        const fail = (error) => {
+          if (generation !== epoch) return;
+          const kind = error.type ?? "";
+          const text =
+            kind === "unavailable-id"
+              ? "That room is already open. Host again to get a new link."
+              : kind === "peer-unavailable"
+                ? "That room is not open. Ask the host to keep the page open and send the link again."
+                : kind === "webrtc" || (!hosting && kind === "timeout")
+                  ? routeError
+                  : "Could not open the room link. Check the internet connection and try again.";
+          if (!settled) {
+            settled = true;
+            clear();
+            close();
+            reject(new Error(text));
+          } else {
+            callbacks.status(text);
+            if (hosting && (kind === "webrtc" || kind === "peer-unavailable")) return;
+            callbacks.disconnected(hosting ? localId : hostId);
+            close();
+          }
+        };
+        const bind = (id, channel) => {
+          let connected = false;
+          let finished = false;
+          const pendingTimeout = later(() => {
+            if (generation !== epoch || connected || finished) return;
+            lost();
+          }, options.connectionTimeoutMs ?? 3e4);
+          const clearChannelTimeout = () => {
+            clearTimeout(pendingTimeout);
+            timers.delete(pendingTimeout);
+          };
+          const lost = () => {
+            if (generation !== epoch || finished) return;
+            finished = true;
+            clearChannelTimeout();
+            channel.peerConnection?.removeEventListener("iceconnectionstatechange", iceChanged);
+            channel.peerConnection?.removeEventListener("connectionstatechange", iceChanged);
+            const wasConnected = links.delete(id);
+            channel.close();
+            if (wasConnected) callbacks.disconnected(id);
+            else if (!hosting) fail({ type: "webrtc" });
+            else callbacks.status("A teammate could not connect. Ask them to try again.");
+          };
+          channel.on("open", () => {
+            if (generation !== epoch || finished) {
+              channel.close();
+              return;
+            }
+            clearChannelTimeout();
+            if (hosting && links.size >= 3) {
+              finished = true;
+              channel.close();
+              callbacks.status("The room is full.");
+              return;
+            }
+            connected = true;
+            links.set(id, {
+              send(data) {
+                channel.send(data);
+              },
+              close() {
+                channel.close();
+              },
+            });
+            if (!hosting) ready();
+            else callbacks.status("Courier connected.");
+          });
+          channel.on("data", (data) => {
+            if (generation !== epoch || finished) return;
+            const parsed = message(typeof data === "string" ? data : JSON.stringify(data));
+            if (parsed) callbacks.message(id, parsed);
+          });
+          const iceChanged = () => {
+            if (
+              channel.peerConnection?.iceConnectionState === "failed" ||
+              channel.peerConnection?.connectionState === "failed"
+            )
+              lost();
+          };
+          channel.peerConnection?.addEventListener("iceconnectionstatechange", iceChanged);
+          channel.peerConnection?.addEventListener("connectionstatechange", iceChanged);
+          channel.on("close", lost);
+          channel.on("error", lost);
+        };
+        peer2.on("error", (error) => fail(error ?? {}));
+        peer2.on("disconnected", () => {
+          if (generation === epoch) peer2.reconnect();
+        });
+        peer2.on("open", () => {
+          if (generation !== epoch) return;
+          if (hosting) {
+            localId = hostId = "host";
+            ready();
+          } else {
+            localId = peer2.id;
+            hostId = hostPeerId;
+            bind(hostPeerId, peer2.connect(hostPeerId, { reliable: true, serialization: "json" }));
+          }
+        });
+        if (hosting)
+          peer2.on("connection", (value) => {
+            if (generation !== epoch) {
+              value.close();
+              return;
+            }
+            bind(value.peer, value);
+          });
+      });
     }
     function sendSocket(to, data) {
       if (socket?.readyState === WebSocket.OPEN && socket.bufferedAmount < 5e5)
@@ -13945,6 +14091,7 @@
   var init_party_network = __esm({
     "src/party-network.ts"() {
       "use strict";
+      init_party_ice();
       BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     },
   });
@@ -14770,6 +14917,26 @@
     let scanning = 0;
     let scanTimer = 0;
     let scanStream = null;
+    let connecting = null;
+    let connectionAttempt = 0;
+    const busyActions = /* @__PURE__ */ new Set();
+    const buttonLabels = /* @__PURE__ */ new Map();
+    function buttonLoading(key, busy) {
+      const button = element(doc, key, "button");
+      const label = buttonLabels.get(key) ?? button.textContent ?? "";
+      buttonLabels.set(key, label);
+      const text = busy
+        ? key === "party-lan-host"
+          ? "OPENING ROOM..."
+          : key === "party-lan-join"
+            ? "JOINING..."
+            : "PLEASE WAIT..."
+        : label;
+      if (button.getAttribute("aria-busy") === String(busy) && button.textContent === text) return;
+      button.setAttribute("aria-busy", String(busy));
+      button.classList.toggle("is-loading", busy);
+      button.textContent = text;
+    }
     const inputs = /* @__PURE__ */ new Map();
     function say(text) {
       status.textContent = text;
@@ -14780,9 +14947,17 @@
     function refresh() {
       const members = run ? sorted(run) : [];
       startButton.disabled = !host || !run || run.world.mode === "playing";
-      element(doc, "party-leave", "button").disabled = !active;
+      element(doc, "party-leave", "button").disabled = !active && !connecting;
+      for (const key of buttonLabels.keys()) {
+        const busy = busyActions.has(key) || connecting === key;
+        buttonLoading(key, busy);
+        if (["party-copy-link", "party-share-link", "party-scan"].includes(key))
+          element(doc, key, "button").disabled = busy || connecting !== null;
+      }
       for (const key of ["party-lan-host", "party-lan-join"])
-        element(doc, key, "button").disabled = active;
+        element(doc, key, "button").disabled =
+          active || connecting !== null || busyActions.has(key);
+      name.disabled = room.disabled = active || connecting !== null;
       front.hidden = !active;
       hud.hidden = !active;
       element(doc, "beacon-trail").hidden = !active;
@@ -14872,6 +15047,8 @@
       earned = run.earned;
     }
     function leave(message2 = "Party closed. Your solo progress is saved.") {
+      connecting = null;
+      connectionAttempt++;
       network.close();
       active = false;
       run = null;
@@ -14892,8 +15069,13 @@
       ended();
     }
     const network = create2({
-      status: say,
+      status(message2) {
+        say(message2);
+        if (!active) connecting = null;
+        refresh();
+      },
       ready(playerId, hosting, code) {
+        connecting = null;
         active = true;
         id = playerId;
         host = hosting;
@@ -14999,13 +15181,31 @@
           );
       },
     });
-    async function attempt(fn) {
+    async function attempt(fn, button) {
+      const connection = button === "party-lan-host" || button === "party-lan-join";
+      if (busyActions.has(button) || (connection && (active || connecting))) return;
+      if (connection) {
+        connecting = button;
+        connectionAttempt++;
+      }
+      busyActions.add(button);
+      buttonLoading(button, true);
+      refresh();
       try {
         await fn();
       } catch (error) {
-        say(error instanceof Error ? error.message : "Connection failed.");
+        if (connection) {
+          if (connecting === button) {
+            connecting = null;
+            network.close();
+            say(error instanceof Error ? error.message : "Connection failed.");
+          }
+        } else say(error instanceof Error ? error.message : "Connection failed.");
+      } finally {
+        busyActions.delete(button);
+        buttonLoading(button, false);
+        refresh();
       }
-      refresh();
     }
     function stopScan() {
       scanning++;
@@ -15072,9 +15272,13 @@
       }
     }
     async function hostRoom() {
+      const epoch = connectionAttempt;
       const code = roomCode();
       room.value = code;
-      if (await relayHere()) {
+      say("Opening your room...");
+      const relay = await relayHere();
+      if (epoch !== connectionAttempt) return;
+      if (relay) {
         network.lan(true, code);
         return;
       }
@@ -15082,6 +15286,7 @@
       await network.link(true, code);
     }
     async function joinRoom(text = room.value) {
+      const epoch = connectionAttempt;
       const parsed = parseJoin(text);
       if (parsed && new URL(parsed.address).origin !== location.origin) {
         say("Opening the host's address\u2026");
@@ -15092,11 +15297,13 @@
       if (!/^[A-F0-9]{6}$/.test(code))
         throw new Error("Paste the join link or the six-character room code.");
       room.value = code;
-      if (await relayHere()) {
+      say(`Joining room ${code}...`);
+      const relay = await relayHere();
+      if (epoch !== connectionAttempt) return;
+      if (relay) {
         network.lan(false, code);
         return;
       }
-      say(`Joining room ${code}\u2026`);
       await network.link(false, code);
     }
     async function applyScanned(text) {
@@ -15111,7 +15318,7 @@
         if (active) throw new Error("Leave this party before joining another room.");
         room.value = join.room;
         say(`Joining room ${join.room}\u2026`);
-        await joinRoom(join.room);
+        await attempt(() => joinRoom(join.room), "party-lan-join");
         return;
       }
       throw new Error("That code is not a join link. Ask the host for the room link.");
@@ -15197,10 +15404,12 @@
       },
       "party-close": () => dialog.close(),
     };
-    for (const [button, fn] of Object.entries(clicks))
+    for (const [button, fn] of Object.entries(clicks)) {
+      buttonLabels.set(button, element(doc, button).textContent ?? "");
       element(doc, button).addEventListener("click", () => {
-        void attempt(fn);
+        void attempt(fn, button);
       });
+    }
     room.addEventListener("paste", (event) => {
       if (!(event instanceof ClipboardEvent)) return;
       const text = event.clipboardData?.getData("text") ?? "";

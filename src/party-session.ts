@@ -43,6 +43,26 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   let scanning = 0;
   let scanTimer = 0;
   let scanStream: MediaStream | null = null;
+  let connecting: string | null = null;
+  let connectionAttempt = 0;
+  const busyActions = new Set<string>();
+  const buttonLabels = new Map<string, string>();
+  function buttonLoading(key: string, busy: boolean) {
+    const button = element(doc, key, "button");
+    const label = buttonLabels.get(key) ?? button.textContent ?? "";
+    buttonLabels.set(key, label);
+    const text = busy
+      ? key === "party-lan-host"
+        ? "OPENING ROOM..."
+        : key === "party-lan-join"
+          ? "JOINING..."
+          : "PLEASE WAIT..."
+      : label;
+    if (button.getAttribute("aria-busy") === String(busy) && button.textContent === text) return;
+    button.setAttribute("aria-busy", String(busy));
+    button.classList.toggle("is-loading", busy);
+    button.textContent = text;
+  }
   const inputs = new Map<string, { seq: number; time: number; count: number }>();
   function say(text: string) {
     status.textContent = text;
@@ -53,9 +73,16 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   function refresh() {
     const members = run ? Party.sorted(run) : [];
     startButton.disabled = !host || !run || run.world.mode === "playing";
-    element(doc, "party-leave", "button").disabled = !active;
+    element(doc, "party-leave", "button").disabled = !active && !connecting;
+    for (const key of buttonLabels.keys()) {
+      const busy = busyActions.has(key) || connecting === key;
+      buttonLoading(key, busy);
+      if (["party-copy-link", "party-share-link", "party-scan"].includes(key))
+        element(doc, key, "button").disabled = busy || connecting !== null;
+    }
     for (const key of ["party-lan-host", "party-lan-join"])
-      element(doc, key, "button").disabled = active;
+      element(doc, key, "button").disabled = active || connecting !== null || busyActions.has(key);
+    name.disabled = room.disabled = active || connecting !== null;
     front.hidden = !active;
     hud.hidden = !active;
     element(doc, "beacon-trail").hidden = !active;
@@ -145,6 +172,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     earned = run.earned;
   }
   function leave(message = "Party closed. Your solo progress is saved.") {
+    connecting = null;
+    connectionAttempt++;
     network.close();
     active = false;
     run = null;
@@ -165,8 +194,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     ended();
   }
   const network = Network.create({
-    status: say,
+    status(message) {
+      say(message);
+      if (!active) connecting = null;
+      refresh();
+    },
     ready(playerId, hosting, code) {
+      connecting = null;
       active = true;
       id = playerId;
       host = hosting;
@@ -272,13 +306,31 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
         );
     },
   });
-  async function attempt(fn: () => void | Promise<void>) {
+  async function attempt(fn: () => void | Promise<void>, button: string) {
+    const connection = button === "party-lan-host" || button === "party-lan-join";
+    if (busyActions.has(button) || (connection && (active || connecting))) return;
+    if (connection) {
+      connecting = button;
+      connectionAttempt++;
+    }
+    busyActions.add(button);
+    buttonLoading(button, true);
+    refresh();
     try {
       await fn();
     } catch (error) {
-      say(error instanceof Error ? error.message : "Connection failed.");
+      if (connection) {
+        if (connecting === button) {
+          connecting = null;
+          network.close();
+          say(error instanceof Error ? error.message : "Connection failed.");
+        }
+      } else say(error instanceof Error ? error.message : "Connection failed.");
+    } finally {
+      busyActions.delete(button);
+      buttonLoading(button, false);
+      refresh();
     }
-    refresh();
   }
   function stopScan() {
     scanning++;
@@ -344,9 +396,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     }
   }
   async function hostRoom() {
+    const epoch = connectionAttempt;
     const code = roomCode();
     room.value = code;
-    if (await relayHere()) {
+    say("Opening your room...");
+    const relay = await relayHere();
+    if (epoch !== connectionAttempt) return;
+    if (relay) {
       network.lan(true, code);
       return;
     }
@@ -354,6 +410,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     await network.link(true, code);
   }
   async function joinRoom(text = room.value) {
+    const epoch = connectionAttempt;
     const parsed = parseJoin(text);
     if (parsed && new URL(parsed.address).origin !== location.origin) {
       say("Opening the host's address…");
@@ -364,11 +421,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     if (!/^[A-F0-9]{6}$/.test(code))
       throw new Error("Paste the join link or the six-character room code.");
     room.value = code;
-    if (await relayHere()) {
+    say(`Joining room ${code}...`);
+    const relay = await relayHere();
+    if (epoch !== connectionAttempt) return;
+    if (relay) {
       network.lan(false, code);
       return;
     }
-    say(`Joining room ${code}…`);
     await network.link(false, code);
   }
   async function applyScanned(text: string) {
@@ -383,7 +442,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       if (active) throw new Error("Leave this party before joining another room.");
       room.value = join.room;
       say(`Joining room ${join.room}…`);
-      await joinRoom(join.room);
+      await attempt(() => joinRoom(join.room), "party-lan-join");
       return;
     }
     throw new Error("That code is not a join link. Ask the host for the room link.");
@@ -475,10 +534,12 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     },
     "party-close": () => dialog.close(),
   };
-  for (const [button, fn] of Object.entries(clicks))
+  for (const [button, fn] of Object.entries(clicks)) {
+    buttonLabels.set(button, element(doc, button).textContent ?? "");
     element(doc, button).addEventListener("click", () => {
-      void attempt(fn);
+      void attempt(fn, button);
     });
+  }
   room.addEventListener("paste", (event) => {
     if (!(event instanceof ClipboardEvent)) return;
     const text = event.clipboardData?.getData("text") ?? "";

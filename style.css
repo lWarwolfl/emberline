@@ -1854,6 +1854,42 @@ dialog::backdrop {
 .party-lobby {
   min-width: 0;
 }
+.party-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.party-connect > p,
+.party-connect .party-step-actions {
+  margin-bottom: 0;
+}
+#party-dialog button.is-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: progress;
+}
+#party-dialog button.is-loading::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: party-loading 0.8s linear infinite;
+}
+@keyframes party-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #party-dialog button.is-loading::before {
+    animation: none;
+  }
+}
 .party-body h3 {
   margin: 0 0 8px;
   font-size: 20px;

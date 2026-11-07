@@ -1,4 +1,5 @@
 import * as Party from "./party";
+import { roomIce } from "./party-ice";
 
 export type Message =
   | { type: "hello"; profile: Party.Profile }
@@ -162,7 +163,10 @@ export async function requireRelay(address = "") {
     throw new Error("Use the host's http:// LAN address without login details.");
   let hosting = false;
   try {
-    const response = await fetch(new URL("/host-info", target), { cache: "no-store" });
+    const response = await fetch(new URL("/host-info", target), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    });
     if (response.ok) {
       const info = (await response.json()) as { hosting?: boolean };
       hosting = info.hosting === true;
@@ -175,20 +179,25 @@ export async function requireRelay(address = "") {
       "This page has no LAN relay. Host a room here for an internet join link, or open the address printed by npm run host.",
     );
 }
-interface RoomChannel {
+export interface RoomChannel {
   peer: string;
+  peerConnection?: RTCPeerConnection;
   send: (data: Message) => void;
   close: () => void;
   on: (event: "open" | "data" | "close" | "error", listener: (data?: unknown) => void) => void;
 }
-interface RoomBroker {
+export interface RoomBroker {
   id: string;
   destroy: () => void;
   reconnect: () => void;
   on: (event: string, listener: (value?: unknown) => void) => void;
   connect: (id: string, options: { reliable: boolean; serialization: "json" }) => RoomChannel;
 }
-export function create(callbacks: Callbacks) {
+interface NetworkOptions {
+  roomPeer?: (id: string | undefined, config: RTCConfiguration) => Promise<RoomBroker>;
+  connectionTimeoutMs?: number;
+}
+export function create(callbacks: Callbacks, options: NetworkOptions = {}) {
   let links = new Map<string, Link>();
   let peers = new Map<string, RTCPeerConnection>();
   let socket: WebSocket | null = null;
@@ -197,6 +206,7 @@ export function create(callbacks: Callbacks) {
   let localId = "host",
     hostId = "host";
   let generation = 0;
+  let cancelOpening: (() => void) | null = null;
   const timers = new Set<ReturnType<typeof setTimeout>>();
   function later(fn: () => void, ms: number) {
     const timer = setTimeout(() => {
@@ -207,6 +217,9 @@ export function create(callbacks: Callbacks) {
     return timer;
   }
   function close() {
+    const cancel = cancelOpening;
+    cancelOpening = null;
+    cancel?.();
     generation++;
     const previous = links;
     links = new Map();
@@ -395,8 +408,9 @@ export function create(callbacks: Callbacks) {
     }).toString();
     const ws = new WebSocket(url);
     socket = ws;
+    let welcomed = false;
     const timeout = later(() => {
-      if (ws.readyState !== WebSocket.OPEN) {
+      if (generation === epoch && !welcomed) {
         ws.close();
         callbacks.status("LAN server unavailable. Open the address printed by npm run host.");
       }
@@ -404,8 +418,6 @@ export function create(callbacks: Callbacks) {
     let opened = false;
     ws.onopen = () => {
       opened = true;
-      clearTimeout(timeout);
-      timers.delete(timeout);
     };
     ws.onerror = () => {
       if (!opened)
@@ -419,6 +431,9 @@ export function create(callbacks: Callbacks) {
       try {
         const envelope = JSON.parse(event.data);
         if (envelope.kind === "welcome") {
+          welcomed = true;
+          clearTimeout(timeout);
+          timers.delete(timeout);
           localId = envelope.id;
           hostId = envelope.host;
           callbacks.ready(localId, host, envelope.room);
@@ -451,87 +466,162 @@ export function create(callbacks: Callbacks) {
     close();
     role = hosting ? "host" : "guest";
     const epoch = generation;
-    const { default: Peer } = await import("peerjs");
-    const ice = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
-    };
+    const ice = await roomIce();
+    if (generation !== epoch) throw new Error("Connection cancelled.");
     const hostPeerId = `emberline8${room.toLowerCase()}`;
-    const peer = (
-      hosting
-        ? new Peer(hostPeerId, { config: ice, debug: 0 })
-        : new Peer({ config: ice, debug: 0 })
-    ) as RoomBroker;
+    const createPeer =
+      options.roomPeer ??
+      (async (id: string | undefined, config: RTCConfiguration) => {
+        const { default: Peer } = await import("peerjs");
+        return (
+          id ? new Peer(id, { config, debug: 0 }) : new Peer({ config, debug: 0 })
+        ) as RoomBroker;
+      });
+    const peer = await createPeer(hosting ? hostPeerId : undefined, ice);
+    if (generation !== epoch) {
+      peer.destroy();
+      throw new Error("Connection cancelled.");
+    }
     broker = peer;
-    const fail = (error: { type?: string }) => {
-      if (generation !== epoch) return;
-      const kind = error.type ?? "";
-      callbacks.status(
-        kind === "unavailable-id"
-          ? "That room is already open. Host again to get a new link."
-          : kind === "peer-unavailable"
-            ? "That room is not open. Ask the host to keep the page open and send the link again."
-            : "Could not open the room link. Check the internet connection and try again.",
-      );
-      close();
-    };
-    const bind = (id: string, channel: RoomChannel, opened?: () => void) => {
-      channel.on("open", () => {
-        if (generation !== epoch) {
-          channel.close();
-          return;
-        }
-        if (role === "host" && links.size >= 3) {
-          channel.close();
-          callbacks.status("The room is full.");
-          return;
-        }
-        links.set(id, {
-          send(data) {
-            channel.send(data);
-          },
-          close() {
-            channel.close();
-          },
-        });
-        opened?.();
-        if (!opened) callbacks.status("Courier connected.");
-      });
-      channel.on("data", (data) => {
-        if (generation !== epoch) return;
-        const parsed = message(typeof data === "string" ? data : JSON.stringify(data));
-        if (parsed) callbacks.message(id, parsed);
-      });
-      const lost = () => {
-        if (generation !== epoch || !links.has(id)) return;
-        links.delete(id);
-        callbacks.disconnected(id);
+    const routeError = ice.iceServers?.some((server) =>
+      (typeof server.urls === "string" ? [server.urls] : server.urls).some((url) =>
+        /^turns?:/.test(url),
+      ),
+    )
+      ? "Could not reach the host through the room relay. Check both connections and try again."
+      : "These networks could not connect. This site has no relay enabled yet; try the same Wi-Fi or another network.";
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const timeout = later(() => fail({ type: "timeout" }), options.connectionTimeoutMs ?? 30000);
+      const clear = () => {
+        clearTimeout(timeout);
+        timers.delete(timeout);
+        cancelOpening = null;
       };
-      channel.on("close", lost);
-      channel.on("error", lost);
-    };
-    peer.on("error", (error) => fail((error ?? {}) as { type?: string }));
-    peer.on("disconnected", () => {
-      if (generation === epoch) peer.reconnect();
+      cancelOpening = () => {
+        if (settled) return;
+        settled = true;
+        clear();
+        reject(new Error("Connection cancelled."));
+      };
+      const ready = () => {
+        if (settled || generation !== epoch) return;
+        settled = true;
+        clear();
+        callbacks.ready(localId, hosting, room);
+        resolve();
+      };
+      const fail = (error: { type?: string }) => {
+        if (generation !== epoch) return;
+        const kind = error.type ?? "";
+        const text =
+          kind === "unavailable-id"
+            ? "That room is already open. Host again to get a new link."
+            : kind === "peer-unavailable"
+              ? "That room is not open. Ask the host to keep the page open and send the link again."
+              : kind === "webrtc" || (!hosting && kind === "timeout")
+                ? routeError
+                : "Could not open the room link. Check the internet connection and try again.";
+        if (!settled) {
+          settled = true;
+          clear();
+          close();
+          reject(new Error(text));
+        } else {
+          callbacks.status(text);
+          if (hosting && (kind === "webrtc" || kind === "peer-unavailable")) return;
+          callbacks.disconnected(hosting ? localId : hostId);
+          close();
+        }
+      };
+      const bind = (id: string, channel: RoomChannel) => {
+        let connected = false;
+        let finished = false;
+        const pendingTimeout = later(() => {
+          if (generation !== epoch || connected || finished) return;
+          lost();
+        }, options.connectionTimeoutMs ?? 30000);
+        const clearChannelTimeout = () => {
+          clearTimeout(pendingTimeout);
+          timers.delete(pendingTimeout);
+        };
+        const lost = () => {
+          if (generation !== epoch || finished) return;
+          finished = true;
+          clearChannelTimeout();
+          channel.peerConnection?.removeEventListener("iceconnectionstatechange", iceChanged);
+          channel.peerConnection?.removeEventListener("connectionstatechange", iceChanged);
+          const wasConnected = links.delete(id);
+          channel.close();
+          if (wasConnected) callbacks.disconnected(id);
+          else if (!hosting) fail({ type: "webrtc" });
+          else callbacks.status("A teammate could not connect. Ask them to try again.");
+        };
+        channel.on("open", () => {
+          if (generation !== epoch || finished) {
+            channel.close();
+            return;
+          }
+          clearChannelTimeout();
+          if (hosting && links.size >= 3) {
+            finished = true;
+            channel.close();
+            callbacks.status("The room is full.");
+            return;
+          }
+          connected = true;
+          links.set(id, {
+            send(data) {
+              channel.send(data);
+            },
+            close() {
+              channel.close();
+            },
+          });
+          if (!hosting) ready();
+          else callbacks.status("Courier connected.");
+        });
+        channel.on("data", (data) => {
+          if (generation !== epoch || finished) return;
+          const parsed = message(typeof data === "string" ? data : JSON.stringify(data));
+          if (parsed) callbacks.message(id, parsed);
+        });
+        const iceChanged = () => {
+          if (
+            channel.peerConnection?.iceConnectionState === "failed" ||
+            channel.peerConnection?.connectionState === "failed"
+          )
+            lost();
+        };
+        channel.peerConnection?.addEventListener("iceconnectionstatechange", iceChanged);
+        channel.peerConnection?.addEventListener("connectionstatechange", iceChanged);
+        channel.on("close", lost);
+        channel.on("error", lost);
+      };
+      peer.on("error", (error) => fail((error ?? {}) as { type?: string }));
+      peer.on("disconnected", () => {
+        if (generation === epoch) peer.reconnect();
+      });
+      peer.on("open", () => {
+        if (generation !== epoch) return;
+        if (hosting) {
+          localId = hostId = "host";
+          ready();
+        } else {
+          localId = peer.id;
+          hostId = hostPeerId;
+          bind(hostPeerId, peer.connect(hostPeerId, { reliable: true, serialization: "json" }));
+        }
+      });
+      if (hosting)
+        peer.on("connection", (value) => {
+          if (generation !== epoch) {
+            (value as RoomChannel).close();
+            return;
+          }
+          bind((value as RoomChannel).peer, value as RoomChannel);
+        });
     });
-    if (hosting) {
-      peer.on("open", () => {
-        if (generation !== epoch) return;
-        localId = hostId = "host";
-        callbacks.ready(localId, true, room);
-      });
-      peer.on("connection", (value) => bind((value as RoomChannel).peer, value as RoomChannel));
-    } else
-      peer.on("open", () => {
-        if (generation !== epoch) return;
-        localId = peer.id;
-        hostId = hostPeerId;
-        bind(hostPeerId, peer.connect(hostPeerId, { reliable: true, serialization: "json" }), () =>
-          callbacks.ready(localId, false, room),
-        );
-      });
   }
   function sendSocket(to: string, data: Message) {
     if (socket?.readyState === WebSocket.OPEN && socket.bufferedAmount < 500000)
