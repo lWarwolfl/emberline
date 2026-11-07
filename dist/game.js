@@ -369,7 +369,7 @@
           id: "nova",
           name: "Nova fan",
           short: "NOVA",
-          description: "Five parallel lanes. 0.55 damage each \xB7 1.10s recharge.",
+          description: "Five homing missiles. 0.55 damage each \xB7 1.10s recharge.",
           damage: 0.55,
           cooldown: 1.1,
           speed: 300,
@@ -567,25 +567,83 @@
         if (weapon.id === "punch") return true;
         const x = state.player.x + 15,
           y = state.player.y + 9;
-        const spread =
-          weapon.id === "nova" ? [-4, -2, 0, 2, 4] : weapon.id === "scatter" ? [-3, 0, 3] : [0];
+        const speed = weapon.speed;
+        const damage2 =
+          weapon.damage *
+          state.stats.damageMultiplier *
+          (state.activePowerup?.id === "titan" ? 2.5 : 1);
+        if (weapon.id === "nova") {
+          for (const angle of [-0.72, -0.36, 0, 0.36, 0.72])
+            state.projectiles.push({
+              x,
+              y,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              homing: true,
+              armored: false,
+              life: weapon.life,
+              damage: damage2,
+              color: weapon.color,
+              pierce: weapon.pierce ?? 0,
+              hitTargets: [],
+            });
+          return true;
+        }
+        const spread = weapon.id === "scatter" ? [-3, 0, 3] : [0];
         for (const offset of spread)
           state.projectiles.push({
             x,
             y: y + offset,
-            vx: weapon.speed,
+            vx: speed,
             vy: 0,
             armored: weapon.id === "siegebreaker",
             life: weapon.life,
-            damage:
-              weapon.damage *
-              state.stats.damageMultiplier *
-              (state.activePowerup?.id === "titan" ? 2.5 : 1),
+            damage: damage2,
             color: weapon.color,
             pierce: weapon.pierce ?? 0,
             hitTargets: [],
           });
         return true;
+      }
+      function seekable(object, boltX) {
+        return (
+          !object.dead &&
+          object.x + object.w > boltX - 8 &&
+          object.x < boltX + 340 &&
+          (object.kind === "enemy" || (object.kind === "hazard" && breakable(object)))
+        );
+      }
+      function guide(bolts, objects, dt) {
+        const turn = 5.5 * dt;
+        for (const bolt of bolts) {
+          if (!bolt.homing) continue;
+          const speed = Math.hypot(bolt.vx, bolt.vy);
+          if (speed < 1) continue;
+          const heading = Math.atan2(bolt.vy, bolt.vx);
+          let best = null;
+          let bestScore = Infinity;
+          for (const object of objects) {
+            if (!seekable(object, bolt.x)) continue;
+            const dx = object.x + object.w * 0.5 - bolt.x;
+            const dy = object.y + object.h * 0.5 - bolt.y;
+            let delta2 = Math.atan2(dy, dx) - heading;
+            if (delta2 > Math.PI) delta2 -= Math.PI * 2;
+            else if (delta2 < -Math.PI) delta2 += Math.PI * 2;
+            const score = Math.hypot(dx, dy) * (0.45 + Math.abs(delta2));
+            if (score < bestScore) {
+              best = object;
+              bestScore = score;
+            }
+          }
+          if (!best) continue;
+          let delta =
+            Math.atan2(best.y + best.h * 0.5 - bolt.y, best.x + best.w * 0.5 - bolt.x) - heading;
+          if (delta > Math.PI) delta -= Math.PI * 2;
+          else if (delta < -Math.PI) delta += Math.PI * 2;
+          const next = heading + Math.max(-turn, Math.min(turn, delta));
+          bolt.vx = Math.cos(next) * speed;
+          bolt.vy = Math.sin(next) * speed;
+        }
       }
       function update2(state, dt, moveProjectiles = true) {
         const weapon = import_loadout3.default.find(
@@ -607,6 +665,7 @@
           }
         }
         if (!moveProjectiles) return;
+        guide(state.projectiles, state.objects, dt);
         for (const bolt of state.projectiles) {
           const previousX = bolt.x,
             previousY = bolt.y;
@@ -664,7 +723,7 @@
             bolt.y < import_config4.default.floor + 10,
         );
       }
-      module.exports = { armor, durability, breakable, damage, attack, update: update2 };
+      module.exports = { armor, durability, breakable, damage, attack, guide, update: update2 };
     },
   });
 
@@ -4968,6 +5027,20 @@
             rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
           }
           for (const bolt of state.projectiles) {
+            if (bolt.homing) {
+              const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
+              const ux = bolt.vx / speed;
+              const uy = bolt.vy / speed;
+              for (let i = 5; i >= 0; i--)
+                rect(
+                  bolt.x - ux * i * 2,
+                  bolt.y - uy * i * 2,
+                  i === 0 ? 3 : 2,
+                  i === 0 ? 3 : 2,
+                  i === 0 ? "#fff1c7" : bolt.color,
+                );
+              continue;
+            }
             rect(
               bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
               bolt.y,

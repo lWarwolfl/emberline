@@ -323,7 +323,7 @@ committed root `index.html` through `file://` to preserve double-click playback.
 
 `enemy-fire.ts` owns shooter cooldowns, locked-aim telegraphs and the hostile projectile pool. Warnings last 0.65 seconds and at most two enemies charge at once. Offscreen, dead, passed or very close enemies cannot fire. Bolts have swept collision checks, a lifetime and a hard count limit; damage shares the engine's grace period. Dash deflection removes the bolt and awards 25 score. Cosmetic warning lines remain visible with particles disabled.
 
-`combat.ts` supports rapid single fire, five-bolt Nova spreads and rail piercing. A rail bolt records targets already hit, so it cannot repeatedly damage a durable target on consecutive frames. Penetration is limited to three targets and armored scenery intercepts the shot.
+`combat.ts` supports rapid single fire, five homing Nova missiles and rail piercing. A rail bolt records targets already hit, so it cannot repeatedly damage a durable target on consecutive frames. Penetration is limited to three targets and armored scenery intercepts the shot.
 
 `traversal.ts` handles portals/pads in a separate bounded `state.traversals` list. Generator makes one 5% seeded roll per encounter; a second equal roll chooses the device. Devices appear after that encounter's dangers and count toward occupied chunk width. Portals skip 650m; pads skip 350m and launch the player with a short travel boost. Activation awards the skip and grace period without clearing the visible route. A portal also opens an exit. Only distance score is awarded; no skipped pickups or kills are credited. Pausing freezes device movement, projectiles and effects. Render and audio layers consume events without changing simulation rules.
 

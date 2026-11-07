@@ -109,9 +109,10 @@ rare Chain Blast explodes visible enemies, epic Titan makes you larger and stron
 for 10 seconds, and legendary Jet Flight gives 12 seconds of flight. Jump repeatedly
 to climb while flying. A timed power must finish before the next one activates.
 
-All gunfire travels straight ahead. Jump or use platforms to align with enemies;
-enemy projectile hitboxes include a small vertical allowance. Scatter and Nova
-fire parallel volleys. The 25,000-coin Siegebreaker can breach armored obstacles.
+Most gunfire travels straight ahead. Jump or use platforms to align with enemies;
+enemy projectile hitboxes include a small vertical allowance. Scatter fires a
+parallel volley. Nova launches five missiles that bend toward enemies and
+breakable hazards. The 25,000-coin Siegebreaker can breach armored obstacles.
 The outfitter also includes three new capes and three new jetpack skins.
 
 The default difficulty has three integrity points. Embers are the coins: collecting
@@ -125,7 +126,7 @@ Losing window focus pauses the run. Touch buttons are included.
 - **Eight enemies:** Sentry turrets and Wasps fire red/pink bolts after a 0.65-second dotted aim warning. Their aim locks during the warning: jump away or dash through the bolt to deflect it. Armored Beetles and drifting Wisps add new ground and air silhouettes. Shooters unlock from sector 3; Wasps arrive at sector 5.
 - **More pressure over time:** speed growth rises about 10%, with a small increase in encounter frequency. Escorts, squads and crossfire groups unlock as sectors progress; squads grow from two to four enemies. Enemy spacing and simultaneous firing warnings remain bounded.
 - **Four new skins:** Copper lynx (2,000), Lunar moth (2,800), Deep relay diver (3,500) and Signal specter (4,200). Each has a distinct head/helmet silhouette and the same player hitbox.
-- **Three new guns:** Needle repeater (3,600; fast single shots), Nova fan (4,400; five-bolt spread), and Prism railgun (5,200; pierces up to three targets). Steel hazards still stop every weapon.
+- **Three new guns:** Needle repeater (3,600; fast single shots), Nova fan (4,400; five homing missiles), and Prism railgun (5,200; pierces up to three targets). Steel hazards still stop every weapon.
 - **Level-10 progression:** Dash, Jump height and Attack damage now reach L10. Existing L0–L5 prices and stats are unchanged. L6–L10 cost 750 / 1,000 / 1,250 / 1,500 / 1,750 coins. Advanced tiers have smaller increments; damage caps at ×2.6 and dash stays below ×1.8. Triple Jump remains a one-time unlock.
 - **Rare shortcuts:** every generated encounter has a combined **5%** chance of a portal or jump pad, split equally. Walk into a portal to skip 650m and come out through an exit portal; a pad launches you and skips 350m, followed by a short speed burst. The route already on screen stays. Both protect the arrival and award distance score. Skipped coins are not collected. Devices have animated pixel art, particles, sound and local action labels; reduced motion keeps a restrained cue, and the devices stay visible with particle effects disabled.
 - **Biome groups:** five groups of five biomes. After the fifth biome in a group, a boss holds the lane until it is destroyed, then the next group begins.

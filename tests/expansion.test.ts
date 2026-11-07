@@ -224,6 +224,45 @@ test("jump pads launch, skip distance, boost travel, and leave a safe landing", 
   assert.equal(state.hits, 0);
 });
 
+test("nova missiles launch on separate headings and bend into an elevated enemy", () => {
+  const state = run();
+  state.loadout.weapon = "nova";
+  const motion = { amplitude: 0, frequency: 0, phase: 0, extraSpeed: 0 };
+  const wasp: WorldObject = {
+    kind: "enemy",
+    variant: "wasp",
+    x: 190,
+    y: 86,
+    w: 18,
+    h: 14,
+    baseY: 86,
+    hp: 1.8,
+    ...motion,
+  };
+  const beetle: WorldObject = {
+    kind: "enemy",
+    variant: "beetle",
+    x: 280,
+    y: 181,
+    w: 24,
+    h: 15,
+    baseY: 181,
+    hp: 3.2,
+    ...motion,
+  };
+  state.objects = [wasp, beetle];
+  assert(Engine.attack(state));
+  assert.equal(state.projectiles.length, 5);
+  assert(state.projectiles.every((bolt) => bolt.homing));
+  const dive = Math.max(...state.projectiles.map((bolt) => bolt.vy));
+  assert(state.projectiles.some((bolt) => bolt.vy < -40));
+  assert(dive > 40);
+  advance(state, 0.2);
+  const flying = state.projectiles.filter((bolt) => bolt.life > 0);
+  assert(Math.max(...flying.map((bolt) => bolt.vy)) < dive - 30);
+  advance(state, 0.35);
+  assert(wasp.hp! < 1.8, "a climbing missile reaches the elevated wasp");
+});
 test("new weapons have distinct fire rates, spreads and three-target rail penetration", () => {
   for (const [weapon, count, cooldown] of [
     ["repeater", 1, 0.2],

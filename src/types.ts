@@ -70,6 +70,7 @@ export interface Projectile {
   color: string;
   armored?: boolean;
   pierce?: number;
+  homing?: boolean;
   hitTargets?: WorldObject[];
 }
 export interface HostileProjectile extends Projectile {

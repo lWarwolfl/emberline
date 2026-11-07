@@ -68,25 +68,84 @@ function attack(state: GameState) {
   if (weapon.id === "punch") return true;
   const x = state.player.x + 15,
     y = state.player.y + 9;
-  const spread =
-    weapon.id === "nova" ? [-4, -2, 0, 2, 4] : weapon.id === "scatter" ? [-3, 0, 3] : [0];
+  const speed = weapon.speed!;
+  const damage =
+    weapon.damage * state.stats.damageMultiplier * (state.activePowerup?.id === "titan" ? 2.5 : 1);
+  if (weapon.id === "nova") {
+    for (const angle of [-0.72, -0.36, 0, 0.36, 0.72])
+      state.projectiles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        homing: true,
+        armored: false,
+        life: weapon.life!,
+        damage,
+        color: weapon.color,
+        pierce: weapon.pierce ?? 0,
+        hitTargets: [],
+      });
+    return true;
+  }
+  const spread = weapon.id === "scatter" ? [-3, 0, 3] : [0];
   for (const offset of spread)
     state.projectiles.push({
       x,
       y: y + offset,
-      vx: weapon.speed!,
+      vx: speed,
       vy: 0,
       armored: weapon.id === "siegebreaker",
       life: weapon.life!,
-      damage:
-        weapon.damage *
-        state.stats.damageMultiplier *
-        (state.activePowerup?.id === "titan" ? 2.5 : 1),
+      damage,
       color: weapon.color,
       pierce: weapon.pierce ?? 0,
       hitTargets: [],
     });
   return true;
+}
+
+function seekable(object: WorldObject, boltX: number) {
+  return (
+    !object.dead &&
+    object.x + object.w > boltX - 8 &&
+    object.x < boltX + 340 &&
+    (object.kind === "enemy" || (object.kind === "hazard" && breakable(object)))
+  );
+}
+
+/** Bend homing missiles toward the threat nearest their current nose. */
+function guide(bolts: GameState["projectiles"], objects: WorldObject[], dt: number) {
+  const turn = 5.5 * dt;
+  for (const bolt of bolts) {
+    if (!bolt.homing) continue;
+    const speed = Math.hypot(bolt.vx, bolt.vy);
+    if (speed < 1) continue;
+    const heading = Math.atan2(bolt.vy, bolt.vx);
+    let best: WorldObject | null = null;
+    let bestScore = Infinity;
+    for (const object of objects) {
+      if (!seekable(object, bolt.x)) continue;
+      const dx = object.x + object.w * 0.5 - bolt.x;
+      const dy = object.y + object.h * 0.5 - bolt.y;
+      let delta = Math.atan2(dy, dx) - heading;
+      if (delta > Math.PI) delta -= Math.PI * 2;
+      else if (delta < -Math.PI) delta += Math.PI * 2;
+      const score = Math.hypot(dx, dy) * (0.45 + Math.abs(delta));
+      if (score < bestScore) {
+        best = object;
+        bestScore = score;
+      }
+    }
+    if (!best) continue;
+    let delta =
+      Math.atan2(best.y + best.h * 0.5 - bolt.y, best.x + best.w * 0.5 - bolt.x) - heading;
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    else if (delta < -Math.PI) delta += Math.PI * 2;
+    const next = heading + Math.max(-turn, Math.min(turn, delta));
+    bolt.vx = Math.cos(next) * speed;
+    bolt.vy = Math.sin(next) * speed;
+  }
 }
 
 function update(state: GameState, dt: number, moveProjectiles = true) {
@@ -106,6 +165,7 @@ function update(state: GameState, dt: number, moveProjectiles = true) {
     }
   }
   if (!moveProjectiles) return;
+  guide(state.projectiles, state.objects, dt);
   for (const bolt of state.projectiles) {
     const previousX = bolt.x,
       previousY = bolt.y;
@@ -160,4 +220,4 @@ function update(state: GameState, dt: number, moveProjectiles = true) {
       bolt.life > 0 && bolt.x < Config.width + 30 && bolt.y > 0 && bolt.y < Config.floor + 10,
   );
 }
-export = { armor, durability, breakable, damage, attack, update };
+export = { armor, durability, breakable, damage, attack, guide, update };

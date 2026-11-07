@@ -76,9 +76,18 @@ async function main() {
         count,
       );
       assert(
-        await page.evaluate(() =>
-          EmberlineDebug.app.state.projectiles.every((b) => Number.isFinite(b.vx) && b.vy === 0),
-        ),
+        await page.evaluate((weapon) => {
+          const bolts = EmberlineDebug.app.state.projectiles;
+          if (weapon === "nova") {
+            const vys = bolts.map((bolt) => bolt.vy);
+            return (
+              bolts.every((bolt) => bolt.homing && Number.isFinite(bolt.vx)) &&
+              vys.some((vy) => vy < -40) &&
+              vys.some((vy) => vy > 40)
+            );
+          }
+          return bolts.every((bolt) => Number.isFinite(bolt.vx) && bolt.vy === 0);
+        }, id),
       );
       await page.screenshot({ path: path.join(root, `test-results/new-gun-${id}.png`) });
     }

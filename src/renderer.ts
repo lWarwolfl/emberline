@@ -138,6 +138,20 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
     }
     for (const bolt of state.projectiles) {
+      if (bolt.homing) {
+        const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
+        const ux = bolt.vx / speed;
+        const uy = bolt.vy / speed;
+        for (let i = 5; i >= 0; i--)
+          rect(
+            bolt.x - ux * i * 2,
+            bolt.y - uy * i * 2,
+            i === 0 ? 3 : 2,
+            i === 0 ? 3 : 2,
+            i === 0 ? "#fff1c7" : bolt.color,
+          );
+        continue;
+      }
       rect(
         bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
         bolt.y,

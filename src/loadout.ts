@@ -267,7 +267,7 @@ const weapons = [
     id: "nova",
     name: "Nova fan",
     short: "NOVA",
-    description: "Five parallel lanes. 0.55 damage each · 1.10s recharge.",
+    description: "Five homing missiles. 0.55 damage each · 1.10s recharge.",
     damage: 0.55,
     cooldown: 1.1,
     speed: 300,
