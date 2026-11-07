@@ -678,7 +678,48 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
 export function clone(run: PartyRun) {
   return decode(encode(run));
 }
-function overwrite(target: PartyRun, source: PartyRun) {
+export function steer(run: PartyRun, id: string, seconds: number) {
+  if (run.world.mode !== "playing" || !Number.isFinite(seconds) || seconds <= 0) return;
+  const member = run.members.find((item) => item.id === id);
+  if (!member || !alive(member)) return;
+  let remaining = Math.min(0.2, seconds);
+  while (remaining > 1e-9) {
+    const dt = Math.min(Config.simulationStep, remaining);
+    const s = member.state;
+    s.objects = run.world.objects;
+    s.runSpeed = run.world.runSpeed;
+    s.time = run.world.time;
+    s.dash = Math.max(0, s.dash - dt);
+    s.attackTime = Math.max(0, s.attackTime - dt);
+    s.cooldown = Math.max(0, s.cooldown - dt);
+    s.invincible = Math.max(0, s.invincible - dt);
+    s.attackCooldown = Math.max(0, s.attackCooldown - dt);
+    member.frontCooldown = Math.max(0, member.frontCooldown - dt);
+    const index = sorted(run)
+      .filter(alive)
+      .findIndex((item) => item.id === id);
+    if (index >= 0) {
+      const target =
+        Config.playerX + (run.members.filter((item) => item.connected).length - index - 1) * 32;
+      const delta = target + (s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
+      const speed = s.dash > 0 ? s.stats.dashLungeSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
+      s.player.x += Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
+    }
+    if (s.grounding) {
+      if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
+      else s.player.vy = Math.max(520, s.player.vy);
+    }
+    const previousY = s.player.y;
+    s.player.vy += Config.gravity * dt;
+    s.player.y += s.player.vy * dt;
+    Powerups.update(s, dt);
+    Powerups.land(s, previousY, dt);
+    if (s.player.y >= Config.floor - Config.playerHeight)
+      Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
+    remaining -= dt;
+  }
+}
+export function adopt(target: PartyRun, source: PartyRun) {
   const copy = clone(source);
   target.world = copy.world;
   target.members = copy.members;
@@ -694,7 +735,7 @@ export function rebase(shown: PartyRun, incoming: PartyRun) {
   const skew = shown.world.time - incoming.world.time;
   const playing = shown.world.mode === "playing" && incoming.world.mode === "playing";
   if (!playing || Math.abs(skew) > catchupLimit) {
-    overwrite(shown, incoming);
+    adopt(shown, incoming);
     return clone(shown);
   }
   if (skew > 0) glide(incoming, skew);
@@ -703,7 +744,7 @@ export function rebase(shown: PartyRun, incoming: PartyRun) {
 /** Keep simulating the guest view, then merge it toward the host. */
 export function present(shown: PartyRun, authority: PartyRun, seconds: number) {
   if (shown.world.mode !== "playing" || authority.world.mode !== "playing") {
-    overwrite(shown, authority);
+    adopt(shown, authority);
     return;
   }
   glide(shown, seconds);

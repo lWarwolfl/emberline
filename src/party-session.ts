@@ -1,4 +1,5 @@
 import * as Party from "./party";
+import * as Sync from "./party-sync";
 import Config from "./config";
 import * as Network from "./party-network";
 import { isLoopback, joinAddresses, joinUrl, parseJoin } from "./party-link";
@@ -9,8 +10,6 @@ import type { GameEvent } from "./types";
 export function create(doc: Document, getProfile: () => Party.Profile, ended: () => void) {
   const dialog = element(doc, "party-dialog", "dialog");
   const status = element(doc, "party-message");
-  const output = element(doc, "party-output", "textarea");
-  const input = element(doc, "party-input", "textarea");
   const name = element(doc, "party-name", "input");
   const room = element(doc, "party-room", "input");
   const roster = element(doc, "party-roster");
@@ -20,7 +19,11 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   const startButton = element(doc, "party-start", "button");
   const front = element(doc, "touch-front", "button");
   let run: Party.PartyRun | null = null;
-  let authority: Party.PartyRun | null = null;
+  let samples: Sync.Sample[] = [];
+  let pendingInputs: Sync.Remembered[] = [];
+  let lastAck = 0;
+  let hostClock = { time: 0, at: 0 };
+  const acks = new Map<string, number>();
   let id = "host",
     host = false,
     elapsed = 0,
@@ -51,8 +54,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     const members = run ? Party.sorted(run) : [];
     startButton.disabled = !host || !run || run.world.mode === "playing";
     element(doc, "party-leave", "button").disabled = !active;
-    element(doc, "party-invite", "button").disabled = !host || !run || run.started;
-    for (const key of ["party-host", "party-lan-host", "party-lan-join", "party-answer"])
+    for (const key of ["party-lan-host", "party-lan-join"])
       element(doc, key, "button").disabled = active;
     front.hidden = !active;
     hud.hidden = !active;
@@ -129,7 +131,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   function publish(events: GameEvent[] = []) {
     if (!run || !host) return;
     if (events.length) eventId++;
-    network.broadcast({ type: "state", snapshot: Party.encode(run), eventId, events });
+    network.broadcast({
+      type: "state",
+      snapshot: Party.encode(run),
+      eventId,
+      events,
+      acks: Object.fromEntries(acks),
+    });
   }
   function account() {
     if (!run) return;
@@ -140,16 +148,16 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     network.close();
     active = false;
     run = null;
-    authority = null;
+    samples = [];
+    pendingInputs = [];
+    lastAck = 0;
+    acks.clear();
     pendingEvents = [];
     unsentEvents = [];
     pendingCoins = 0;
     earned = 0;
     inputs.clear();
     fingerprint = "";
-    output.value = "";
-    input.value = "";
-    clearCode();
     hideLanShare();
     stopScan();
     say(message);
@@ -213,6 +221,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           }
           if (++entry.count > 30) return;
           entry.seq = data.sequence;
+          acks.set(sender, data.sequence);
           Party.action(run, sender, data.action);
         }
       } else if (
@@ -228,12 +237,16 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
             !received.members.some((m) => m.id === id)
           )
             return;
-          if (!run || !authority) {
-            run = received;
-            authority = Party.clone(received);
-          } else authority = Party.rebase(run, received);
-          if (run.world.mode === "playing" && authority.world.mode === "playing")
-            Party.ease(run, authority, 1 / 20);
+          const acknowledged = data.acks?.[id];
+          if (typeof acknowledged === "number") lastAck = acknowledged;
+          pendingInputs = pendingInputs.filter((input) => input.sequence > lastAck);
+          hostClock = { time: received.world.time, at: performance.now() };
+          samples = Sync.remember(samples, received);
+          if (!run) run = Party.clone(received);
+          else if (received.world.mode !== "playing" || run.world.mode !== "playing") {
+            Party.adopt(run, received);
+            samples = Sync.remember([], received);
+          }
           quiet = 0;
           if (data.eventId > seenEvent && Array.isArray(data.events)) {
             pendingEvents.push(...data.events.slice(0, 100));
@@ -267,43 +280,6 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     }
     refresh();
   }
-  function markDirect(id: string, index: number) {
-    const items = [...element(doc, id).querySelectorAll("li")];
-    for (const [i, item] of items.entries()) item.classList.toggle("is-current", i === index);
-  }
-  function setDirectRole(hosting: boolean) {
-    element(doc, "party-role-host", "button").setAttribute("aria-pressed", String(hosting));
-    element(doc, "party-role-join", "button").setAttribute("aria-pressed", String(!hosting));
-    element(doc, "party-host-steps").hidden = !hosting;
-    element(doc, "party-join-steps").hidden = hosting;
-    element(doc, "party-host-actions").hidden = !hosting;
-    element(doc, "party-join-actions").hidden = hosting;
-    element(doc, "party-accept-actions").hidden = !hosting;
-    const flow = element(doc, "party-direct-flow");
-    const order = hosting
-      ? [
-          "party-host-actions",
-          "party-output-field",
-          "party-copy-actions",
-          "party-input-field",
-          "party-accept-actions",
-        ]
-      : ["party-input-field", "party-join-actions", "party-output-field", "party-copy-actions"];
-    for (const id of order) flow.append(element(doc, id));
-    element(doc, "party-input-label").textContent = hosting
-      ? "ANSWER FROM TEAMMATE"
-      : "INVITE FROM HOST";
-    element(doc, "party-output-label").textContent = hosting
-      ? "INVITE TO SEND"
-      : "ANSWER TO SEND BACK";
-    markDirect(hosting ? "party-host-steps" : "party-join-steps", 0);
-  }
-  function openDirect(hosting: boolean) {
-    const details = element(doc, "party-direct", "details");
-    details.open = true;
-    setDirectRole(hosting);
-    details.scrollIntoView({ block: "nearest" });
-  }
   function stopScan() {
     scanning++;
     window.clearTimeout(scanTimer);
@@ -312,10 +288,6 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     const video = element(doc, "party-scan-video", "video");
     video.srcObject = null;
     element(doc, "party-scan-view").hidden = true;
-  }
-  function clearCode() {
-    element(doc, "party-code-qr", "canvas").hidden = true;
-    element(doc, "party-code-note").hidden = true;
   }
   function hideLanShare() {
     joinLink = "";
@@ -351,45 +323,53 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       }
     element(doc, "party-lan-reach").textContent = isLoopback(selectedAddress)
       ? "This link only works on this computer. Choose a network address for phones on the same Wi-Fi."
-      : "Teammates on this Wi-Fi open the link or scan the code, set a name, and join.";
+      : "Everyone opens this same link, sets a name, and joins.";
     element(doc, "party-share-link", "button").hidden = typeof navigator.share !== "function";
     share.hidden = false;
   }
-  async function showCode(code: string) {
-    output.value = code;
-    const canvas = element(doc, "party-code-qr", "canvas");
-    const note = element(doc, "party-code-note");
-    note.hidden = false;
-    try {
-      drawQr(canvas, await Network.compressed(code), "L");
-      canvas.hidden = false;
-      note.textContent = "Same room: scan this code. Anywhere else: copy it.";
-    } catch {
-      canvas.hidden = true;
-      note.textContent = "This code is too long to scan. Copy it instead.";
-    }
+  function roomCode() {
+    const bytes = crypto.getRandomValues(new Uint8Array(3));
+    return [...bytes]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("")
+      .toUpperCase();
   }
-  async function connectLan(hosting: boolean, roomCode: string) {
-    if (!/^https?:$/.test(location.protocol))
-      throw new Error("Start npm run host and open its LAN address first.");
-    let address = hosting ? "" : element(doc, "party-address", "input").value;
-    let code = roomCode;
-    const parsed = address.trim() ? parseJoin(address) : null;
-    if (parsed) {
-      address = new URL(parsed.address).origin === location.origin ? "" : parsed.address;
-      code = parsed.room;
-      element(doc, "party-address", "input").value = address;
-      room.value = code;
-    }
-    if (!hosting && !/^[A-F0-9]{6}$/i.test(code.trim()))
-      throw new Error("Enter the six-character LAN room code.");
+  async function relayHere() {
     try {
-      await Network.requireRelay(address);
+      await Network.requireRelay();
+      return true;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("no LAN relay")) openDirect(hosting);
+      if (error instanceof Error && /no LAN relay|LAN address/.test(error.message)) return false;
       throw error;
     }
-    network.lan(hosting, code, address);
+  }
+  async function hostRoom() {
+    const code = roomCode();
+    room.value = code;
+    if (await relayHere()) {
+      network.lan(true, code);
+      return;
+    }
+    say("Opening one join link for this room…");
+    await network.link(true, code);
+  }
+  async function joinRoom(text = room.value) {
+    const parsed = parseJoin(text);
+    if (parsed && new URL(parsed.address).origin !== location.origin) {
+      say("Opening the host's address…");
+      location.assign(joinUrl(parsed.address, parsed.room));
+      return;
+    }
+    const code = (parsed?.room ?? text).trim().toUpperCase();
+    if (!/^[A-F0-9]{6}$/.test(code))
+      throw new Error("Paste the join link or the six-character room code.");
+    room.value = code;
+    if (await relayHere()) {
+      network.lan(false, code);
+      return;
+    }
+    say(`Joining room ${code}…`);
+    await network.link(false, code);
   }
   async function applyScanned(text: string) {
     const join = parseJoin(text);
@@ -402,26 +382,11 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       }
       if (active) throw new Error("Leave this party before joining another room.");
       room.value = join.room;
-      element(doc, "party-address", "input").value = "";
       say(`Joining room ${join.room}…`);
-      await connectLan(false, join.room);
+      await joinRoom(join.room);
       return;
     }
-    const invite = await Network.read(text);
-    input.value = text.trim();
-    if (invite.type === "offer") {
-      if (active) throw new Error("Leave this party before answering a new invite.");
-      setDirectRole(false);
-      await showCode(await network.answer(text));
-      markDirect("party-join-steps", 2);
-      say("Answer ready. Show this code to the host, or copy it. Stay on this page.");
-      return;
-    }
-    if (!network.isHost) throw new Error("Only the host can accept an answer.");
-    await network.accept(text);
-    input.value = "";
-    markDirect("party-host-steps", 3);
-    say("Answer accepted. Waiting for your teammate to appear in the crew.");
+    throw new Error("That code is not a join link. Ask the host for the room link.");
   }
   async function scan() {
     const Detector = (
@@ -432,7 +397,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       }
     ).BarcodeDetector;
     if (!Detector || !navigator.mediaDevices?.getUserMedia)
-      throw new Error("This browser can't scan codes. Paste the invite or join link instead.");
+      throw new Error("This browser can't scan codes. Paste the join link instead.");
     stopScan();
     const epoch = scanning;
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -459,7 +424,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           .then(async (codes) => {
             const text = codes
               .map((code) => code.rawValue)
-              .find((value) => /EMBER7C?\.|https?:\/\//i.test(value));
+              .find((value) => /https?:\/\//i.test(value));
             if (!text || epoch !== scanning) return;
             stopScan();
             try {
@@ -478,57 +443,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     scanTimer = window.setTimeout(tick, 200);
   }
   const clicks: Record<string, () => void | Promise<void>> = {
-    "party-host": () => {
-      network.host();
-      markDirect("party-host-steps", 1);
-    },
-    "party-invite": async () => {
-      say("Preparing a unique invite for the next teammate…");
-      await showCode(await network.offer());
-      markDirect("party-host-steps", 2);
-      say("Let your teammate scan this code, or copy it. Then scan or paste their answer.");
-    },
-    "party-answer": async () => {
-      say("Preparing answer…");
-      await showCode(await network.answer(input.value));
-      markDirect("party-join-steps", 2);
-      say("Show this answer to the host, or copy it. Stay on this page.");
-    },
-    "party-accept": async () => {
-      const button = element(doc, "party-accept", "button");
-      const code = input.value.trim();
-      if (!code) {
-        input.focus();
-        throw new Error("Paste their answer in the box above Accept Answer.");
-      }
-      const label = button.textContent;
-      button.textContent = "ACCEPTING…";
-      say("Checking their answer…");
-      try {
-        await network.accept(code);
-        input.value = "";
-        markDirect("party-host-steps", 3);
-        say("Answer accepted. Waiting for your teammate to appear in the crew.");
-      } finally {
-        button.textContent = label;
-      }
-    },
-    "party-cancel-invites": () => {
-      network.cancelPending();
-      output.value = "";
-      clearCode();
-      say("Pending invites cancelled. Connected teammates remain.");
-    },
-    "party-role-host": () => setDirectRole(true),
-    "party-role-join": () => setDirectRole(false),
-    "party-lan-host": () => connectLan(true, ""),
-    "party-lan-join": () => {
-      const parsed = parseJoin(element(doc, "party-address", "input").value);
-      const code = parsed?.room ?? room.value;
-      if (!/^[A-Fa-f0-9]{6}$/.test(code.trim()))
-        throw new Error("Enter the six-character LAN room code.");
-      return connectLan(false, code);
-    },
+    "party-lan-host": () => hostRoom(),
+    "party-lan-join": () => joinRoom(),
     "party-copy-link": async () => {
       if (!joinLink) return;
       try {
@@ -552,17 +468,6 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       stopScan();
       say("Scan stopped.");
     },
-    "party-copy": async () => {
-      if (!output.value) return;
-      try {
-        await navigator.clipboard.writeText(output.value);
-        say("Code copied.");
-      } catch {
-        output.focus();
-        output.select();
-        say("Code selected. Press Ctrl+C to copy.");
-      }
-    },
     "party-leave": () => leave(),
     "party-start": () => {
       start();
@@ -574,14 +479,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     element(doc, button).addEventListener("click", () => {
       void attempt(fn);
     });
-  element(doc, "party-direct").addEventListener("paste", (event) => {
-    if (!(event instanceof ClipboardEvent) || event.target === input) return;
+  room.addEventListener("paste", (event) => {
+    if (!(event instanceof ClipboardEvent)) return;
     const text = event.clipboardData?.getData("text") ?? "";
-    if (!text.includes("EMBER7.") && !text.includes("EMBER7C.")) return;
+    const join = parseJoin(text);
+    if (!join) return;
     event.preventDefault();
-    input.value = text;
-    input.focus();
-    say("Pasted the code into the box. Use the button under it.");
+    room.value = joinUrl(join.address, join.room);
   });
   element(doc, "party").addEventListener("click", () => {
     refresh();
@@ -619,7 +523,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   const linked = /^https?:$/.test(location.protocol) ? parseJoin(location.href) : null;
   if (linked) {
     room.value = linked.room;
-    say(`Room ${linked.room} is ready. Set your name, then Join LAN.`);
+    say(`Room ${linked.room} is ready. Set your name, then join.`);
     dialog.showModal();
     name.focus();
   }
@@ -650,7 +554,20 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     action(action: Party.Action) {
       if (!active) return;
       if (host && run) Party.action(run, id, action);
-      else network.toHost({ type: "input", action, sequence: ++sequence });
+      else if (run) {
+        const next = ++sequence;
+        pendingInputs.push({ sequence: next, action });
+        if (pendingInputs.length > 12) pendingInputs.shift();
+        network.toHost({ type: "input", action, sequence: next });
+        Sync.follow(
+          run,
+          samples,
+          id,
+          pendingInputs,
+          lastAck,
+          hostClock.time + (performance.now() - hostClock.at) / 1000,
+        );
+      }
     },
     update(dt: number) {
       if (!active || !run) return;
@@ -660,7 +577,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
         pendingEvents.push(...events);
         unsentEvents.push(...events);
         elapsed += dt;
-        if (elapsed >= 1 / 20) {
+        if (elapsed >= Sync.sendInterval) {
           publish(unsentEvents.splice(0, 100));
           elapsed = 0;
         }
@@ -671,7 +588,15 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           leave("Connection timed out. Party ended; earned coins are saved.");
           return;
         }
-        if (run && authority) Party.present(run, authority, dt);
+        if (samples.length)
+          Sync.follow(
+            run,
+            samples,
+            id,
+            pendingInputs,
+            lastAck,
+            hostClock.time + (performance.now() - hostClock.at) / 1000,
+          );
       }
       refresh();
     },

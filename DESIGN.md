@@ -1,5 +1,16 @@
 # EMBERLINE design
 
+## One room link
+
+Primary surface: Configure. The party dialog's job is to get a name and one
+shared link, not to teach a handshake. Host a room is the single setup action.
+The link and its code appear only after that action, as the result. Join is one
+field that accepts the link or the room code. The lobby stays a secondary
+inspect column. Charcoal, parchment, ember, square controls and the existing
+type stay. No second path, no step list, no feature tiles.
+
+Slop diagnostic: 0/10. The composition is a form, not a hero.
+
 ## Acquisition, personal records and compact controls
 
 The game remains a Command / Inspect surface. The header now groups the single

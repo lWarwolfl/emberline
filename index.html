@@ -238,193 +238,51 @@
           <section class="party-connect" aria-label="Connection setup">
             <div class="party-intro">
               <h3>Bring your crew.</h3>
-              <p>One route. Up to four couriers. Equip your gear before connecting.</p>
+              <p>One link for everyone. Up to four couriers. Equip your gear before connecting.</p>
             </div>
             <div class="party-field">
               <label for="party-name">YOUR COURIER NAME</label>
               <input id="party-name" value="Courier" maxlength="18" autocomplete="nickname" />
             </div>
-            <details class="party-path" open>
-              <summary>
-                <span>LAN / SAME WI-FI</span><small>Scan to join · local network</small>
-              </summary>
-              <div class="party-path-body">
-                <p id="party-lan-instructions">
-                  The desktop app and the local web host start LAN rooms on this network. Host a
-                  room, then let teammates scan the join code. The public site cannot open a LAN
-                  port; use a direct invite there.
-                </p>
-                <p id="party-lan-addresses" class="setup-note"></p>
-                <button id="party-lan-host" class="secondary">HOST LAN ROOM</button>
-                <div id="party-lan-share" hidden>
-                  <p id="party-lan-link" class="setup-note"></p>
-                  <canvas id="party-lan-qr" aria-label="LAN join code"></canvas>
-                  <div id="party-lan-choices"></div>
-                  <div class="party-step-actions">
-                    <button id="party-copy-link" class="secondary" type="button">
-                      COPY JOIN LINK
-                    </button>
-                    <button id="party-share-link" class="secondary" type="button" hidden>
-                      SHARE LINK
-                    </button>
-                  </div>
-                  <small id="party-lan-reach"
-                    >Teammates on this Wi-Fi open the link or scan the code, set a name, and
-                    join.</small
-                  >
-                </div>
-                <div class="party-divider">OR JOIN A ROOM</div>
-                <div class="party-field">
-                  <label for="party-address"
-                    >HOST ADDRESS, JOIN LINK, OR EMPTY ON THIS SERVER</label
-                  >
-                  <input
-                    id="party-address"
-                    type="url"
-                    placeholder="http://192.168.1.10:4174/?room=A1B2C3"
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                </div>
-                <div class="party-buttons party-room-entry">
-                  <div class="party-field">
-                    <label for="party-room">SIX-CHARACTER ROOM CODE</label>
-                    <input
-                      id="party-room"
-                      maxlength="6"
-                      placeholder="A1B2C3"
-                      autocomplete="off"
-                      autocapitalize="characters"
-                      spellcheck="false"
-                    />
-                  </div>
-                  <button id="party-lan-join" class="secondary">JOIN LAN</button>
-                </div>
-                <small
-                  >The public website has no LAN relay. Use the address from the hosting terminal
-                  and keep it open.</small
-                >
+            <p id="party-lan-instructions">
+              Host a room, then send the one link. On this Wi-Fi it stays on the local host.
+              Anywhere else the browsers meet over the internet and then run directly.
+            </p>
+            <p id="party-lan-addresses" class="setup-note"></p>
+            <button id="party-lan-host" class="secondary">HOST A ROOM</button>
+            <div id="party-lan-share" hidden>
+              <p id="party-lan-link" class="setup-note"></p>
+              <canvas id="party-lan-qr" aria-label="Room join link"></canvas>
+              <div id="party-lan-choices"></div>
+              <div class="party-step-actions">
+                <button id="party-copy-link" class="secondary" type="button">COPY JOIN LINK</button>
+                <button id="party-share-link" class="secondary" type="button" hidden>
+                  SHARE LINK
+                </button>
               </div>
-            </details>
-            <details class="party-path" id="party-direct">
-              <summary>
-                <span>DIRECT INVITES</span><small>Browser to browser · one side at a time</small>
-              </summary>
-              <div class="party-path-body">
-                <p>No local server. Pick your side, then follow that list in order.</p>
-                <div class="party-role" role="group" aria-label="Your side">
-                  <button id="party-role-host" class="secondary" type="button" aria-pressed="true">
-                    HOST STEPS
-                  </button>
-                  <button id="party-role-join" class="secondary" type="button" aria-pressed="false">
-                    JOIN STEPS
-                  </button>
-                </div>
-                <ol id="party-host-steps" class="party-steps">
-                  <li class="is-current">
-                    <b>01</b><span>Choose Host Party. Keep this tab open. You start the run.</span>
-                  </li>
-                  <li>
-                    <b>02</b
-                    ><span
-                      >Choose New Invite. A teammate in the room can scan the code, or you can copy
-                      it.</span
-                    >
-                  </li>
-                  <li>
-                    <b>03</b
-                    ><span
-                      >Scan or paste the answer they send back, then choose Accept Answer.</span
-                    >
-                  </li>
-                  <li>
-                    <b>04</b
-                    ><span
-                      >For the next teammate, choose New Invite again. Each person needs a new
-                      code.</span
-                    >
-                  </li>
-                </ol>
-                <ol id="party-join-steps" class="party-steps" hidden>
-                  <li class="is-current">
-                    <b>01</b><span>Scan or paste the host's whole invite into the code box.</span>
-                  </li>
-                  <li>
-                    <b>02</b
-                    ><span>Choose Join / Create Answer. Wait until your answer appears.</span>
-                  </li>
-                  <li>
-                    <b>03</b
-                    ><span
-                      >Show or copy that answer so the host can scan it. Stay on this page.</span
-                    >
-                  </li>
-                  <li>
-                    <b>04</b><span>Stay on this page until your name appears in the crew.</span>
-                  </li>
-                </ol>
-                <div id="party-direct-flow">
-                  <div id="party-host-actions" class="party-step-actions">
-                    <button id="party-host" class="secondary" type="button">HOST PARTY</button>
-                    <button id="party-invite" class="secondary" type="button" disabled>
-                      NEW INVITE
-                    </button>
-                    <button id="party-cancel-invites" class="secondary" type="button">
-                      CANCEL PENDING INVITES
-                    </button>
-                  </div>
-                  <div id="party-output-field" class="party-field">
-                    <label id="party-output-label" for="party-output">INVITE TO SEND</label>
-                    <textarea
-                      id="party-output"
-                      rows="3"
-                      readonly
-                      spellcheck="false"
-                      placeholder="Your code appears here"
-                    ></textarea>
-                    <canvas id="party-code-qr" hidden aria-label="Invite code"></canvas>
-                    <p id="party-code-note" class="setup-note" hidden></p>
-                  </div>
-                  <div id="party-copy-actions" class="party-step-actions">
-                    <button id="party-copy" class="secondary" type="button">COPY CODE</button>
-                  </div>
-                  <div id="party-input-field" class="party-field">
-                    <label id="party-input-label" for="party-input">ANSWER FROM TEAMMATE</label>
-                    <textarea
-                      id="party-input"
-                      rows="3"
-                      maxlength="32000"
-                      spellcheck="false"
-                      autocapitalize="off"
-                      autocomplete="off"
-                      placeholder="Paste or scan the whole EMBER7 code"
-                    ></textarea>
-                    <div class="party-step-actions">
-                      <button id="party-scan" class="secondary" type="button">SCAN A CODE</button>
-                    </div>
-                    <div id="party-scan-view" hidden>
-                      <video id="party-scan-video" muted playsinline></video>
-                      <button id="party-scan-stop" class="secondary" type="button">
-                        STOP SCAN
-                      </button>
-                    </div>
-                  </div>
-                  <div id="party-accept-actions" class="party-step-actions">
-                    <button id="party-accept" class="secondary" type="button">ACCEPT ANSWER</button>
-                  </div>
-                  <div id="party-join-actions" class="party-step-actions" hidden>
-                    <button id="party-answer" class="secondary" type="button">
-                      JOIN / CREATE ANSWER
-                    </button>
-                  </div>
-                </div>
-                <small
-                  >One invite per teammate. In the same room, scan the code instead of copying it.
-                  Unused invites expire after three minutes. Some routers and VPNs block a direct
-                  connection. There is no internet relay.</small
-                >
-              </div>
-            </details>
+              <small id="party-lan-reach"
+                >Everyone opens this same link, sets a name, and joins.</small
+              >
+            </div>
+            <div class="party-divider">OR JOIN WITH A LINK</div>
+            <div class="party-field">
+              <label for="party-room">JOIN LINK OR ROOM CODE</label>
+              <input
+                id="party-room"
+                placeholder="https://…/?room=A1B2C3"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+              />
+            </div>
+            <div class="party-step-actions">
+              <button id="party-lan-join" class="secondary">JOIN</button>
+              <button id="party-scan" class="secondary" type="button">SCAN LINK</button>
+            </div>
+            <div id="party-scan-view" hidden>
+              <video id="party-scan-video" muted playsinline></video>
+              <button id="party-scan-stop" class="secondary" type="button">STOP SCAN</button>
+            </div>
           </section>
           <aside class="party-lobby" aria-labelledby="party-lobby-heading">
             <span class="label">SHARED SIGNAL / LOBBY</span>

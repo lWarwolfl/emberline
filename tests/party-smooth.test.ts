@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as Party from "../src/party";
+import * as Sync from "../src/party-sync";
 import Config from "../src/config";
 
 function started() {
@@ -58,6 +59,29 @@ test("merging adds host objects, drops removed ones, and snaps a warp", () => {
   host.world.distance += 650;
   Party.ease(guest, host, 1 / 20);
   assert.equal(guest.world.distance, host.world.distance);
+});
+
+test("the guest view interpolates the world and predicts a jump before the host agrees", () => {
+  const host = started();
+  host.world.objects.push({ kind: "hazard", variant: "barrier", x: 300, y: 178, w: 25, h: 18 });
+  const later = Party.clone(host);
+  later.world.time += 0.1;
+  later.world.objects.find((object) => object.variant === "barrier")!.x = 260;
+  const guest = Party.clone(host);
+  const guestId = guest.members.find((member) => member.name === "Guest")!.id;
+  const samples = [
+    { time: host.world.time, run: host },
+    { time: later.world.time, run: later },
+  ];
+  Sync.follow(guest, samples, guestId, [], 0, host.world.time + 0.05 + Sync.renderDelay);
+  const barrier = guest.world.objects.find((object) => object.variant === "barrier");
+  assert(barrier);
+  assert(Math.abs(barrier.x - 280) < 2);
+  const pending = [{ sequence: 1, action: "jump" as const }];
+  Sync.follow(guest, samples, guestId, pending, 0, later.world.time + 0.08);
+  const local = guest.members.find((member) => member.id === guestId)!;
+  assert(local.state.player.y < Config.floor - Config.playerHeight - 2);
+  assert(local.state.player.vy < 0);
 });
 
 test("a guest rebases a fresh snapshot onto its own clock and resets a large gap", () => {

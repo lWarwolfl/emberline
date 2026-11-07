@@ -2,7 +2,13 @@ import * as Party from "./party";
 
 export type Message =
   | { type: "hello"; profile: Party.Profile }
-  | { type: "state"; snapshot: string; eventId: number; events: import("./types").GameEvent[] }
+  | {
+      type: "state";
+      snapshot: string;
+      eventId: number;
+      events: import("./types").GameEvent[];
+      acks?: Record<string, number>;
+    }
   | { type: "input"; action: Party.Action; sequence: number }
   | { type: "reject"; reason: string };
 interface Link {
@@ -166,13 +172,27 @@ export async function requireRelay(address = "") {
   }
   if (!hosting)
     throw new Error(
-      "This page has no LAN relay. Follow the direct invite steps, or open the address printed by npm run host.",
+      "This page has no LAN relay. Host a room here for an internet join link, or open the address printed by npm run host.",
     );
+}
+interface RoomChannel {
+  peer: string;
+  send: (data: Message) => void;
+  close: () => void;
+  on: (event: "open" | "data" | "close" | "error", listener: (data?: unknown) => void) => void;
+}
+interface RoomBroker {
+  id: string;
+  destroy: () => void;
+  reconnect: () => void;
+  on: (event: string, listener: (value?: unknown) => void) => void;
+  connect: (id: string, options: { reliable: boolean; serialization: "json" }) => RoomChannel;
 }
 export function create(callbacks: Callbacks) {
   let links = new Map<string, Link>();
   let peers = new Map<string, RTCPeerConnection>();
   let socket: WebSocket | null = null;
+  let broker: RoomBroker | null = null;
   let role: "host" | "guest" | null = null;
   let localId = "host",
     hostId = "host";
@@ -201,6 +221,10 @@ export function create(callbacks: Callbacks) {
       socket.onclose = null;
       socket.close();
       socket = null;
+    }
+    if (broker) {
+      broker.destroy();
+      broker = null;
     }
   }
   function attach(id: string, channel: RTCDataChannel, pc: RTCPeerConnection, epoch: number) {
@@ -417,6 +441,98 @@ export function create(callbacks: Callbacks) {
       if (generation === epoch) callbacks.disconnected(host ? localId : hostId);
     };
   }
+  async function link(hosting: boolean, code: string) {
+    const room = code.trim().toUpperCase();
+    if (!/^[A-F0-9]{6}$/.test(room)) throw new Error("Enter the six-character room code.");
+    if (!/^https?:$/.test(location.protocol))
+      throw new Error(
+        "Open the join link in a browser. A file on this computer cannot introduce other people.",
+      );
+    close();
+    role = hosting ? "host" : "guest";
+    const epoch = generation;
+    const { default: Peer } = await import("peerjs");
+    const ice = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ],
+    };
+    const hostPeerId = `emberline8${room.toLowerCase()}`;
+    const peer = (
+      hosting
+        ? new Peer(hostPeerId, { config: ice, debug: 0 })
+        : new Peer({ config: ice, debug: 0 })
+    ) as RoomBroker;
+    broker = peer;
+    const fail = (error: { type?: string }) => {
+      if (generation !== epoch) return;
+      const kind = error.type ?? "";
+      callbacks.status(
+        kind === "unavailable-id"
+          ? "That room is already open. Host again to get a new link."
+          : kind === "peer-unavailable"
+            ? "That room is not open. Ask the host to keep the page open and send the link again."
+            : "Could not open the room link. Check the internet connection and try again.",
+      );
+      close();
+    };
+    const bind = (id: string, channel: RoomChannel, opened?: () => void) => {
+      channel.on("open", () => {
+        if (generation !== epoch) {
+          channel.close();
+          return;
+        }
+        if (role === "host" && links.size >= 3) {
+          channel.close();
+          callbacks.status("The room is full.");
+          return;
+        }
+        links.set(id, {
+          send(data) {
+            channel.send(data);
+          },
+          close() {
+            channel.close();
+          },
+        });
+        opened?.();
+        if (!opened) callbacks.status("Courier connected.");
+      });
+      channel.on("data", (data) => {
+        if (generation !== epoch) return;
+        const parsed = message(typeof data === "string" ? data : JSON.stringify(data));
+        if (parsed) callbacks.message(id, parsed);
+      });
+      const lost = () => {
+        if (generation !== epoch || !links.has(id)) return;
+        links.delete(id);
+        callbacks.disconnected(id);
+      };
+      channel.on("close", lost);
+      channel.on("error", lost);
+    };
+    peer.on("error", (error) => fail((error ?? {}) as { type?: string }));
+    peer.on("disconnected", () => {
+      if (generation === epoch) peer.reconnect();
+    });
+    if (hosting) {
+      peer.on("open", () => {
+        if (generation !== epoch) return;
+        localId = hostId = "host";
+        callbacks.ready(localId, true, room);
+      });
+      peer.on("connection", (value) => bind((value as RoomChannel).peer, value as RoomChannel));
+    } else
+      peer.on("open", () => {
+        if (generation !== epoch) return;
+        localId = peer.id;
+        hostId = hostPeerId;
+        bind(hostPeerId, peer.connect(hostPeerId, { reliable: true, serialization: "json" }), () =>
+          callbacks.ready(localId, false, room),
+        );
+      });
+  }
   function sendSocket(to: string, data: Message) {
     if (socket?.readyState === WebSocket.OPEN && socket.bufferedAmount < 500000)
       socket.send(JSON.stringify({ to, data }));
@@ -427,6 +543,7 @@ export function create(callbacks: Callbacks) {
     answer,
     accept,
     lan,
+    link,
     close,
     cancelPending() {
       for (const [id, pc] of peers)

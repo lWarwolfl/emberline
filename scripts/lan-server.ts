@@ -165,7 +165,7 @@ if (require.main === module && !process.versions.electron) {
       for (const a of addresses || [])
         if (a.family === "IPv4" && !a.internal)
           console.log(
-            `Teammates open http://${a.address}:${port}/ on the same network, then PARTY → Join LAN.`,
+            `Teammates open http://${a.address}:${port}/ on the same network, then PARTY → Join.`,
           );
   });
 }

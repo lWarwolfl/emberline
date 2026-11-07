@@ -215,69 +215,9 @@ async function main() {
     await pages[1].context().close();
     await pages[3].context().close();
 
-    if (process.env.EMBERLINE_SKIP_DIRECT) {
-      console.log(
-        "SKIP direct WebRTC: this environment cannot enumerate network interfaces. CI runs the real data-channel checks.",
-      );
-    } else {
-      // Real WebRTC data channels on the deployed-style static frontend, no LAN relay.
-      const directHost = await courier("Direct host");
-      await directHost
-        .locator(".party-path > summary")
-        .filter({ hasText: "DIRECT INVITES" })
-        .click();
-      await directHost.click("#party-host");
-      const direct = [directHost];
-      for (let i = 1; i <= 3; i++) {
-        await directHost.click("#party-invite");
-        await directHost.waitForFunction(() =>
-          (document.getElementById("party-output") as HTMLTextAreaElement).value.startsWith(
-            "EMBER7.",
-          ),
-        );
-        if (direct.length === 1) {
-          assert.equal(await directHost.locator("#party-code-note").isVisible(), true);
-        }
-        const invite = await directHost.inputValue("#party-output");
-        const guest = await courier(`Direct ${i}`);
-        await guest.locator(".party-path > summary").filter({ hasText: "DIRECT INVITES" }).click();
-        await guest.click("#party-role-join");
-        await guest.fill("#party-input", invite);
-        await guest.click("#party-answer");
-        await guest.waitForFunction(() =>
-          (document.getElementById("party-output") as HTMLTextAreaElement).value.startsWith(
-            "EMBER7.",
-          ),
-        );
-        const answer = await guest.inputValue("#party-output");
-        await directHost.fill("#party-input", answer);
-        await directHost.click("#party-accept");
-        direct.push(guest);
-        await waitCount(direct, i + 1);
-        // Clear the last code so the next invite cannot accidentally read stale output.
-        await directHost.evaluate(() => {
-          (document.getElementById("party-output") as HTMLTextAreaElement).value = "";
-        });
-      }
-      await directHost.click("#party-start");
-      await Promise.all(direct.slice(1).map((p) => p.click("#party-close")));
-      await Promise.all(
-        direct.map((p) => p.waitForFunction(() => EmberlineDebug.app.state.mode === "playing")),
-      );
-      await direct[2].keyboard.press("KeyT");
-      const newFront = await direct[2].evaluate(() => EmberlineDebug.app.session.localId);
-      await Promise.all(
-        direct.map((p) =>
-          p.waitForFunction((id) => EmberlineDebug.app.session.run!.order[0] === id, newFront),
-        ),
-      );
-      await directHost.screenshot({ path: path.resolve("test-results/party-direct-invites.png") });
-      await directHost.context().close();
-      await direct[1].waitForFunction(() => !EmberlineDebug.app.session.active);
-    }
     assert.deepEqual(errors, []);
     console.log(
-      "PASS party: four real LAN clients (plus direct WebRTC unless explicitly skipped); limits, shared formation/take-point, damage interception, down/spectate, dash revival, coins once, biome beacon, pause, disconnect, mobile HUD and reduced motion.",
+      "PASS party: four real LAN clients; limits, shared formation/take-point, damage interception, down/spectate, dash revival, coins once, biome beacon, pause, disconnect, mobile HUD and reduced motion.",
     );
   } catch (error) {
     for (const context of browser.contexts())

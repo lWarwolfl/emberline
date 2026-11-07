@@ -18,11 +18,9 @@ browser, Node installation, terminal, or internet connection for solo play.
 The build is unsigned; Windows may show a publisher/SmartScreen warning.
 
 The desktop app starts its LAN server automatically on port 4174. In PARTY / LAN,
-choose HOST LAN ROOM. Teammates on the same Wi-Fi scan the join code or open the
-join link, set a name, and join. A six-character room code still works. On
-another installed copy, paste the join link or enter the host address and room
-code, then JOIN LAN. A teammate can also open the link in a browser. Keep the
-host app open.
+choose HOST A ROOM. Teammates on the same Wi-Fi open that one link, set a name,
+and join. A six-character room code still works. On another installed copy,
+paste the join link, then JOIN. Keep the host app open.
 Allow the app through Windows Firewall on private networks if prompted. Guest
 Wi-Fi isolation or VPN routing can still prevent connections. This is a trusted
 local-network service, not an authenticated public internet server.
@@ -396,15 +394,9 @@ committed root `index.html` through `file://` to preserve double-click playback.
 
 Open **PARTY / LAN** before starting a run. Equip gear and buy upgrades first; each courier brings their own saved gear and upgrade levels. The host's difficulty sets the shared route and starting health. New arrivals join in lobby order, up to four players. Join before the run starts. The host starts, pauses and restarts; a host departure ends the party, preserving coins already earned. Keep the host browser visible while playing. There is no automatic host migration or mid-run reconnect.
 
-**LAN (same network, no internet required after installation):** install Node 24, run `npm ci` once, then `npm run host` (Windows can use `Host-LAN.cmd`). Keep that terminal open. It prints `http://localhost:4173/` and the computer's LAN addresses. One player opens a printed address and chooses **HOST LAN ROOM**. The panel shows a join link and a scannable code for that room. Teammates open the link, set a name, and choose **JOIN LAN**. The link fills the room code. Pasting the whole link into the address field also works, as does typing the six-character code. Allow Node through the computer's firewall on the private network if asked. Guest Wi-Fi isolation can block device-to-device traffic. `PORT=...` changes the port. The relay serves only the packaged public build, rejects cross-site browser connections, locks started rooms, limits rooms to four sockets and routes guest input only to the host.
+**One join link:** open **PARTY / LAN**, set a name, and choose **HOST A ROOM**. The panel shows one link and a scannable code. Everyone opens that same link, sets a name, and chooses **JOIN**. On a LAN host (`npm run host`, `Host-LAN.cmd`, or the desktop app) the link stays on the local network and needs no internet. On the public site the same button opens a room through a public signaling service, then the run goes browser to browser. Some routers and VPNs still block that direct route; there is no TURN relay. A local file cannot hand other people a link.
 
-**Direct browser invites (including the public site):** open **PARTY / LAN**, then **DIRECT INVITES**, and choose **HOST STEPS** or **JOIN STEPS**.
-
-Host: **HOST PARTY**, then **NEW INVITE**. In the same room, let the teammate scan the code. Otherwise copy the whole code. Scan or paste the answer they send back and choose **ACCEPT ANSWER**. Repeat with a new invite for each teammate.
-
-Join: scan or paste the host's whole invite, choose **JOIN / CREATE ANSWER**, then show or send the answer code back and stay on the page. Scanning uses the device camera where the browser allows it.
-
-Pending invites expire in three minutes and can be cancelled. Connections use WebRTC data channels and a public STUN server for address discovery; no game server account is needed. Some routers, VPNs and firewalls block a direct route, and no TURN relay is bundled. On the same Wi-Fi, open the address printed by `npm run host` and use **HOST LAN ROOM** there. The public site has no LAN relay, so **HOST LAN ROOM** on that site opens these direct steps instead of a failed socket.
+**LAN (same network, no internet required after installation):** install Node 24, run `npm ci` once, then `npm run host` (Windows can use `Host-LAN.cmd`). Keep that terminal open. It prints `http://localhost:4173/` and the computer's LAN addresses. One player opens a printed address and chooses **HOST A ROOM**. Allow Node through the computer's firewall on the private network if asked. Guest Wi-Fi isolation can block device-to-device traffic. `PORT=...` changes the port. The relay serves only the packaged public build, rejects cross-site browser connections, locks started rooms, limits rooms to four sockets and routes guest input only to the host.
 
 Every view uses the host's world, shared score, pickup ledger and **same front-to-back order**. Your courier is marked **YOU**. The party HUD shows everyone's remaining health, dash/jump/damage levels and jump count, including downed/disconnected players. **T / TAKE POINT** (or its touch button) hops your courier to the front, with a three-second cooldown; the other couriers move back in the same order on every screen. Incoming shots and hazards hit the first body they reach, so a grounded protector can shield a weaker teammate, while jumping lets a threat reach a follower. Friendly shots do not damage teammates. Downed players spectate and cannot act; the run ends only when all connected couriers are down.
 
@@ -412,6 +404,6 @@ The starting biome and each subsequent biome entrance have a **glowing revive be
 
 Each additional connected courier increases base pace by **6%**, speed growth by **12%**, encounter density by **22%** and newly spawned enemy durability by **20%**, up to four couriers. Downed teammates still count until they disconnect. Shared coin pickups are removed once and credit every party member once; repeated snapshots and restarts do not duplicate rewards. Custom difficulty continues to award no coins. Portals and jump pads move the whole active party, preserving formation and arrival protection.
 
-The host simulates at the existing fixed physics step; guests send sequenced actions and receive bounded, ordered snapshots at 20 Hz. Guest actions cannot specify positions, health, order or rewards. The host validates actions, cooldowns, membership and message rates. Browser saves are scoped to their address, so a LAN address has its own progress separate from the public site. Local progress remains on each browser; this is cooperative peer hosting, not a server-verified competitive economy.
+The host simulates at the existing fixed physics step and sends snapshots at 30 Hz. Guests draw the world between those snapshots and play their own jump, dash and attack immediately, then correct from the host's acknowledgement. Guest actions cannot specify positions, health, order or rewards. The host validates actions, cooldowns, membership and message rates. Browser saves are scoped to their address, so a LAN address has its own progress separate from the public site. Local progress remains on each browser; this is cooperative peer hosting, not a server-verified competitive economy.
 
 Tests include party combat, formation/cooldowns, scaling, safe biome entrances, dash-only revival, team wipes, shared rewards, serialization, disconnects, LAN capacity/routing/origin checks, and four isolated browser clients over both real LAN WebSockets and real WebRTC data channels. Browser QA also covers mobile party controls/HUD, reduced motion, spectators, host pause and host departure.
