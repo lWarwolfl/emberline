@@ -67,6 +67,7 @@
         dashLungeMax: 18,
         dashReturnSpeed: 95,
         strafeReach: 110,
+        strafeSpeed: 220,
         damageGrace: 1.6,
         pickupRecharge: 0.06,
         sectorSeconds: 18,
@@ -2385,24 +2386,24 @@
       function addScore(state, points) {
         state.score += BigInt(points);
       }
-      function laneTarget(home, strafe, dashBonus) {
-        return Math.max(
-          12,
-          Math.min(
-            import_config4.default.width - 36,
-            home + strafe * import_config4.default.strafeReach + dashBonus,
-          ),
-        );
+      function strafeAnchor(x, home, strafe, dashing) {
+        if (strafe === 0 && !dashing && x < home - 0.5) return x;
+        return home;
       }
-      function seekX(x, target, dt, dashing, dashSpeed) {
+      function laneTarget(anchor, strafe, dashBonus) {
+        return anchor + strafe * import_config4.default.strafeReach + dashBonus;
+      }
+      function seekX(x, target, dt, dashing, dashSpeed, pace = 0) {
         const delta = target - x;
         if (!delta) return x;
         const speed =
-          dashing && delta > 0
-            ? dashSpeed
-            : delta < 0
-              ? import_config4.default.dashReturnSpeed
-              : 220;
+          pace > 0
+            ? pace
+            : dashing && delta > 0
+              ? dashSpeed
+              : delta < 0
+                ? import_config4.default.dashReturnSpeed
+                : 220;
         return x + Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
       }
       function jump(state) {
@@ -2532,16 +2533,19 @@
         state.attackCooldown = Math.max(0, state.attackCooldown - dt);
         const player = state.player;
         const previousPlayerX = player.x;
+        const strafe = state.strafe || 0;
+        const target = laneTarget(
+          strafeAnchor(player.x, import_config4.default.playerX, strafe, dashing),
+          strafe,
+          dashing ? state.stats.dashLungeMax : 0,
+        );
         player.x = seekX(
           player.x,
-          laneTarget(
-            import_config4.default.playerX,
-            state.strafe || 0,
-            dashing ? state.stats.dashLungeMax : 0,
-          ),
+          target,
           dt,
           dashing,
           state.stats.dashLungeSpeed,
+          strafe === 0 ? 0 : import_config4.default.strafeSpeed,
         );
         const previousY = player.y;
         groundStep(state);
@@ -2618,6 +2622,7 @@
         }
       }
       module.exports = {
+        strafeAnchor,
         laneTarget,
         seekX,
         ground,
@@ -2737,10 +2742,11 @@
       import_config.default.playerX +
       (run.members.filter((item) => item.connected).length - index - 1) * 32;
     const dashing = !instant && state.dash > 0;
+    const strafe = state.strafe || 0;
     const target = import_engine.default.laneTarget(
-      home,
-      state.strafe || 0,
-      dashing ? state.stats.dashLungeMax : 0,
+      instant ? home : import_engine.default.strafeAnchor(state.player.x, home, strafe, dashing),
+      instant ? 0 : strafe,
+      !instant && dashing ? state.stats.dashLungeMax : 0,
     );
     state.player.x = instant
       ? target
@@ -2750,6 +2756,7 @@
           dt,
           dashing,
           state.stats.dashLungeSpeed,
+          strafe === 0 ? 0 : import_config.default.strafeSpeed,
         );
   }
   function formation(run, instant = false, dt = 0) {
@@ -4459,12 +4466,10 @@
             x = 0;
             y = -import_config4.default.playerHeight;
           }
-          if (state.crouching) {
-            ctx.translate(x, y + import_config4.default.playerHeight);
-            ctx.scale(1, 0.62);
-            x = 0;
-            y = -import_config4.default.playerHeight;
-          }
+          const tuck = state.crouching ? 1 : 0;
+          const lean = Math.round(tuck * 3);
+          const headDrop = Math.round(tuck * 10);
+          const chestDrop = Math.round(tuck * 5);
           const equipment = state.loadout || import_loadout3.default.defaults;
           const person = import_loadout3.default.find(
             import_loadout3.default.characters,
@@ -4486,18 +4491,20 @@
           );
           const step2 = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
           const leg = [0, 3, 0, -3][step2];
-          cape(x + 1, y + 6, time, capeType, state);
+          cape(x + 1, y + 6 + chestDrop, time, capeType, state);
           jetpack(
             x,
-            y + 7,
+            y + 7 + chestDrop,
             time,
             pack2,
             dashing || state.player.jumps > 0 || state.activePowerup?.id === "flight",
           );
           if (dashing) {
-            line(x - 34, y + 2, 18, "#b9e4d0");
-            line(x - 43, y + 15, 24, "#779e90");
+            line(x - 34, y + 2 + chestDrop, 18, "#b9e4d0");
+            line(x - 43, y + 15 + chestDrop, 24, "#779e90");
           }
+          ctx.save();
+          if (lean || headDrop) ctx.translate(lean, headDrop);
           if (person.id === "fox") {
             rect(x + 3, y - 3, 3, 5, person.skin);
             rect(x + 10, y - 2, 3, 4, person.skin);
@@ -4558,14 +4565,29 @@
             rect(x + 7, y + 3, 9, 4, "#4b7770");
             line(x + 8, y + 3, 6, "#bbded1");
           }
+          ctx.restore();
+          ctx.save();
+          if (lean || chestDrop) ctx.translate(lean, chestDrop);
           rect(x, y + 8, 11, 7, person.jacket);
           rect(x + 2, y + 8, 8, 3, person.trim);
-          rect(x + 1, y + 14, 4, 4 + Math.max(0, leg), person.boots);
-          rect(x + 7, y + 14, 4, 4 + Math.max(0, -leg), person.boots);
-          rect(x + 1 + leg, y + 17, 5, 2, person.light);
-          rect(x + 7 - leg, y + 17, 5, 2, person.light);
           const striking = state.attackTime > 0;
           rect(x + 10, y + 10, striking ? 10 : 5, 3, person.light);
+          ctx.restore();
+          const foot = x + lean;
+          if (tuck > 0.45) {
+            rect(foot + 1, y + 15, 5, 3, person.boots);
+            rect(foot + 6, y + 14, 7, 3, person.boots);
+            rect(foot + 12, y + 16, 6, 2, person.boots);
+            rect(foot + 2, y + 17, 4, 2, person.light);
+            rect(foot + 13, y + 17, 5, 2, person.light);
+          } else {
+            rect(x + 1, y + 14, 4, 4 + Math.max(0, leg), person.boots);
+            rect(x + 7, y + 14, 4, 4 + Math.max(0, -leg), person.boots);
+            rect(x + 1 + leg, y + 17, 5, 2, person.light);
+            rect(x + 7 - leg, y + 17, 5, 2, person.light);
+          }
+          x += lean;
+          y += chestDrop;
           if (weapon.id === "punch") {
             rect(x + (striking ? 19 : 13), y + 8, striking ? 7 : 4, 6, weapon.color);
             if (striking) {

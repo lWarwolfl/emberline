@@ -40,7 +40,7 @@ test("each additional player raises speed, growth, density and enemy armor", () 
   }
   assert.deepEqual(Party.scaling(100), Party.scaling(4));
 });
-test("formation stays ordered, and strafe returns to that slot on release", () => {
+test("formation stays ordered, A holds its step, and D eases back to that slot", () => {
   const r = run();
   assert.deepEqual(r.order, ["host", "p1", "p2", "p3"]);
   const positions = Party.sorted(r).map((m) => m.state.player.x);
@@ -49,10 +49,11 @@ test("formation stays ordered, and strafe returns to that slot on release", () =
   const home = back.player.x;
   assert(Party.action(r, "p3", "strafe-left"));
   advance(r, 0.5);
-  assert(back.player.x < home - 20);
+  const shifted = back.player.x;
+  assert(shifted < home - 20);
   assert(Party.action(r, "p3", "strafe-stop"));
-  advance(r, 1.4);
-  assert(Math.abs(back.player.x - home) < 1);
+  advance(r, 0.4);
+  assert.equal(back.player.x, shifted);
   const lead = r.members[0].state;
   const leadHome = lead.player.x;
   assert(Party.action(r, "host", "strafe-right"));

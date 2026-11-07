@@ -93,13 +93,25 @@ function emit(
 function addScore(state: GameState, points: number) {
   state.score += BigInt(points);
 }
-function laneTarget(home: number, strafe: number, dashBonus: number) {
-  return Math.max(12, Math.min(Config.width - 36, home + strafe * Config.strafeReach + dashBonus));
+function strafeAnchor(x: number, home: number, strafe: number, dashing: boolean) {
+  if (strafe === 0 && !dashing && x < home - 0.5) return x;
+  return home;
 }
-function seekX(x: number, target: number, dt: number, dashing: boolean, dashSpeed: number) {
+function laneTarget(anchor: number, strafe: number, dashBonus: number) {
+  return anchor + strafe * Config.strafeReach + dashBonus;
+}
+function seekX(
+  x: number,
+  target: number,
+  dt: number,
+  dashing: boolean,
+  dashSpeed: number,
+  pace = 0,
+) {
   const delta = target - x;
   if (!delta) return x;
-  const speed = dashing && delta > 0 ? dashSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
+  const speed =
+    pace > 0 ? pace : dashing && delta > 0 ? dashSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
   return x + Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
 }
 function jump(state: GameState) {
@@ -220,12 +232,19 @@ function step(state: GameState, dt: number) {
   state.attackCooldown = Math.max(0, state.attackCooldown - dt);
   const player = state.player;
   const previousPlayerX = player.x;
+  const strafe = state.strafe || 0;
+  const target = laneTarget(
+    strafeAnchor(player.x, Config.playerX, strafe, dashing),
+    strafe,
+    dashing ? state.stats.dashLungeMax : 0,
+  );
   player.x = seekX(
     player.x,
-    laneTarget(Config.playerX, state.strafe || 0, dashing ? state.stats.dashLungeMax : 0),
+    target,
     dt,
     dashing,
     state.stats.dashLungeSpeed,
+    strafe === 0 ? 0 : Config.strafeSpeed,
   );
   const previousY = player.y;
   groundStep(state);
@@ -297,6 +316,7 @@ function update(state: GameState, seconds: number) {
   }
 }
 export = {
+  strafeAnchor,
   laneTarget,
   seekX,
   ground,

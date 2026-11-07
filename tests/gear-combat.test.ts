@@ -15,18 +15,24 @@ function target(variant = "crate", x = 115): WorldObject {
   return { kind: "hazard", variant, x, y: 182, w: 13, h: 14 };
 }
 
-test("strafe steps off the lane and release returns to the home mark", () => {
+test("A and D move at the same speed, A stays, and D eases home", () => {
   const state = run();
   state.strafe = -1;
-  advance(state, 0.6);
-  assert(state.player.x < Config.playerX - 30);
+  advance(state, 0.4);
+  const left = Config.playerX - state.player.x;
   state.strafe = 0;
-  advance(state, 1.6);
-  assert.equal(state.player.x, Config.playerX);
+  const held = state.player.x;
+  advance(state, 0.5);
+  assert.equal(state.player.x, held);
+  state.player.x = Config.playerX;
   state.strafe = 1;
   advance(state, 0.4);
-  assert(state.player.x > Config.playerX + 20);
+  const right = state.player.x - Config.playerX;
+  assert(Math.abs(left - right) < 1);
+  assert(right < Config.strafeReach);
   state.strafe = 0;
+  advance(state, 0.15);
+  assert(state.player.x > Config.playerX + right * 0.5);
   advance(state, 1.6);
   assert.equal(state.player.x, Config.playerX);
 });

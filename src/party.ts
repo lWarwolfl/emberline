@@ -123,10 +123,22 @@ function place(run: PartyRun, member: Member, index: number, dt: number, instant
   const home =
     Config.playerX + (run.members.filter((item) => item.connected).length - index - 1) * 32;
   const dashing = !instant && state.dash > 0;
-  const target = Engine.laneTarget(home, state.strafe || 0, dashing ? state.stats.dashLungeMax : 0);
+  const strafe = state.strafe || 0;
+  const target = Engine.laneTarget(
+    instant ? home : Engine.strafeAnchor(state.player.x, home, strafe, dashing),
+    instant ? 0 : strafe,
+    !instant && dashing ? state.stats.dashLungeMax : 0,
+  );
   state.player.x = instant
     ? target
-    : Engine.seekX(state.player.x, target, dt, dashing, state.stats.dashLungeSpeed);
+    : Engine.seekX(
+        state.player.x,
+        target,
+        dt,
+        dashing,
+        state.stats.dashLungeSpeed,
+        strafe === 0 ? 0 : Config.strafeSpeed,
+      );
 }
 function formation(run: PartyRun, instant = false, dt = 0) {
   for (const [index, member] of sorted(run).filter(alive).entries())

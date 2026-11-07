@@ -115,12 +115,10 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       x = 0;
       y = -Config.playerHeight;
     }
-    if (state.crouching) {
-      ctx.translate(x, y + Config.playerHeight);
-      ctx.scale(1, 0.62);
-      x = 0;
-      y = -Config.playerHeight;
-    }
+    const tuck = state.crouching ? 1 : 0;
+    const lean = Math.round(tuck * 3);
+    const headDrop = Math.round(tuck * 10);
+    const chestDrop = Math.round(tuck * 5);
     const equipment = state.loadout || Loadout.defaults;
     const person = Loadout.find(Loadout.characters, equipment.character);
     const capeType = Loadout.find(Loadout.capes, equipment.cape);
@@ -133,19 +131,21 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     const weapon = Loadout.find(Loadout.weapons, equipment.weapon);
     const step = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
     const leg = [0, 3, 0, -3][step];
-    cape(x + 1, y + 6, time, capeType, state);
+    cape(x + 1, y + 6 + chestDrop, time, capeType, state);
     jetpack(
       x,
-      y + 7,
+      y + 7 + chestDrop,
       time,
       pack,
       dashing || state.player.jumps > 0 || state.activePowerup?.id === "flight",
     );
     if (dashing) {
-      line(x - 34, y + 2, 18, "#b9e4d0");
-      line(x - 43, y + 15, 24, "#779e90");
+      line(x - 34, y + 2 + chestDrop, 18, "#b9e4d0");
+      line(x - 43, y + 15 + chestDrop, 24, "#779e90");
     }
     // All character shapes share the same small, fair collision body.
+    ctx.save();
+    if (lean || headDrop) ctx.translate(lean, headDrop);
     if (person.id === "fox") {
       rect(x + 3, y - 3, 3, 5, person.skin);
       rect(x + 10, y - 2, 3, 4, person.skin);
@@ -206,14 +206,29 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       rect(x + 7, y + 3, 9, 4, "#4b7770");
       line(x + 8, y + 3, 6, "#bbded1");
     }
+    ctx.restore();
+    ctx.save();
+    if (lean || chestDrop) ctx.translate(lean, chestDrop);
     rect(x, y + 8, 11, 7, person.jacket);
     rect(x + 2, y + 8, 8, 3, person.trim);
-    rect(x + 1, y + 14, 4, 4 + Math.max(0, leg), person.boots);
-    rect(x + 7, y + 14, 4, 4 + Math.max(0, -leg), person.boots);
-    rect(x + 1 + leg, y + 17, 5, 2, person.light);
-    rect(x + 7 - leg, y + 17, 5, 2, person.light);
     const striking = state.attackTime > 0;
     rect(x + 10, y + 10, striking ? 10 : 5, 3, person.light);
+    ctx.restore();
+    const foot = x + lean;
+    if (tuck > 0.45) {
+      rect(foot + 1, y + 15, 5, 3, person.boots);
+      rect(foot + 6, y + 14, 7, 3, person.boots);
+      rect(foot + 12, y + 16, 6, 2, person.boots);
+      rect(foot + 2, y + 17, 4, 2, person.light);
+      rect(foot + 13, y + 17, 5, 2, person.light);
+    } else {
+      rect(x + 1, y + 14, 4, 4 + Math.max(0, leg), person.boots);
+      rect(x + 7, y + 14, 4, 4 + Math.max(0, -leg), person.boots);
+      rect(x + 1 + leg, y + 17, 5, 2, person.light);
+      rect(x + 7 - leg, y + 17, 5, 2, person.light);
+    }
+    x += lean;
+    y += chestDrop;
     if (weapon.id === "punch") {
       rect(x + (striking ? 19 : 13), y + 8, striking ? 7 : 4, 6, weapon.color);
       if (striking) {

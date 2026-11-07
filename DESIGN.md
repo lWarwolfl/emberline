@@ -243,9 +243,11 @@ the step.
 
 When a teammate is connected, start closes every open dialog and the run menu,
 then holds the shared world for three seconds. A solo start still begins
-immediately. Take Point is gone. Hold A or D to step off the formation slot;
-release returns to it. Hold S to crouch under high shots. In the air, S still
-pulls to the ground.
+immediately. Take Point is gone. Hold A or D to move left or right at the same
+speed. Releasing A leaves the courier there. Releasing D eases back to the
+formation slot, slower than the keyed step. Hold S to crouch: the body ducks
+and the cape, jetpack, and gun stay full size. In the air, S still pulls to the
+ground.
 
 Slop audit: 0/10. The scrim is the menu's existing charcoal wash, not a new
 gradient. The numeral is the action, not a monument stat.
