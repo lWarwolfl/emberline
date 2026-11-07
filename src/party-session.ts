@@ -17,7 +17,6 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   const beaconProgress = element(doc, "beacon-progress", "progress");
   const beaconDistance = element(doc, "beacon-distance", "span");
   const startButton = element(doc, "party-start", "button");
-  const front = element(doc, "touch-front", "button");
   let run: Party.PartyRun | null = null;
   let samples: Sync.Sample[] = [];
   let pendingInputs: Sync.Remembered[] = [];
@@ -44,6 +43,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   let scanTimer = 0;
   let scanStream: MediaStream | null = null;
   let connecting: string | null = null;
+  let dismissedCountdown = false;
   let connectionAttempt = 0;
   const busyActions = new Set<string>();
   const buttonLabels = new Map<string, string>();
@@ -67,12 +67,22 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
   function say(text: string) {
     status.textContent = text;
   }
+  function dismiss() {
+    element(doc, "overlay").classList.add("hidden");
+    for (const dialog of doc.querySelectorAll("dialog[open]"))
+      if (dialog instanceof HTMLDialogElement) dialog.close();
+    const count = run?.countdown ?? 0;
+    if (count <= 0) return;
+    const root = element(doc, "countdown");
+    root.hidden = false;
+    root.classList.remove("is-go");
+    element(doc, "countdown-digit").textContent = String(Math.ceil(count));
+  }
   function localProfile() {
     return Party.profile({ ...getProfile(), name: name.value });
   }
   function refresh() {
     const members = run ? Party.sorted(run) : [];
-    startButton.disabled = !host || !run || run.world.mode === "playing";
     element(doc, "party-leave", "button").disabled = !active && !connecting;
     for (const key of buttonLabels.keys()) {
       const busy = busyActions.has(key) || connecting === key;
@@ -83,7 +93,6 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     for (const key of ["party-lan-host", "party-lan-join"])
       element(doc, key, "button").disabled = active || connecting !== null || busyActions.has(key);
     name.disabled = room.disabled = active || connecting !== null;
-    front.hidden = !active;
     hud.hidden = !active;
     element(doc, "beacon-trail").hidden = !active;
     const progress = run ? Party.progress(run) : null;
@@ -97,7 +106,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     const rows = members
       .map(
         (m) =>
-          `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.frontCooldown > 0}|${m.id === id}`,
+          `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.id === id}`,
       )
       .join(";");
     if (rows !== fingerprint) {
@@ -129,29 +138,19 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
         }
       }
     }
-    const local = run?.members.find((m) => m.id === id);
-    front.disabled =
-      !run ||
-      run.world.mode !== "playing" ||
-      !local ||
-      !Party.alive(local) ||
-      local.frontCooldown > 0 ||
-      Party.sorted(run).find(Party.alive)?.id === id;
-    front.textContent =
-      local && local.frontCooldown > 0 ? "TAKE POINT · CHARGING" : "T / TAKE POINT";
-    const desktopFront = element(doc, "take-front", "button");
-    desktopFront.hidden = !active;
-    desktopFront.disabled = front.disabled;
-    desktopFront.textContent = front.textContent;
+    const counting = (run?.countdown ?? 0) > 0;
+    startButton.disabled = !host || !run || run.world.mode === "playing" || counting;
     const mainStart = element(doc, "start", "button");
     if (active) {
-      mainStart.disabled = !host;
+      mainStart.disabled = !host || counting;
       mainStart.textContent = host
-        ? run?.started
-          ? run.world.mode === "paused"
-            ? "RESUME PARTY"
-            : "RESTART PARTY"
-          : "START PARTY RUN"
+        ? counting
+          ? "CREW COUNTDOWN"
+          : run?.started
+            ? run.world.mode === "paused"
+              ? "RESUME PARTY"
+              : "RESTART PARTY"
+            : "START PARTY RUN"
         : "WAITING FOR HOST";
     }
   }
@@ -239,7 +238,18 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
           refresh();
         } else if (data.type === "input") {
           if (
-            !["jump", "dash", "attack", "front", "powerup", "ground"].includes(data.action) ||
+            ![
+              "jump",
+              "dash",
+              "attack",
+              "powerup",
+              "ground",
+              "strafe-left",
+              "strafe-right",
+              "strafe-stop",
+              "crouch",
+              "stand",
+            ].includes(data.action) ||
             !Number.isSafeInteger(data.sequence)
           )
             return;
@@ -281,6 +291,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
             Party.adopt(run, received);
             samples = Sync.remember([], received);
           }
+          if ((received.countdown ?? 0) > 0 || received.world.mode === "countdown") {
+            if (!dismissedCountdown) {
+              dismiss();
+              dismissedCountdown = true;
+            }
+          } else if (received.world.mode === "playing" || received.world.mode === "menu")
+            dismissedCountdown = false;
           quiet = 0;
           if (data.eventId > seenEvent && Array.isArray(data.events)) {
             pendingEvents.push(...data.events.slice(0, 100));
@@ -528,10 +545,7 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       say("Scan stopped.");
     },
     "party-leave": () => leave(),
-    "party-start": () => {
-      start();
-      dialog.close();
-    },
+    "party-start": () => start(),
     "party-close": () => dialog.close(),
   };
   for (const [button, fn] of Object.entries(clicks)) {
@@ -557,11 +571,13 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
       say("The host starts and restarts the party run.");
       return;
     }
+    if (run.countdown > 0 || run.world.mode === "countdown") return;
     if (run.world.mode === "paused") run.world.mode = "playing";
     else {
-      Party.start(run);
+      Party.start(run, true);
       network.lock(true);
     }
+    dismiss();
     publish();
     refresh();
   }
@@ -607,7 +623,14 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
     },
     start,
     pause() {
-      if (host && run && run.started && run.world.mode !== "dead") {
+      if (
+        host &&
+        run &&
+        run.started &&
+        run.countdown <= 0 &&
+        run.world.mode !== "dead" &&
+        run.world.mode !== "countdown"
+      ) {
         run.world.mode = run.world.mode === "paused" ? "playing" : "paused";
         publish();
       }

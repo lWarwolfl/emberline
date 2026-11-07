@@ -20,6 +20,8 @@ function create(
   const rules = Loadout.rules(loadout);
   return {
     grounding: false,
+    crouching: false,
+    strafe: 0,
     powerups: [],
     activePowerup: null,
     seed,
@@ -91,8 +93,22 @@ function emit(
 function addScore(state: GameState, points: number) {
   state.score += BigInt(points);
 }
+function laneTarget(home: number, strafe: number, dashBonus: number) {
+  return Math.max(12, Math.min(Config.width - 36, home + strafe * Config.strafeReach + dashBonus));
+}
+function seekX(x: number, target: number, dt: number, dashing: boolean, dashSpeed: number) {
+  const delta = target - x;
+  if (!delta) return x;
+  const speed = dashing && delta > 0 ? dashSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
+  return x + Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
+}
 function jump(state: GameState) {
-  if (state.mode !== "playing" || state.grounding || state.player.jumps >= state.stats.maxJumps)
+  if (
+    state.mode !== "playing" ||
+    state.grounding ||
+    state.crouching ||
+    state.player.jumps >= state.stats.maxJumps
+  )
     return false;
   state.player.vy =
     state.player.jumps === 0
@@ -138,6 +154,7 @@ function collides(
   object: WorldObject,
   previousX: number,
   previousPlayerX = player.x ?? Config.playerX,
+  crouching = false,
 ) {
   const relativeStart = previousX - previousPlayerX;
   const relativeEnd = object.x - (player.x ?? Config.playerX);
@@ -145,7 +162,7 @@ function collides(
     11 > Math.min(relativeStart, relativeEnd) + 2 &&
     2 < Math.max(relativeStart, relativeEnd) + object.w - 2 &&
     player.y + 17 > object.y + 1 &&
-    player.y + 2 < object.y + object.h - 1
+    player.y + (crouching ? 10 : 2) < object.y + object.h - 1
   );
 }
 function collect(state: GameState, object: WorldObject) {
@@ -203,12 +220,13 @@ function step(state: GameState, dt: number) {
   state.attackCooldown = Math.max(0, state.attackCooldown - dt);
   const player = state.player;
   const previousPlayerX = player.x;
-  player.x = dashing
-    ? Math.min(
-        Config.playerX + state.stats.dashLungeMax,
-        player.x + state.stats.dashLungeSpeed * dt,
-      )
-    : Math.max(Config.playerX, player.x - Config.dashReturnSpeed * dt);
+  player.x = seekX(
+    player.x,
+    laneTarget(Config.playerX, state.strafe || 0, dashing ? state.stats.dashLungeMax : 0),
+    dt,
+    dashing,
+    state.stats.dashLungeSpeed,
+  );
   const previousY = player.y;
   groundStep(state);
   player.vy += Config.gravity * dt;
@@ -233,7 +251,7 @@ function step(state: GameState, dt: number) {
   Combat.update(state, dt);
   EnemyFire.update(state, dt);
   for (const bolt of state.hostileProjectiles) {
-    if (!EnemyFire.hitsPlayer(bolt, state.player)) continue;
+    if (!EnemyFire.hitsPlayer(bolt, state.player, state.crouching)) continue;
     bolt.life = 0;
     if (state.dash > 0) {
       addScore(state, 25);
@@ -247,7 +265,7 @@ function step(state: GameState, dt: number) {
     if (object.dead || object.kind === "platform") continue;
     if (
       !object.passed &&
-      collides(player, object, previousPositions.get(object)!, previousPlayerX)
+      collides(player, object, previousPositions.get(object)!, previousPlayerX, state.crouching)
     ) {
       if (Powerups.collect(state, object)) continue;
       if (object.kind === "ember") collect(state, object);
@@ -279,6 +297,8 @@ function update(state: GameState, seconds: number) {
   }
 }
 export = {
+  laneTarget,
+  seekX,
   ground,
   groundStep,
   powerup: Powerups.activate,

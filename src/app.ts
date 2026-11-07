@@ -92,6 +92,32 @@ function create(doc: Document) {
     },
   );
   let partyMode = "menu";
+  let sawCountdown = false;
+  let sentStrafe = 99;
+  let sentCrouch = false;
+  function syncPose(playing: boolean) {
+    if (doc.querySelector("dialog[open]")) Input.release();
+    const pose = Input.pose();
+    if (!session.active) {
+      sentStrafe = 99;
+      if (playing) {
+        state.strafe = pose.strafe;
+        state.crouching = pose.crouch;
+      }
+      return;
+    }
+    if (!playing) return;
+    if (pose.strafe !== sentStrafe) {
+      sentStrafe = pose.strafe;
+      session.action(
+        pose.strafe < 0 ? "strafe-left" : pose.strafe > 0 ? "strafe-right" : "strafe-stop",
+      );
+    }
+    if (pose.crouch !== sentCrouch) {
+      sentCrouch = pose.crouch;
+      session.action(pose.crouch ? "crouch" : "stand");
+    }
+  }
   const accounts = Accounts.create(doc, {
     capture() {
       saveBest();
@@ -243,7 +269,7 @@ function create(doc: Document) {
         popups.add(event);
       audio.play(event.type, state.combo);
       const burst = event.label === "BLAST" ? bursts.explosion : bursts[event.type];
-      if (burst && !(reducedMotion && ["portal", "pad", "revive", "front"].includes(event.type)))
+      if (burst && !(reducedMotion && ["portal", "pad", "revive"].includes(event.type)))
         particles.burst(event.x, event.y, ...burst);
       switch (event.type) {
         case "heal":
@@ -252,7 +278,6 @@ function create(doc: Document) {
           ui.announce(event.label ?? "POWER-UP", 2);
           break;
         case "revive":
-        case "front":
         case "down":
           ui.announce(event.label ?? "COURIER DOWN / DASH A BEACON TO REVIVE", 2.5);
           break;
@@ -308,6 +333,7 @@ function create(doc: Document) {
       sound: toggleSound,
       pauseIfPlaying,
       enter() {
+        if (state.mode === "countdown") return;
         if (state.mode !== "playing") start();
       },
       escape: pauseIfPlaying,
@@ -326,9 +352,6 @@ function create(doc: Document) {
         audio.unlock();
         if (session.active) session.action("ground");
         else Engine.ground(state);
-      },
-      front() {
-        session.action("front");
       },
       setup() {
         if (session.active) {
@@ -385,13 +408,28 @@ function create(doc: Document) {
         if (coins) economy.credit(BigInt(coins));
         handleEvents(session.takeEvents(), true);
         if (state.mode !== partyMode) {
-          if (state.mode === "playing") ui.hideOverlay();
-          else if (state.mode === "paused" || state.mode === "dead")
+          if (state.mode === "playing") {
+            ui.hideOverlay();
+            sentStrafe = 99;
+            sentCrouch = !Input.pose().crouch;
+          } else if (state.mode === "paused" || state.mode === "dead")
             ui.showOverlay(state.mode, state);
           partyMode = state.mode;
         }
+        const count = session.run?.countdown ?? 0;
+        if (count > 0) {
+          ui.hideOverlay();
+          if (ui.countdown(count)) audio.play("tick");
+          sawCountdown = true;
+        } else if (sawCountdown && state.mode === "playing") {
+          sawCountdown = false;
+          ui.countdownGo();
+          audio.play("start");
+        }
       }
+      syncPose(state.mode === "playing");
     } else if (state.mode === "playing") {
+      syncPose(true);
       Engine.update(state, dt);
       handleEvents();
       if (Math.random() < dt * 24)

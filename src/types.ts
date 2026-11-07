@@ -107,9 +107,11 @@ export interface Encounter {
   gap: number;
   width: number;
 }
-export type Mode = "menu" | "playing" | "paused" | "dead";
+export type Mode = "menu" | "countdown" | "playing" | "paused" | "dead";
 export interface GameState {
   grounding: boolean;
+  crouching: boolean;
+  strafe: -1 | 0 | 1;
   powerups: PowerupId[];
   activePowerup: { id: PowerupId; remaining: number } | null;
   seed: Seed;
@@ -205,5 +207,4 @@ export interface Actions {
   enter: () => void;
   escape: () => void;
   effects: (enabled: boolean) => void;
-  front: () => void;
 }

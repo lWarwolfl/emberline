@@ -51,6 +51,12 @@ function create(doc: Document) {
   const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
   let queueSignature = "";
   let announcementTime = 0;
+  let countdownDigit = "";
+  let countdownGoTime = 0;
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const countdownRoot = element(doc, "countdown");
+  const countdownFigure = element(doc, "countdown-digit");
+  const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild as HTMLElement;
 
   function render(state: GameState, best: bigint, coins = 0n) {
     const signature = state.powerups.join(",");
@@ -132,12 +138,53 @@ function create(doc: Document) {
     el.pause.textContent = mode === "paused" ? "▶ RESUME" : "Ⅱ PAUSE";
   }
 
+  function countdown(seconds: number) {
+    countdownGoTime = 0;
+    countdownRoot.classList.remove("is-go");
+    countdownRoot.hidden = false;
+    const digit = String(Math.ceil(seconds));
+    const fraction = seconds - (Math.ceil(seconds) - 1);
+    countdownMeter.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction))})`;
+    if (digit === countdownDigit) return false;
+    countdownDigit = digit;
+    countdownFigure.textContent = digit;
+    countdownRoot.setAttribute("aria-label", `Starting in ${digit}`);
+    if (!reducedMotion) {
+      countdownFigure.classList.remove("mark");
+      void countdownFigure.offsetWidth;
+      countdownFigure.classList.add("mark");
+    }
+    return true;
+  }
+
+  function countdownGo() {
+    countdownDigit = "GO";
+    countdownRoot.hidden = false;
+    countdownRoot.classList.add("is-go");
+    countdownFigure.textContent = "GO";
+    countdownFigure.classList.remove("mark");
+    countdownRoot.setAttribute("aria-label", "Go");
+    countdownMeter.style.transform = "scaleX(0)";
+    countdownGoTime = reducedMotion ? 0.2 : 0.45;
+  }
+
+  function hideCountdown() {
+    countdownGoTime = 0;
+    countdownDigit = "";
+    countdownRoot.hidden = true;
+    countdownRoot.classList.remove("is-go");
+  }
+
   function announce(message: string, seconds = 2.5) {
     el.announce.textContent = message;
     announcementTime = seconds;
   }
 
   function update(dt: number) {
+    if (countdownGoTime > 0) {
+      countdownGoTime -= dt;
+      if (countdownGoTime <= 0) hideCountdown();
+    }
     if (announcementTime <= 0) return;
     announcementTime -= dt;
     if (announcementTime <= 0) el.announce.textContent = "";
@@ -154,6 +201,17 @@ function create(doc: Document) {
     announce("", 0);
   }
 
-  return { el, render, showOverlay, hideOverlay, announce, update, sound };
+  return {
+    el,
+    render,
+    showOverlay,
+    hideOverlay,
+    countdown,
+    countdownGo,
+    hideCountdown,
+    announce,
+    update,
+    sound,
+  };
 }
 export = { create, format };

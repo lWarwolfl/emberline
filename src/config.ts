@@ -15,6 +15,7 @@ export = {
   dashLungeSpeed: 150,
   dashLungeMax: 18,
   dashReturnSpeed: 95,
+  strafeReach: 110,
   damageGrace: 1.6,
   pickupRecharge: 0.06,
   sectorSeconds: 18,

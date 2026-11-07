@@ -40,20 +40,59 @@ test("each additional player raises speed, growth, density and enemy armor", () 
   }
   assert.deepEqual(Party.scaling(100), Party.scaling(4));
 });
-test("formation stays ordered, take point hops and is host validated with cooldown", () => {
+test("formation stays ordered, and strafe returns to that slot on release", () => {
   const r = run();
   assert.deepEqual(r.order, ["host", "p1", "p2", "p3"]);
   const positions = Party.sorted(r).map((m) => m.state.player.x);
   assert(positions.every((x, i) => !i || positions[i - 1] > x));
-  assert(Party.action(r, "p3", "front"));
-  assert.equal(r.order[0], "p3");
-  assert(r.members[3].state.player.vy < 0);
-  assert.equal(Party.action(r, "p3", "front"), false);
-  assert(Party.action(r, "p1", "front"));
-  assert.equal(Party.action(r, "p3", "front"), false);
-  assert.equal(Party.action(r, "intruder", "front"), false);
-  advance(r, 3.1);
-  assert(Party.action(r, "p3", "front"));
+  const back = r.members[3].state;
+  const home = back.player.x;
+  assert(Party.action(r, "p3", "strafe-left"));
+  advance(r, 0.5);
+  assert(back.player.x < home - 20);
+  assert(Party.action(r, "p3", "strafe-stop"));
+  advance(r, 1.4);
+  assert(Math.abs(back.player.x - home) < 1);
+  const lead = r.members[0].state;
+  const leadHome = lead.player.x;
+  assert(Party.action(r, "host", "strafe-right"));
+  advance(r, 0.4);
+  assert(lead.player.x > leadHome + 20);
+  assert(Party.action(r, "host", "strafe-stop"));
+  advance(r, 1.6);
+  assert(Math.abs(lead.player.x - leadHome) < 1);
+  assert.equal(Party.action(r, "intruder", "strafe-left"), false);
+});
+test("a connected crew counts down from 3 before the world moves", () => {
+  const crew = Party.create("host", profile("Host"), "count");
+  assert(Party.add(crew, "p1", profile("Ally")));
+  Party.start(crew, true);
+  assert.equal(crew.world.mode, "countdown");
+  assert.equal(crew.countdown, 3);
+  const distance = crew.world.distance;
+  advance(crew, 0.9);
+  assert.equal(crew.world.mode, "countdown");
+  assert.equal(crew.world.distance, distance);
+  assert.equal(Math.ceil(crew.countdown), 3);
+  advance(crew, 2.2);
+  assert.equal(crew.countdown, 0);
+  assert.equal(crew.world.mode, "playing");
+  assert(crew.world.distance > 0);
+});
+test("a guest adopts the host countdown", () => {
+  const crew = Party.create("host", profile("Host"), "count");
+  assert(Party.add(crew, "p1", profile("Ally")));
+  Party.start(crew, true);
+  const guest = Party.create("p1", profile("Ally"), "count");
+  Party.adopt(guest, Party.decode(Party.encode(crew)));
+  assert.equal(guest.world.mode, "countdown");
+  assert.equal(guest.countdown, 3);
+});
+test("starting alone does not hold for a countdown", () => {
+  const solo = Party.create("host", profile(), "solo");
+  Party.start(solo, true);
+  assert.equal(solo.countdown, 0);
+  assert.equal(solo.world.mode, "playing");
 });
 test("party dash lunges from each formation slot and recenters without changing shared pace", () => {
   const r = run();
@@ -112,17 +151,31 @@ test("frontmost body intercepts one bullet without harming followers", () => {
   );
   assert.equal(r.world.hostileProjectiles.length, 0);
 });
-test("a taken-point teammate protects the old leader from a body hazard", () => {
-  const r = run();
-  Party.action(r, "p3", "front");
-  const protector = r.members[3].state;
-  ground(protector);
+test("crouch ducks a high shot and still meets a ground hazard", () => {
+  const r = run(1);
+  const courier = r.members[0].state;
+  ground(courier);
+  assert(Party.action(r, "host", "crouch"));
+  r.world.hostileProjectiles.push({
+    x: courier.player.x + 4,
+    y: courier.player.y + 2,
+    previousX: courier.player.x + 4,
+    previousY: courier.player.y + 2,
+    vx: 0,
+    vy: 0,
+    damage: 1,
+    color: "red",
+    life: 2,
+  });
+  Party.update(r, 1 / 60);
+  assert.equal(courier.hits, 0);
+  assert.equal(r.world.hostileProjectiles.length, 1);
+  r.world.hostileProjectiles = [];
   r.world.objects = [
-    { kind: "hazard", variant: "spike", x: protector.player.x + 6, y: 180, w: 10, h: 16 },
+    { kind: "hazard", variant: "spike", x: courier.player.x + 4, y: 188, w: 12, h: 10 },
   ];
   Party.update(r, 1 / 60);
-  assert.equal(protector.hits, 1);
-  assert.equal(r.members[0].state.hits, 0);
+  assert.equal(courier.hits, 1);
 });
 test("hazards that pass the leader can still hit a grounded follower", () => {
   const r = run(2);
@@ -248,11 +301,14 @@ test("coins are collected once for the team and custom parties earn no coins", (
 test("snapshots preserve bigint scores, exact order, personal gear and levels", () => {
   const r = run();
   r.world.score = 1234567890123456789012345n;
-  Party.action(r, "p3", "front");
+  assert(Party.action(r, "p3", "strafe-left"));
+  assert(Party.action(r, "p3", "crouch"));
   const encoded = Party.encode(r),
     decoded = Party.decode(encoded);
   assert.equal(decoded.world.score, r.world.score);
   assert.deepEqual(decoded.order, r.order);
+  assert.equal(decoded.members.find((m) => m.id === "p3")!.state.strafe, -1);
+  assert.equal(decoded.members.find((m) => m.id === "p3")!.state.crouching, true);
   assert.deepEqual(
     decoded.members.map((m) => m.state.player),
     r.members.map((m) => m.state.player),

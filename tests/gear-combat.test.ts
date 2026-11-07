@@ -15,6 +15,37 @@ function target(variant = "crate", x = 115): WorldObject {
   return { kind: "hazard", variant, x, y: 182, w: 13, h: 14 };
 }
 
+test("strafe steps off the lane and release returns to the home mark", () => {
+  const state = run();
+  state.strafe = -1;
+  advance(state, 0.6);
+  assert(state.player.x < Config.playerX - 30);
+  state.strafe = 0;
+  advance(state, 1.6);
+  assert.equal(state.player.x, Config.playerX);
+  state.strafe = 1;
+  advance(state, 0.4);
+  assert(state.player.x > Config.playerX + 20);
+  state.strafe = 0;
+  advance(state, 1.6);
+  assert.equal(state.player.x, Config.playerX);
+});
+test("crouch blocks a jump and ducks a high crate", () => {
+  const state = run();
+  state.crouching = true;
+  assert.equal(Engine.jump(state), false);
+  state.objects = [
+    { kind: "hazard", variant: "crate", x: state.player.x + 2, y: 168, w: 16, h: 16 },
+  ];
+  Engine.update(state, 1 / 60);
+  assert.equal(state.hits, 0);
+  state.crouching = false;
+  state.objects = [
+    { kind: "hazard", variant: "crate", x: state.player.x + 2, y: 168, w: 16, h: 16 },
+  ];
+  Engine.update(state, 1 / 60);
+  assert.equal(state.hits, 1);
+});
 test("dash lunges forward and covers more distance than ordinary running", () => {
   const ordinary = run(5),
     dashed = run(5);

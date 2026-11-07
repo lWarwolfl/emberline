@@ -77,12 +77,12 @@ function update(state: GameState, dt: number) {
   );
 }
 
-function hitsPlayer(bolt: HostileProjectile, player: Player) {
+function hitsPlayer(bolt: HostileProjectile, player: Player, crouching = false) {
   return (
     Math.min(bolt.x, bolt.previousX) < player.x + 12 &&
     Math.max(bolt.x, bolt.previousX) + 4 > player.x + 1 &&
     Math.min(bolt.y, bolt.previousY) < player.y + 17 &&
-    Math.max(bolt.y, bolt.previousY) + 4 > player.y + 1
+    Math.max(bolt.y, bolt.previousY) + 4 > player.y + (crouching ? 10 : 1)
   );
 }
 export = { shooters, update, hitsPlayer };

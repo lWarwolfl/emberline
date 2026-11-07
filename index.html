@@ -138,6 +138,11 @@
             </div>
             <div id="prompt">or press <kbd>ENTER</kbd></div>
           </div>
+          <div id="countdown" class="countdown" hidden role="status" aria-live="polite">
+            <p class="countdown-label"><span></span> CREW READY</p>
+            <strong id="countdown-digit">3</strong>
+            <span id="countdown-meter" aria-hidden="true"><i></i></span>
+          </div>
           <div id="announce" aria-live="polite"></div>
           <div
             id="record-feedback"
@@ -171,7 +176,6 @@
           <button id="fullscreen" title="Toggle fullscreen (F)">⛶ FULLSCREEN</button>
         </nav>
         <div class="combat-actions">
-          <button id="take-front" class="attack-button" hidden>T / TAKE POINT</button>
           <button id="attack" class="attack-button" disabled>X / PUNCH</button>
         </div>
         <button
@@ -185,11 +189,12 @@
         </button>
       </footer>
       <div class="touch-controls">
-        <button id="touch-jump">JUMP ×2</button
-        ><button id="touch-ground" title="Pull to ground (S / ↓)">GROUND</button
+        <button id="touch-left">A / LEFT</button><button id="touch-right">D / RIGHT</button
+        ><button id="touch-jump">JUMP ×2</button
+        ><button id="touch-ground" title="Hold to crouch. In the air, pulls to the ground (S / ↓)">
+          CROUCH</button
         ><button id="touch-dash">DASH</button><button id="touch-attack">PUNCH</button
-        ><button id="touch-powerup" disabled>POWER-UP</button
-        ><button id="touch-front" hidden>T / TAKE POINT</button>
+        ><button id="touch-powerup" disabled>POWER-UP</button>
       </div>
 
       <dialog id="controls-dialog" aria-labelledby="controls-heading">
@@ -204,18 +209,20 @@
           <p>Jump to line up your shots. Keep the signal moving.</p>
           <div class="instructions">
             <span><kbd>SPACE</kbd> / <kbd>↑</kbd> JUMP <b id="jump-count">×2</b></span>
-            <span><kbd>S</kbd> / <kbd>↓</kbd> MAGNET TO GROUND</span>
+            <span><kbd>A</kbd> STEP LEFT · RELEASE TO RETURN</span>
+            <span><kbd>D</kbd> STEP RIGHT · RELEASE TO RETURN</span>
+            <span><kbd>S</kbd> / <kbd>↓</kbd> CROUCH / MAGNET TO GROUND</span>
             <span><kbd>SHIFT</kbd> DASH / DEFLECT</span>
             <span><kbd>X</kbd> / <kbd>J</kbd> ATTACK</span>
             <span><kbd>C</kbd> USE NEXT POWER-UP</span>
-            <span><kbd>T</kbd> TAKE POINT / PARTY</span>
             <span><kbd>L</kbd> SHOP &amp; UPGRADES</span>
             <span><kbd>P</kbd> PAUSE / RESUME</span>
             <span><kbd>F</kbd> FULLSCREEN</span>
             <span><kbd>M</kbd> SOUND ON / OFF</span>
           </div>
           <p>
-            Ground magnet pulls through platforms and ends jet flight. Hazards can still hurt you.
+            Hold S to crouch under high shots. In the air, S still pulls through platforms and ends
+            jet flight. Hold A or D to step aside, then release to return to your place in line.
           </p>
           <p>
             Keep up to three power-ups. Activate them in order; timed effects finish before the next
@@ -301,8 +308,9 @@
             <details class="party-guide">
               <summary>HOW TEAM RUNS WORK</summary>
               <p>
-                <kbd>T</kbd> / TAKE POINT moves you to the front to shield teammates. Each courier
-                keeps their own health and upgrades.
+                Hold <kbd>A</kbd> or <kbd>D</kbd> to step left or right, then release to return to
+                your place. Hold <kbd>S</kbd> to crouch. Each courier keeps their own health and
+                upgrades.
               </p>
               <p>
                 Downed couriers spectate. <kbd>SHIFT</kbd> / DASH through a glowing biome beacon to

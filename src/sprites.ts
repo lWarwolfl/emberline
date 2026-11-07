@@ -115,6 +115,12 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       x = 0;
       y = -Config.playerHeight;
     }
+    if (state.crouching) {
+      ctx.translate(x, y + Config.playerHeight);
+      ctx.scale(1, 0.62);
+      x = 0;
+      y = -Config.playerHeight;
+    }
     const equipment = state.loadout || Loadout.defaults;
     const person = Loadout.find(Loadout.characters, equipment.character);
     const capeType = Loadout.find(Loadout.capes, equipment.cape);
@@ -125,7 +131,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         : equipment.jetpack,
     );
     const weapon = Loadout.find(Loadout.weapons, equipment.weapon);
-    const step = state.player.jumps ? 0 : Math.floor(time * 13) % 4;
+    const step = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
     const leg = [0, 3, 0, -3][step];
     cape(x + 1, y + 6, time, capeType, state);
     jetpack(

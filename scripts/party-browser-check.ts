@@ -84,7 +84,22 @@ async function main() {
     );
     await extra.context().close();
     await host.click("#party-start");
-    await Promise.all(pages.slice(1).map((p) => p.click("#party-close")));
+    await Promise.all(
+      pages.map((p) =>
+        p.waitForFunction(() => {
+          const countdown = document.getElementById("countdown");
+          const digit = document.getElementById("countdown-digit")?.textContent ?? "";
+          return (
+            !document.querySelector("dialog[open]") &&
+            document.getElementById("overlay")!.classList.contains("hidden") &&
+            !!countdown &&
+            !countdown.hidden &&
+            ["3", "2", "1"].includes(digit) &&
+            (EmberlineDebug.app.session.run?.countdown ?? 0) > 0
+          );
+        }),
+      ),
+    );
     await Promise.all(
       pages.map((p) => p.waitForFunction(() => EmberlineDebug.app.state.mode === "playing")),
     );
@@ -99,8 +114,7 @@ async function main() {
     assert.equal(new Set(ids).size, 4);
     for (const p of pages)
       assert.deepEqual(await p.evaluate(() => EmberlineDebug.app.session.run!.order), ids);
-    await pages[3].click("#touch-front");
-    const protector = await pages[3].evaluate(() => EmberlineDebug.app.session.localId);
+    const protector = await host.evaluate(() => EmberlineDebug.app.session.run!.order[0]);
     await Promise.all(
       pages.map((p) =>
         p.waitForFunction((id) => EmberlineDebug.app.session.run!.order[0] === id, protector),
@@ -159,7 +173,7 @@ async function main() {
       const m = r.members.find((m) => m.id === r.order[0])!;
       r.checkpoint = { x: m.state.player.x + 8, age: 0, used: false, flash: 0 };
     });
-    await pages[3].keyboard.press("Shift");
+    await host.keyboard.press("Shift");
     await Promise.all(
       pages.map((p) =>
         p.waitForFunction(() => EmberlineDebug.app.session.run!.members[1].state.hits === 0),
@@ -217,7 +231,7 @@ async function main() {
 
     assert.deepEqual(errors, []);
     console.log(
-      "PASS party: four real LAN clients; limits, shared formation/take-point, damage interception, down/spectate, dash revival, coins once, biome beacon, pause, disconnect, mobile HUD and reduced motion.",
+      "PASS party: four real LAN clients; limits, shared countdown, formation/strafe, damage interception, down/spectate, dash revival, coins once, biome beacon, pause, disconnect, mobile HUD and reduced motion.",
     );
   } catch (error) {
     for (const context of browser.contexts())

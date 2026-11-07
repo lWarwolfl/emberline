@@ -63,6 +63,11 @@ function replay(state: GameState, action: Party.Action) {
   else if (action === "attack") Engine.attack(state);
   else if (action === "ground") Engine.ground(state);
   else if (action === "powerup") Engine.powerup(state);
+  else if (action === "strafe-left") state.strafe = -1;
+  else if (action === "strafe-right") state.strafe = 1;
+  else if (action === "strafe-stop") state.strafe = 0;
+  else if (action === "crouch") state.crouching = true;
+  else if (action === "stand") state.crouching = false;
   else return;
   state.events.length = 0;
 }
@@ -82,12 +87,13 @@ function predict(
   local.state.dash = source.state.dash;
   local.state.cooldown = source.state.cooldown;
   local.state.grounding = source.state.grounding;
+  local.state.crouching = source.state.crouching;
+  local.state.strafe = source.state.strafe;
   local.state.attackTime = source.state.attackTime;
   local.state.attackCooldown = source.state.attackCooldown;
   local.state.invincible = source.state.invincible;
   local.state.activePowerup = source.state.activePowerup ? { ...source.state.activePowerup } : null;
   local.state.powerups = source.state.powerups.slice();
-  local.frontCooldown = source.frontCooldown;
   for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
   Party.steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
   const front = Party.sorted(shown).find(Party.alive);

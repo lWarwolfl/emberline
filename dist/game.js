@@ -66,6 +66,7 @@
         dashLungeSpeed: 150,
         dashLungeMax: 18,
         dashReturnSpeed: 95,
+        strafeReach: 110,
         damageGrace: 1.6,
         pickupRecharge: 0.06,
         sectorSeconds: 18,
@@ -2141,12 +2142,12 @@
             bolt.y < import_config4.default.floor + 10,
         );
       }
-      function hitsPlayer(bolt, player) {
+      function hitsPlayer(bolt, player, crouching = false) {
         return (
           Math.min(bolt.x, bolt.previousX) < player.x + 12 &&
           Math.max(bolt.x, bolt.previousX) + 4 > player.x + 1 &&
           Math.min(bolt.y, bolt.previousY) < player.y + 17 &&
-          Math.max(bolt.y, bolt.previousY) + 4 > player.y + 1
+          Math.max(bolt.y, bolt.previousY) + 4 > player.y + (crouching ? 10 : 1)
         );
       }
       module.exports = { shooters, update: update2, hitsPlayer };
@@ -2253,6 +2254,8 @@
         const rules = import_loadout3.default.rules(loadout);
         return {
           grounding: false,
+          crouching: false,
+          strafe: 0,
           powerups: [],
           activePowerup: null,
           seed,
@@ -2323,10 +2326,31 @@
       function addScore(state, points) {
         state.score += BigInt(points);
       }
+      function laneTarget(home, strafe, dashBonus) {
+        return Math.max(
+          12,
+          Math.min(
+            import_config4.default.width - 36,
+            home + strafe * import_config4.default.strafeReach + dashBonus,
+          ),
+        );
+      }
+      function seekX(x, target, dt, dashing, dashSpeed) {
+        const delta = target - x;
+        if (!delta) return x;
+        const speed =
+          dashing && delta > 0
+            ? dashSpeed
+            : delta < 0
+              ? import_config4.default.dashReturnSpeed
+              : 220;
+        return x + Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
+      }
       function jump(state) {
         if (
           state.mode !== "playing" ||
           state.grounding ||
+          state.crouching ||
           state.player.jumps >= state.stats.maxJumps
         )
           return false;
@@ -2379,6 +2403,7 @@
         object,
         previousX,
         previousPlayerX = player.x ?? import_config4.default.playerX,
+        crouching = false,
       ) {
         const relativeStart = previousX - previousPlayerX;
         const relativeEnd = object.x - (player.x ?? import_config4.default.playerX);
@@ -2386,7 +2411,7 @@
           11 > Math.min(relativeStart, relativeEnd) + 2 &&
           2 < Math.max(relativeStart, relativeEnd) + object.w - 2 &&
           player.y + 17 > object.y + 1 &&
-          player.y + 2 < object.y + object.h - 1
+          player.y + (crouching ? 10 : 2) < object.y + object.h - 1
         );
       }
       function collect(state, object) {
@@ -2448,15 +2473,17 @@
         state.attackCooldown = Math.max(0, state.attackCooldown - dt);
         const player = state.player;
         const previousPlayerX = player.x;
-        player.x = dashing
-          ? Math.min(
-              import_config4.default.playerX + state.stats.dashLungeMax,
-              player.x + state.stats.dashLungeSpeed * dt,
-            )
-          : Math.max(
-              import_config4.default.playerX,
-              player.x - import_config4.default.dashReturnSpeed * dt,
-            );
+        player.x = seekX(
+          player.x,
+          laneTarget(
+            import_config4.default.playerX,
+            state.strafe || 0,
+            dashing ? state.stats.dashLungeMax : 0,
+          ),
+          dt,
+          dashing,
+          state.stats.dashLungeSpeed,
+        );
         const previousY = player.y;
         groundStep(state);
         player.vy += import_config4.default.gravity * dt;
@@ -2480,7 +2507,7 @@
         import_combat3.default.update(state, dt);
         import_enemy_fire3.default.update(state, dt);
         for (const bolt of state.hostileProjectiles) {
-          if (!import_enemy_fire3.default.hitsPlayer(bolt, state.player)) continue;
+          if (!import_enemy_fire3.default.hitsPlayer(bolt, state.player, state.crouching)) continue;
           bolt.life = 0;
           if (state.dash > 0) {
             addScore(state, 25);
@@ -2494,7 +2521,13 @@
           if (object.dead || object.kind === "platform") continue;
           if (
             !object.passed &&
-            collides(player, object, previousPositions.get(object), previousPlayerX)
+            collides(
+              player,
+              object,
+              previousPositions.get(object),
+              previousPlayerX,
+              state.crouching,
+            )
           ) {
             if (import_powerups3.default.collect(state, object)) continue;
             if (object.kind === "ember") collect(state, object);
@@ -2526,6 +2559,8 @@
         }
       }
       module.exports = {
+        laneTarget,
+        seekX,
         ground,
         groundStep,
         powerup: import_powerups3.default.activate,
@@ -2606,6 +2641,7 @@
       started: false,
       earned: 0,
       revision: 0,
+      countdown: 0,
     };
     add(run, id, p);
     return run;
@@ -2616,7 +2652,7 @@
     const p = profile(value);
     const state = import_engine.default.create(run.world.seed, p.loadout, p.levels);
     state.attackId = state.dashId = run.members.length * 1e6;
-    run.members.push({ id, name: p.name, state, connected: true, frontCooldown: 0 });
+    run.members.push({ id, name: p.name, state, connected: true });
     run.order.push(id);
     formation(run, true);
     return true;
@@ -2636,24 +2672,32 @@
       armor: 1 + extra * 0.2,
     };
   }
-  function formation(run, instant = false, dt = 0) {
-    const members = sorted(run).filter(alive);
-    for (const [i, m] of members.entries()) {
-      const target =
-        import_config.default.playerX +
-        (run.members.filter((m2) => m2.connected).length - i - 1) * 32;
-      const s = m.state;
-      const delta = target + (!instant && s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
-      const speed =
-        s.dash > 0
-          ? s.stats.dashLungeSpeed
-          : delta < 0
-            ? import_config.default.dashReturnSpeed
-            : 220;
-      s.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
-    }
+  function place(run, member, index, dt, instant) {
+    const state = member.state;
+    const home =
+      import_config.default.playerX +
+      (run.members.filter((item) => item.connected).length - index - 1) * 32;
+    const dashing = !instant && state.dash > 0;
+    const target = import_engine.default.laneTarget(
+      home,
+      state.strafe || 0,
+      dashing ? state.stats.dashLungeMax : 0,
+    );
+    state.player.x = instant
+      ? target
+      : import_engine.default.seekX(
+          state.player.x,
+          target,
+          dt,
+          dashing,
+          state.stats.dashLungeSpeed,
+        );
   }
-  function start(run) {
+  function formation(run, instant = false, dt = 0) {
+    for (const [index, member] of sorted(run).filter(alive).entries())
+      place(run, member, index, dt, instant);
+  }
+  function start(run, hold = false) {
     const base = import_loadout.default.rules(run.world.loadout);
     run.world = import_engine.default.create(run.world.seed, run.world.loadout);
     const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -2663,7 +2707,10 @@
       growth: base.growth * scale.growth,
       gap: base.gap / scale.density,
     };
-    run.world.mode = "playing";
+    const counting = hold && run.members.filter((member) => member.connected).length > 1;
+    run.countdown = counting ? 3 : 0;
+    const mode = counting ? "countdown" : "playing";
+    run.world.mode = mode;
     for (const [i, m] of run.members.entries()) {
       const previous = m.state;
       m.state = import_engine.default.create(
@@ -2674,8 +2721,7 @@
       m.state.rules = { ...run.world.rules };
       m.state.health = base.health;
       m.state.attackId = m.state.dashId = i * 1e6;
-      m.state.mode = "playing";
-      m.frontCooldown = 0;
+      m.state.mode = mode;
     }
     run.started = true;
     run.revision++;
@@ -2711,19 +2757,12 @@
     s.objects = run.world.objects;
     s.projectiles = run.world.projectiles;
     s.runSpeed = run.world.runSpeed;
-    if (action2 === "front") {
-      if (sorted(run).find(alive)?.id === id || m.frontCooldown > 0) return false;
-      run.order = [id, ...run.order.filter((p) => p !== id)];
-      m.frontCooldown = 3;
-      if (!import_engine.default.jump(s)) s.player.vy = Math.min(s.player.vy, -100);
-      formation(run, true);
-      s.events.push({
-        type: "front",
-        x: s.player.x,
-        y: s.player.y,
-        label: `${m.name} TAKES POINT`,
-      });
-      run.revision++;
+    if (action2 === "strafe-left" || action2 === "strafe-right" || action2 === "strafe-stop") {
+      s.strafe = action2 === "strafe-left" ? -1 : action2 === "strafe-right" ? 1 : 0;
+      return true;
+    }
+    if (action2 === "crouch" || action2 === "stand") {
+      s.crouching = action2 === "crouch";
       return true;
     }
     const previousScore = s.score;
@@ -2786,7 +2825,6 @@
       s.cooldown = Math.max(0, s.cooldown - dt);
       s.invincible = Math.max(0, s.invincible - dt);
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-      m.frontCooldown = Math.max(0, m.frontCooldown - dt);
       const previousY = s.player.y;
       import_engine.default.groundStep(s);
       s.player.vy += import_config.default.gravity * dt;
@@ -2840,7 +2878,8 @@
     import_enemy_fire.default.update(w, dt);
     for (const bolt of w.hostileProjectiles) {
       const target = live.find(
-        (m) => alive(m) && import_enemy_fire.default.hitsPlayer(bolt, m.state.player),
+        (m) =>
+          alive(m) && import_enemy_fire.default.hitsPlayer(bolt, m.state.player, m.state.crouching),
       );
       if (!target) continue;
       bolt.life = 0;
@@ -2870,7 +2909,13 @@
         (m) =>
           alive(m) &&
           (object.kind !== "powerup" || m.state.powerups.length < 3) &&
-          import_engine.default.collides(m.state.player, object, previous.get(object) ?? object.x),
+          import_engine.default.collides(
+            m.state.player,
+            object,
+            previous.get(object) ?? object.x,
+            m.state.player.x,
+            m.state.crouching,
+          ),
       );
       if (target) {
         const s = target.state,
@@ -2961,7 +3006,18 @@
     }
   }
   function update(run, seconds) {
-    if (run.world.mode !== "playing" || !Number.isFinite(seconds)) return;
+    if (!Number.isFinite(seconds)) return;
+    if (run.countdown > 0) {
+      run.countdown = Math.max(
+        0,
+        run.countdown - Math.min(import_config.default.maxFrameSeconds, Math.max(0, seconds)),
+      );
+      if (run.countdown > 0) return;
+      run.world.mode = "playing";
+      for (const member of run.members) if (member.connected) member.state.mode = "playing";
+      return;
+    }
+    if (run.world.mode !== "playing") return;
     let remaining = Math.min(import_config.default.maxFrameSeconds, Math.max(0, seconds));
     while (remaining > 1e-9 && run.world.mode === "playing") {
       const dt = Math.min(import_config.default.simulationStep, remaining);
@@ -2995,7 +3051,6 @@
       s.cooldown = Math.max(0, s.cooldown - dt);
       s.invincible = Math.max(0, s.invincible - dt);
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-      m.frontCooldown = Math.max(0, m.frontCooldown - dt);
       if (s.grounding) {
         if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
           s.grounding = false;
@@ -3208,7 +3263,6 @@
       const member = shown.members.find((item) => item.id === source.id) ?? copyMember(source);
       member.name = source.name;
       member.connected = source.connected;
-      member.frontCooldown = source.frontCooldown;
       const local = member.state;
       const remote = source.state;
       Object.assign(local, {
@@ -3223,6 +3277,8 @@
         attackId: remote.attackId,
         dashId: remote.dashId,
         grounding: remote.grounding,
+        crouching: remote.crouching,
+        strafe: remote.strafe,
         loadout: remote.loadout,
         stats: remote.stats,
         rules: remote.rules,
@@ -3240,6 +3296,7 @@
     shown.earned = authority.earned;
     shown.revision = authority.revision;
     shown.started = authority.started;
+    shown.countdown = authority.countdown;
     if (!authority.checkpoint) shown.checkpoint = null;
     else if (!shown.checkpoint) shown.checkpoint = { ...authority.checkpoint };
     else {
@@ -3270,23 +3327,10 @@
       s.cooldown = Math.max(0, s.cooldown - dt);
       s.invincible = Math.max(0, s.invincible - dt);
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-      member.frontCooldown = Math.max(0, member.frontCooldown - dt);
       const index = sorted(run)
         .filter(alive)
         .findIndex((item) => item.id === id);
-      if (index >= 0) {
-        const target =
-          import_config.default.playerX +
-          (run.members.filter((item) => item.connected).length - index - 1) * 32;
-        const delta = target + (s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
-        const speed =
-          s.dash > 0
-            ? s.stats.dashLungeSpeed
-            : delta < 0
-              ? import_config.default.dashReturnSpeed
-              : 220;
-        s.player.x += Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
-      }
+      if (index >= 0) place(run, member, index, dt, false);
       if (s.grounding) {
         if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
           s.grounding = false;
@@ -3316,6 +3360,7 @@
     target.started = copy.started;
     target.earned = copy.earned;
     target.revision = copy.revision;
+    target.countdown = copy.countdown;
   }
   function rebase(shown, incoming) {
     const skew = shown.world.time - incoming.world.time;
@@ -3838,13 +3883,13 @@
               noise(0.09, 0.035);
               tone(90, 0.12, "triangle", 0.04, 45);
               break;
+            case "tick":
+              tone(520, 0.06, "square", 0.03);
+              break;
             case "revive":
               [330, 440, 660, 880].forEach((freq, i) =>
                 tone(freq, 0.3, "sine", 0.04, freq * 1.1, i * 0.09),
               );
-              break;
-            case "front":
-              tone(260, 0.2, "triangle", 0.03, 700);
               break;
             case "down":
               tone(220, 0.35, "triangle", 0.04, 65);
@@ -4355,6 +4400,12 @@
             x = 0;
             y = -import_config4.default.playerHeight;
           }
+          if (state.crouching) {
+            ctx.translate(x, y + import_config4.default.playerHeight);
+            ctx.scale(1, 0.62);
+            x = 0;
+            y = -import_config4.default.playerHeight;
+          }
           const equipment = state.loadout || import_loadout3.default.defaults;
           const person = import_loadout3.default.find(
             import_loadout3.default.characters,
@@ -4374,7 +4425,7 @@
             import_loadout3.default.weapons,
             equipment.weapon,
           );
-          const step2 = state.player.jumps ? 0 : Math.floor(time * 13) % 4;
+          const step2 = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
           const leg = [0, 3, 0, -3][step2];
           cape(x + 1, y + 6, time, capeType, state);
           jetpack(
@@ -5032,6 +5083,12 @@
         const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
         let queueSignature = "";
         let announcementTime = 0;
+        let countdownDigit = "";
+        let countdownGoTime = 0;
+        const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const countdownRoot = element(doc, "countdown");
+        const countdownFigure = element(doc, "countdown-digit");
+        const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild;
         function render(state, best, coins = 0n) {
           const signature = state.powerups.join(",");
           if (signature !== queueSignature || !queue.children[0]?.hasAttribute("data-slot")) {
@@ -5120,11 +5177,49 @@
           }
           el.pause.textContent = mode === "paused" ? "\u25B6 RESUME" : "\u2161 PAUSE";
         }
+        function countdown(seconds) {
+          countdownGoTime = 0;
+          countdownRoot.classList.remove("is-go");
+          countdownRoot.hidden = false;
+          const digit = String(Math.ceil(seconds));
+          const fraction = seconds - (Math.ceil(seconds) - 1);
+          countdownMeter.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction))})`;
+          if (digit === countdownDigit) return false;
+          countdownDigit = digit;
+          countdownFigure.textContent = digit;
+          countdownRoot.setAttribute("aria-label", `Starting in ${digit}`);
+          if (!reducedMotion) {
+            countdownFigure.classList.remove("mark");
+            void countdownFigure.offsetWidth;
+            countdownFigure.classList.add("mark");
+          }
+          return true;
+        }
+        function countdownGo() {
+          countdownDigit = "GO";
+          countdownRoot.hidden = false;
+          countdownRoot.classList.add("is-go");
+          countdownFigure.textContent = "GO";
+          countdownFigure.classList.remove("mark");
+          countdownRoot.setAttribute("aria-label", "Go");
+          countdownMeter.style.transform = "scaleX(0)";
+          countdownGoTime = reducedMotion ? 0.2 : 0.45;
+        }
+        function hideCountdown() {
+          countdownGoTime = 0;
+          countdownDigit = "";
+          countdownRoot.hidden = true;
+          countdownRoot.classList.remove("is-go");
+        }
         function announce(message2, seconds = 2.5) {
           el.announce.textContent = message2;
           announcementTime = seconds;
         }
         function update2(dt) {
+          if (countdownGoTime > 0) {
+            countdownGoTime -= dt;
+            if (countdownGoTime <= 0) hideCountdown();
+          }
           if (announcementTime <= 0) return;
           announcementTime -= dt;
           if (announcementTime <= 0) el.announce.textContent = "";
@@ -5138,7 +5233,18 @@
           el.pause.textContent = "\u2161 PAUSE";
           announce("", 0);
         }
-        return { el, render, showOverlay, hideOverlay, announce, update: update2, sound };
+        return {
+          el,
+          render,
+          showOverlay,
+          hideOverlay,
+          countdown,
+          countdownGo,
+          hideCountdown,
+          announce,
+          update: update2,
+          sound,
+        };
       }
       module.exports = { create: create5, format };
     },
@@ -5149,6 +5255,19 @@
     "src/input.ts"(exports, module) {
       "use strict";
       init_dom();
+      var strafe = 0;
+      var left = false;
+      var right = false;
+      var crouch = false;
+      function pose() {
+        return { strafe, crouch };
+      }
+      function release() {
+        left = false;
+        right = false;
+        crouch = false;
+        strafe = 0;
+      }
       function bind(doc, actions, canvas) {
         const byId = (id) => element(doc, id);
         const clicks = {
@@ -5161,7 +5280,6 @@
           sound: actions.sound,
           fullscreen: actions.fullscreen,
           controls: actions.controls,
-          "take-front": actions.front,
         };
         for (const [id, action2] of Object.entries(clicks)) {
           byId(id).addEventListener("click", (event) => {
@@ -5177,16 +5295,57 @@
         for (const [id, action2] of [
           ["touch-jump", actions.jump],
           ["touch-dash", actions.dash],
-          ["touch-ground", actions.ground],
           ["touch-attack", actions.attack],
           ["touch-powerup", actions.powerup],
-          ["touch-front", actions.front],
         ]) {
           byId(id).addEventListener("pointerdown", (event) => {
             event.preventDefault();
             action2();
           });
         }
+        function hold(id, press, lift) {
+          const node = byId(id);
+          node.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            if (event instanceof PointerEvent && typeof node.setPointerCapture === "function")
+              node.setPointerCapture(event.pointerId);
+            press();
+          });
+          node.addEventListener("pointerup", lift);
+          node.addEventListener("pointercancel", lift);
+        }
+        hold(
+          "touch-left",
+          () => {
+            left = true;
+            strafe = -1;
+          },
+          () => {
+            left = false;
+            strafe = right ? 1 : 0;
+          },
+        );
+        hold(
+          "touch-right",
+          () => {
+            right = true;
+            strafe = 1;
+          },
+          () => {
+            right = false;
+            strafe = left ? -1 : 0;
+          },
+        );
+        hold(
+          "touch-ground",
+          () => {
+            crouch = true;
+            actions.ground();
+          },
+          () => {
+            crouch = false;
+          },
+        );
         const keys = {
           Enter: actions.enter,
           Space: actions.jump,
@@ -5200,7 +5359,6 @@
           ArrowDown: actions.ground,
           KeyH: actions.controls,
           KeyL: actions.setup,
-          KeyT: actions.front,
           KeyP: actions.pause,
           Escape: actions.escape,
           KeyF: actions.fullscreen,
@@ -5213,8 +5371,33 @@
           },
           true,
         );
+        doc.addEventListener("keyup", (event) => {
+          if (event.code === "KeyA") {
+            left = false;
+            strafe = right ? 1 : 0;
+          } else if (event.code === "KeyD") {
+            right = false;
+            strafe = left ? -1 : 0;
+          } else if (event.code === "KeyS" || event.code === "ArrowDown") crouch = false;
+        });
         doc.addEventListener("keydown", (event) => {
-          if (doc.querySelector("dialog[open]")) return;
+          if (doc.querySelector("dialog[open]")) {
+            release();
+            return;
+          }
+          if (event.code === "KeyA" || event.code === "KeyD") {
+            event.preventDefault();
+            if (event.repeat) return;
+            if (event.code === "KeyA") {
+              left = true;
+              strafe = -1;
+            } else {
+              right = true;
+              strafe = 1;
+            }
+            return;
+          }
+          if (!event.repeat && (event.code === "KeyS" || event.code === "ArrowDown")) crouch = true;
           if (
             event.target instanceof Element &&
             event.target.matches("button,input,textarea,select,a,summary") &&
@@ -5228,11 +5411,17 @@
         });
         canvas.addEventListener("pointerdown", () => actions.attack());
         doc.addEventListener("visibilitychange", () => {
-          if (doc.hidden) actions.pauseIfPlaying();
+          if (doc.hidden) {
+            release();
+            actions.pauseIfPlaying();
+          }
         });
-        window.addEventListener("blur", actions.pauseIfPlaying);
+        window.addEventListener("blur", () => {
+          release();
+          actions.pauseIfPlaying();
+        });
       }
-      module.exports = { bind };
+      module.exports = { bind, pose, release };
     },
   });
 
@@ -5911,6 +6100,11 @@
     else if (action2 === "attack") import_engine2.default.attack(state);
     else if (action2 === "ground") import_engine2.default.ground(state);
     else if (action2 === "powerup") import_engine2.default.powerup(state);
+    else if (action2 === "strafe-left") state.strafe = -1;
+    else if (action2 === "strafe-right") state.strafe = 1;
+    else if (action2 === "strafe-stop") state.strafe = 0;
+    else if (action2 === "crouch") state.crouching = true;
+    else if (action2 === "stand") state.crouching = false;
     else return;
     state.events.length = 0;
   }
@@ -5923,6 +6117,8 @@
     local.state.dash = source.state.dash;
     local.state.cooldown = source.state.cooldown;
     local.state.grounding = source.state.grounding;
+    local.state.crouching = source.state.crouching;
+    local.state.strafe = source.state.strafe;
     local.state.attackTime = source.state.attackTime;
     local.state.attackCooldown = source.state.attackCooldown;
     local.state.invincible = source.state.invincible;
@@ -5930,7 +6126,6 @@
       ? { ...source.state.activePowerup }
       : null;
     local.state.powerups = source.state.powerups.slice();
-    local.frontCooldown = source.frontCooldown;
     for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
     steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
     const front = sorted(shown).find(alive);
@@ -14891,7 +15086,6 @@
     const beaconProgress = element(doc, "beacon-progress", "progress");
     const beaconDistance = element(doc, "beacon-distance", "span");
     const startButton = element(doc, "party-start", "button");
-    const front = element(doc, "touch-front", "button");
     let run = null;
     let samples = [];
     let pendingInputs = [];
@@ -14918,6 +15112,7 @@
     let scanTimer = 0;
     let scanStream = null;
     let connecting = null;
+    let dismissedCountdown = false;
     let connectionAttempt = 0;
     const busyActions = /* @__PURE__ */ new Set();
     const buttonLabels = /* @__PURE__ */ new Map();
@@ -14941,12 +15136,22 @@
     function say(text) {
       status.textContent = text;
     }
+    function dismiss() {
+      element(doc, "overlay").classList.add("hidden");
+      for (const dialog2 of doc.querySelectorAll("dialog[open]"))
+        if (dialog2 instanceof HTMLDialogElement) dialog2.close();
+      const count = run?.countdown ?? 0;
+      if (count <= 0) return;
+      const root = element(doc, "countdown");
+      root.hidden = false;
+      root.classList.remove("is-go");
+      element(doc, "countdown-digit").textContent = String(Math.ceil(count));
+    }
     function localProfile() {
       return profile({ ...getProfile(), name: name.value });
     }
     function refresh() {
       const members = run ? sorted(run) : [];
-      startButton.disabled = !host || !run || run.world.mode === "playing";
       element(doc, "party-leave", "button").disabled = !active && !connecting;
       for (const key of buttonLabels.keys()) {
         const busy = busyActions.has(key) || connecting === key;
@@ -14958,7 +15163,6 @@
         element(doc, key, "button").disabled =
           active || connecting !== null || busyActions.has(key);
       name.disabled = room.disabled = active || connecting !== null;
-      front.hidden = !active;
       hud.hidden = !active;
       element(doc, "beacon-trail").hidden = !active;
       const progress2 = run ? progress(run) : null;
@@ -14972,7 +15176,7 @@
       const rows = members
         .map(
           (m) =>
-            `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.frontCooldown > 0}|${m.id === id}`,
+            `${m.id}|${m.name}|${m.connected}|${m.state.hits}|${m.state.health}|${Object.values(m.state.stats.levels)}|${m.id === id}`,
         )
         .join(";");
       if (rows !== fingerprint) {
@@ -15004,29 +15208,19 @@
           }
         }
       }
-      const local = run?.members.find((m) => m.id === id);
-      front.disabled =
-        !run ||
-        run.world.mode !== "playing" ||
-        !local ||
-        !alive(local) ||
-        local.frontCooldown > 0 ||
-        sorted(run).find(alive)?.id === id;
-      front.textContent =
-        local && local.frontCooldown > 0 ? "TAKE POINT \xB7 CHARGING" : "T / TAKE POINT";
-      const desktopFront = element(doc, "take-front", "button");
-      desktopFront.hidden = !active;
-      desktopFront.disabled = front.disabled;
-      desktopFront.textContent = front.textContent;
+      const counting = (run?.countdown ?? 0) > 0;
+      startButton.disabled = !host || !run || run.world.mode === "playing" || counting;
       const mainStart = element(doc, "start", "button");
       if (active) {
-        mainStart.disabled = !host;
+        mainStart.disabled = !host || counting;
         mainStart.textContent = host
-          ? run?.started
-            ? run.world.mode === "paused"
-              ? "RESUME PARTY"
-              : "RESTART PARTY"
-            : "START PARTY RUN"
+          ? counting
+            ? "CREW COUNTDOWN"
+            : run?.started
+              ? run.world.mode === "paused"
+                ? "RESUME PARTY"
+                : "RESTART PARTY"
+              : "START PARTY RUN"
           : "WAITING FOR HOST";
       }
     }
@@ -15114,7 +15308,18 @@
             refresh();
           } else if (data.type === "input") {
             if (
-              !["jump", "dash", "attack", "front", "powerup", "ground"].includes(data.action) ||
+              ![
+                "jump",
+                "dash",
+                "attack",
+                "powerup",
+                "ground",
+                "strafe-left",
+                "strafe-right",
+                "strafe-stop",
+                "crouch",
+                "stand",
+              ].includes(data.action) ||
               !Number.isSafeInteger(data.sequence)
             )
               return;
@@ -15156,6 +15361,13 @@
               adopt(run, received);
               samples = remember([], received);
             }
+            if ((received.countdown ?? 0) > 0 || received.world.mode === "countdown") {
+              if (!dismissedCountdown) {
+                dismiss();
+                dismissedCountdown = true;
+              }
+            } else if (received.world.mode === "playing" || received.world.mode === "menu")
+              dismissedCountdown = false;
             quiet = 0;
             if (data.eventId > seenEvent && Array.isArray(data.events)) {
               pendingEvents.push(...data.events.slice(0, 100));
@@ -15398,10 +15610,7 @@
         say("Scan stopped.");
       },
       "party-leave": () => leave(),
-      "party-start": () => {
-        start2();
-        dialog.close();
-      },
+      "party-start": () => start2(),
       "party-close": () => dialog.close(),
     };
     for (const [button, fn] of Object.entries(clicks)) {
@@ -15427,11 +15636,13 @@
         say("The host starts and restarts the party run.");
         return;
       }
+      if (run.countdown > 0 || run.world.mode === "countdown") return;
       if (run.world.mode === "paused") run.world.mode = "playing";
       else {
-        start(run);
+        start(run, true);
         network.lock(true);
       }
+      dismiss();
       publish();
       refresh();
     }
@@ -15475,7 +15686,14 @@
       },
       start: start2,
       pause() {
-        if (host && run && run.started && run.world.mode !== "dead") {
+        if (
+          host &&
+          run &&
+          run.started &&
+          run.countdown <= 0 &&
+          run.world.mode !== "dead" &&
+          run.world.mode !== "countdown"
+        ) {
           run.world.mode = run.world.mode === "paused" ? "playing" : "paused";
           publish();
         }
@@ -16104,6 +16322,32 @@
           },
         );
         let partyMode = "menu";
+        let sawCountdown = false;
+        let sentStrafe = 99;
+        let sentCrouch = false;
+        function syncPose(playing) {
+          if (doc.querySelector("dialog[open]")) import_input2.default.release();
+          const pose = import_input2.default.pose();
+          if (!session.active) {
+            sentStrafe = 99;
+            if (playing) {
+              state.strafe = pose.strafe;
+              state.crouching = pose.crouch;
+            }
+            return;
+          }
+          if (!playing) return;
+          if (pose.strafe !== sentStrafe) {
+            sentStrafe = pose.strafe;
+            session.action(
+              pose.strafe < 0 ? "strafe-left" : pose.strafe > 0 ? "strafe-right" : "strafe-stop",
+            );
+          }
+          if (pose.crouch !== sentCrouch) {
+            sentCrouch = pose.crouch;
+            session.action(pose.crouch ? "crouch" : "stand");
+          }
+        }
         const accounts = create4(doc, {
           capture() {
             saveBest();
@@ -16249,10 +16493,7 @@
               popups.add(event);
             audio.play(event.type, state.combo);
             const burst = event.label === "BLAST" ? bursts.explosion : bursts[event.type];
-            if (
-              burst &&
-              !(reducedMotion && ["portal", "pad", "revive", "front"].includes(event.type))
-            )
+            if (burst && !(reducedMotion && ["portal", "pad", "revive"].includes(event.type)))
               particles.burst(event.x, event.y, ...burst);
             switch (event.type) {
               case "heal":
@@ -16261,7 +16502,6 @@
                 ui.announce(event.label ?? "POWER-UP", 2);
                 break;
               case "revive":
-              case "front":
               case "down":
                 ui.announce(event.label ?? "COURIER DOWN / DASH A BEACON TO REVIVE", 2.5);
                 break;
@@ -16317,6 +16557,7 @@
             sound: toggleSound,
             pauseIfPlaying,
             enter() {
+              if (state.mode === "countdown") return;
               if (state.mode !== "playing") start2();
             },
             escape: pauseIfPlaying,
@@ -16335,9 +16576,6 @@
               audio.unlock();
               if (session.active) session.action("ground");
               else import_engine4.default.ground(state);
-            },
-            front() {
-              session.action("front");
             },
             setup() {
               if (session.active) {
@@ -16398,13 +16636,28 @@
               if (coins) economy.credit(BigInt(coins));
               handleEvents(session.takeEvents(), true);
               if (state.mode !== partyMode) {
-                if (state.mode === "playing") ui.hideOverlay();
-                else if (state.mode === "paused" || state.mode === "dead")
+                if (state.mode === "playing") {
+                  ui.hideOverlay();
+                  sentStrafe = 99;
+                  sentCrouch = !import_input2.default.pose().crouch;
+                } else if (state.mode === "paused" || state.mode === "dead")
                   ui.showOverlay(state.mode, state);
                 partyMode = state.mode;
               }
+              const count = session.run?.countdown ?? 0;
+              if (count > 0) {
+                ui.hideOverlay();
+                if (ui.countdown(count)) audio.play("tick");
+                sawCountdown = true;
+              } else if (sawCountdown && state.mode === "playing") {
+                sawCountdown = false;
+                ui.countdownGo();
+                audio.play("start");
+              }
             }
+            syncPose(state.mode === "playing");
           } else if (state.mode === "playing") {
+            syncPose(true);
             import_engine4.default.update(state, dt);
             handleEvents();
             if (Math.random() < dt * 24)

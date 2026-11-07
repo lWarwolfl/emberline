@@ -73,6 +73,27 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     );
   assert.equal(grounds, 2);
   assert.equal(controls, 1);
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: true });
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyA",
+      key: "a",
+      repeat: false,
+    }),
+  );
+  assert.deepEqual(Input.pose(), { strafe: -1, crouch: true });
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyA" }));
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyD",
+      key: "d",
+      repeat: false,
+    }),
+  );
+  assert.deepEqual(Input.pose(), { strafe: 1, crouch: true });
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyD" }));
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyS" }));
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: false });
   summaryFocused = true;
   const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
     code: "Space",

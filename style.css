@@ -109,9 +109,6 @@
     font-size: 9px;
     padding: 6px 3px;
   }
-  #shell .touch-controls:has(#touch-front:not([hidden])) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
 }
 @media (max-height: 540px) and (orientation: landscape) {
   .account-strip p {
@@ -305,6 +302,95 @@ canvas {
 }
 .overlay.hidden {
   display: none;
+}
+.countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 8% 7% 16%;
+  pointer-events: none;
+  text-align: right;
+  background: linear-gradient(
+    270deg,
+    rgba(14, 24, 21, 0.94),
+    rgba(14, 24, 21, 0.72) 34%,
+    rgba(14, 24, 21, 0.04) 70%
+  );
+}
+.countdown[hidden] {
+  display: none;
+}
+.countdown-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--mint);
+}
+.countdown-label span {
+  width: 5px;
+  height: 5px;
+  background: var(--ember);
+}
+.countdown.is-go .countdown-label,
+.countdown.is-go #countdown-meter {
+  display: none;
+}
+.countdown strong {
+  font-family: Impact, "Arial Narrow", sans-serif;
+  font-size: clamp(72px, 16vw, 148px);
+  font-weight: 400;
+  line-height: 0.82;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.countdown strong.mark {
+  animation: countdown-mark 180ms steps(3, end);
+}
+#countdown-meter {
+  display: block;
+  width: min(148px, 32%);
+  height: 6px;
+  margin-top: 14px;
+  background: #35403a;
+}
+#countdown-meter i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--ember);
+  transform-origin: right center;
+}
+.countdown.is-go {
+  background: none;
+  justify-content: flex-end;
+  padding-bottom: 10%;
+}
+.countdown.is-go strong {
+  color: var(--ember);
+  font-size: clamp(48px, 9vw, 92px);
+}
+@keyframes countdown-mark {
+  from {
+    transform: translateY(8px);
+    color: var(--ember);
+  }
+  to {
+    transform: none;
+    color: var(--ink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown strong.mark {
+    animation: none;
+    color: var(--ember);
+  }
 }
 .eyebrow {
   font-size: 10px;
@@ -2227,9 +2313,6 @@ dialog::backdrop {
     letter-spacing: 1px;
   }
 }
-#take-front {
-  color: #b9ebcf;
-}
 html,
 body {
   height: 100%;
@@ -2439,12 +2522,6 @@ body {
   }
   .party-buttons > button {
     flex: 1;
-  }
-  #take-front {
-    display: none;
-  }
-  .touch-controls:has(#touch-front:not([hidden])) {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -3164,10 +3241,13 @@ body {
 }
 @media (max-width: 700px), (max-height: 540px) and (orientation: landscape) {
   #shell .touch-controls {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  #shell .touch-controls:has(#touch-front:not([hidden])) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+  #shell .countdown {
+    padding: 6% 6% 12%;
+  }
+  #shell .countdown strong {
+    font-size: clamp(64px, 22cqw, 140px);
   }
 }
 @media (max-width: 700px) {

@@ -20,7 +20,6 @@ export interface Member {
   name: string;
   connected: boolean;
   state: GameState;
-  frontCooldown: number;
 }
 export interface Checkpoint {
   x: number;
@@ -37,8 +36,19 @@ export interface PartyRun {
   started: boolean;
   earned: number;
   revision: number;
+  countdown: number;
 }
-export type Action = "jump" | "dash" | "attack" | "front" | "powerup" | "ground";
+export type Action =
+  | "jump"
+  | "dash"
+  | "attack"
+  | "powerup"
+  | "ground"
+  | "strafe-left"
+  | "strafe-right"
+  | "strafe-stop"
+  | "crouch"
+  | "stand";
 export function progress(run: PartyRun) {
   return {
     value: Math.max(
@@ -77,6 +87,7 @@ export function create(id: string, p: Profile, seed?: Seed): PartyRun {
     started: false,
     earned: 0,
     revision: 0,
+    countdown: 0,
   };
   add(run, id, p);
   return run;
@@ -87,7 +98,7 @@ export function add(run: PartyRun, id: string, value: Profile) {
   const state = Engine.create(run.world.seed, p.loadout, p.levels);
   // Impact IDs are unique between couriers, including after a restart.
   state.attackId = state.dashId = run.members.length * 1000000;
-  run.members.push({ id, name: p.name, state, connected: true, frontCooldown: 0 });
+  run.members.push({ id, name: p.name, state, connected: true });
   run.order.push(id);
   formation(run, true);
   return true;
@@ -107,17 +118,21 @@ export function scaling(count: number) {
     armor: 1 + extra * 0.2,
   };
 }
-function formation(run: PartyRun, instant = false, dt = 0) {
-  const members = sorted(run).filter(alive);
-  for (const [i, m] of members.entries()) {
-    const target = Config.playerX + (run.members.filter((m) => m.connected).length - i - 1) * 32;
-    const s = m.state;
-    const delta = target + (!instant && s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
-    const speed = s.dash > 0 ? s.stats.dashLungeSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
-    s.player.x += instant ? delta : Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
-  }
+function place(run: PartyRun, member: Member, index: number, dt: number, instant: boolean) {
+  const state = member.state;
+  const home =
+    Config.playerX + (run.members.filter((item) => item.connected).length - index - 1) * 32;
+  const dashing = !instant && state.dash > 0;
+  const target = Engine.laneTarget(home, state.strafe || 0, dashing ? state.stats.dashLungeMax : 0);
+  state.player.x = instant
+    ? target
+    : Engine.seekX(state.player.x, target, dt, dashing, state.stats.dashLungeSpeed);
 }
-export function start(run: PartyRun) {
+function formation(run: PartyRun, instant = false, dt = 0) {
+  for (const [index, member] of sorted(run).filter(alive).entries())
+    place(run, member, index, dt, instant);
+}
+export function start(run: PartyRun, hold = false) {
   const base = Loadouts.rules(run.world.loadout);
   run.world = Engine.create(run.world.seed, run.world.loadout);
   const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -127,15 +142,17 @@ export function start(run: PartyRun) {
     growth: base.growth * scale.growth,
     gap: base.gap / scale.density,
   };
-  run.world.mode = "playing";
+  const counting = hold && run.members.filter((member) => member.connected).length > 1;
+  run.countdown = counting ? 3 : 0;
+  const mode = counting ? "countdown" : "playing";
+  run.world.mode = mode;
   for (const [i, m] of run.members.entries()) {
     const previous = m.state;
     m.state = Engine.create(run.world.seed, previous.loadout, previous.stats.levels);
     m.state.rules = { ...run.world.rules };
     m.state.health = base.health;
     m.state.attackId = m.state.dashId = i * 1000000;
-    m.state.mode = "playing";
-    m.frontCooldown = 0;
+    m.state.mode = mode;
   }
   run.started = true;
   run.revision++;
@@ -171,15 +188,12 @@ export function action(run: PartyRun, id: string, action: Action) {
   s.objects = run.world.objects;
   s.projectiles = run.world.projectiles;
   s.runSpeed = run.world.runSpeed;
-  if (action === "front") {
-    if (sorted(run).find(alive)?.id === id || m.frontCooldown > 0) return false;
-    run.order = [id, ...run.order.filter((p) => p !== id)];
-    m.frontCooldown = 3;
-    // The move itself hops, so a protector can intercept while the line reforms.
-    if (!Engine.jump(s)) s.player.vy = Math.min(s.player.vy, -100);
-    formation(run, true);
-    s.events.push({ type: "front", x: s.player.x, y: s.player.y, label: `${m.name} TAKES POINT` });
-    run.revision++;
+  if (action === "strafe-left" || action === "strafe-right" || action === "strafe-stop") {
+    s.strafe = action === "strafe-left" ? -1 : action === "strafe-right" ? 1 : 0;
+    return true;
+  }
+  if (action === "crouch" || action === "stand") {
+    s.crouching = action === "crouch";
     return true;
   }
   const previousScore = s.score;
@@ -232,7 +246,6 @@ function step(run: PartyRun, dt: number) {
     s.cooldown = Math.max(0, s.cooldown - dt);
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-    m.frontCooldown = Math.max(0, m.frontCooldown - dt);
     const previousY = s.player.y;
     Engine.groundStep(s);
     s.player.vy += Config.gravity * dt;
@@ -284,7 +297,9 @@ function step(run: PartyRun, dt: number) {
   EnemyFire.update(w, dt);
   // Swept projectiles resolve against the frontmost intersecting body, once only.
   for (const bolt of w.hostileProjectiles) {
-    const target = live.find((m) => alive(m) && EnemyFire.hitsPlayer(bolt, m.state.player));
+    const target = live.find(
+      (m) => alive(m) && EnemyFire.hitsPlayer(bolt, m.state.player, m.state.crouching),
+    );
     if (!target) continue;
     bolt.life = 0;
     if (target.state.dash > 0) {
@@ -313,7 +328,13 @@ function step(run: PartyRun, dt: number) {
       (m) =>
         alive(m) &&
         (object.kind !== "powerup" || m.state.powerups.length < 3) &&
-        Engine.collides(m.state.player, object, previous.get(object) ?? object.x),
+        Engine.collides(
+          m.state.player,
+          object,
+          previous.get(object) ?? object.x,
+          m.state.player.x,
+          m.state.crouching,
+        ),
     );
     if (target) {
       const s = target.state,
@@ -394,7 +415,18 @@ function step(run: PartyRun, dt: number) {
   }
 }
 export function update(run: PartyRun, seconds: number) {
-  if (run.world.mode !== "playing" || !Number.isFinite(seconds)) return;
+  if (!Number.isFinite(seconds)) return;
+  if (run.countdown > 0) {
+    run.countdown = Math.max(
+      0,
+      run.countdown - Math.min(Config.maxFrameSeconds, Math.max(0, seconds)),
+    );
+    if (run.countdown > 0) return;
+    run.world.mode = "playing";
+    for (const member of run.members) if (member.connected) member.state.mode = "playing";
+    return;
+  }
+  if (run.world.mode !== "playing") return;
   let remaining = Math.min(Config.maxFrameSeconds, Math.max(0, seconds));
   while (remaining > 1e-9 && run.world.mode === "playing") {
     const dt = Math.min(Config.simulationStep, remaining);
@@ -425,7 +457,6 @@ function coast(run: PartyRun, dt: number) {
     s.cooldown = Math.max(0, s.cooldown - dt);
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-    m.frontCooldown = Math.max(0, m.frontCooldown - dt);
     if (s.grounding) {
       if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
       else s.player.vy = Math.max(520, s.player.vy);
@@ -632,7 +663,6 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
     const member = shown.members.find((item) => item.id === source.id) ?? copyMember(source);
     member.name = source.name;
     member.connected = source.connected;
-    member.frontCooldown = source.frontCooldown;
     const local = member.state;
     const remote = source.state;
     Object.assign(local, {
@@ -647,6 +677,8 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
       attackId: remote.attackId,
       dashId: remote.dashId,
       grounding: remote.grounding,
+      crouching: remote.crouching,
+      strafe: remote.strafe,
       loadout: remote.loadout,
       stats: remote.stats,
       rules: remote.rules,
@@ -664,6 +696,7 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
   shown.earned = authority.earned;
   shown.revision = authority.revision;
   shown.started = authority.started;
+  shown.countdown = authority.countdown;
   if (!authority.checkpoint) shown.checkpoint = null;
   else if (!shown.checkpoint) shown.checkpoint = { ...authority.checkpoint };
   else {
@@ -694,17 +727,10 @@ export function steer(run: PartyRun, id: string, seconds: number) {
     s.cooldown = Math.max(0, s.cooldown - dt);
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-    member.frontCooldown = Math.max(0, member.frontCooldown - dt);
     const index = sorted(run)
       .filter(alive)
       .findIndex((item) => item.id === id);
-    if (index >= 0) {
-      const target =
-        Config.playerX + (run.members.filter((item) => item.connected).length - index - 1) * 32;
-      const delta = target + (s.dash > 0 ? s.stats.dashLungeMax : 0) - s.player.x;
-      const speed = s.dash > 0 ? s.stats.dashLungeSpeed : delta < 0 ? Config.dashReturnSpeed : 220;
-      s.player.x += Math.sign(delta) * Math.min(Math.abs(delta), dt * speed);
-    }
+    if (index >= 0) place(run, member, index, dt, false);
     if (s.grounding) {
       if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
       else s.player.vy = Math.max(520, s.player.vy);
@@ -729,6 +755,7 @@ export function adopt(target: PartyRun, source: PartyRun) {
   target.started = copy.started;
   target.earned = copy.earned;
   target.revision = copy.revision;
+  target.countdown = copy.countdown;
 }
 /** Move a late host snapshot forward to the guest's clock, or hard-reset a large gap. */
 export function rebase(shown: PartyRun, incoming: PartyRun) {

@@ -57,8 +57,10 @@ The TypeScript source is in `src/`; only editing requires Node and a build.
 | Key        | Action                                            |
 | ---------- | ------------------------------------------------- |
 | Space / Up | Jump again in air; 2 normally, 3 with Triple Jump |
+| A          | Step left; release to return to your place        |
+| D          | Step right; release to return to your place       |
 | Shift      | Dash through enemies; jump over ground hazards    |
-| S / Down   | Magnet back to the ground, cancelling jet flight  |
+| S / Down   | Crouch. In the air, magnet back to the ground     |
 | X / J      | Punch or shoot with the selected weapon           |
 | C          | Activate the next stored power-up                 |
 | L          | Open character, gear and difficulty setup         |
@@ -398,7 +400,7 @@ Open **PARTY / LAN** before starting a run. Equip gear and buy upgrades first; e
 
 **LAN (same network, no internet required after installation):** install Node 24, run `npm ci` once, then `npm run host` (Windows can use `Host-LAN.cmd`). Keep that terminal open. It prints `http://localhost:4173/` and the computer's LAN addresses. One player opens a printed address and chooses **HOST A ROOM**. Allow Node through the computer's firewall on the private network if asked. Guest Wi-Fi isolation can block device-to-device traffic. `PORT=...` changes the port. The relay serves only the packaged public build, rejects cross-site browser connections, locks started rooms, limits rooms to four sockets and routes guest input only to the host.
 
-Every view uses the host's world, shared score, pickup ledger and **same front-to-back order**. Your courier is marked **YOU**. The party HUD shows everyone's remaining health, dash/jump/damage levels and jump count, including downed/disconnected players. **T / TAKE POINT** (or its touch button) hops your courier to the front, with a three-second cooldown; the other couriers move back in the same order on every screen. Incoming shots and hazards hit the first body they reach, so a grounded protector can shield a weaker teammate, while jumping lets a threat reach a follower. Friendly shots do not damage teammates. Downed players spectate and cannot act; the run ends only when all connected couriers are down.
+Every view uses the host's world, shared score, pickup ledger and **same front-to-back order**. Your courier is marked **YOU**. The party HUD shows everyone's remaining health, dash/jump/damage levels and jump count, including downed/disconnected players. When a teammate is connected, the host's start closes the open panels on every screen and holds the run for a 3-2-1 count before the world moves. Hold **A** or **D** to step left or right; release to return to your place in line. Hold **S** to crouch under high shots. Incoming shots and hazards hit the first body they reach, so a courier who stays in the way can shield a teammate, while jumping lets a threat reach a follower. Friendly shots do not damage teammates. Downed players spectate and cannot act; the run ends only when all connected couriers are down.
 
 The starting biome and each subsequent biome entrance have a **glowing revive beacon**, floating sparks and the guide **DASH → REVIVE TEAM**. Touching it normally does nothing. A living courier must physically dash through it; it then revives all connected downed teammates at full health with two seconds of grace. Each beacon works once. Biome entrances clear immediate dangers to give the survivor a fair rescue window. Reduced-motion mode keeps the beacon visible without its moving sparks or expanding ring; particle settings are respected.
 

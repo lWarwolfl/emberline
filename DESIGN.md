@@ -232,3 +232,20 @@ Four columns on desktop and two on narrow screens bound the HUD height.
 Source-based slop audit: 0/10; no listed tells introduced. CSS regression checks
 verify density rules, not rendered fit. Live GUI verification remains unrun.
 Beacons are 5000 world-distance units apart and do not clear the current route.
+
+## Crew countdown and lane steps
+
+Claude Design surface: Command / Inspect. The count is one instrument on the open
+lane, right-aligned, so the couriers stay visible on the left. It uses the
+existing Impact numeral, Consolas label, charcoal scrim, and ember meter. No
+card, blur, or centered stack. Reduced motion keeps the digit change and drops
+the step.
+
+When a teammate is connected, start closes every open dialog and the run menu,
+then holds the shared world for three seconds. A solo start still begins
+immediately. Take Point is gone. Hold A or D to step off the formation slot;
+release returns to it. Hold S to crouch under high shots. In the air, S still
+pulls to the ground.
+
+Slop audit: 0/10. The scrim is the menu's existing charcoal wash, not a new
+gradient. The numeral is the action, not a monument stat.
