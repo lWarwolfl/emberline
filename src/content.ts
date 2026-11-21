@@ -108,7 +108,7 @@ const patterns = [
   { id: "steps", unlock: 2 },
   { id: "mixed", unlock: 3 },
   { id: "convoy", unlock: 4 },
-  { id: "squad", unlock: 5 },
+  { id: "squad", unlock: 4 },
   { id: "crossfire", unlock: 7 },
 ];
 

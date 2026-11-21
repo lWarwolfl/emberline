@@ -2,7 +2,7 @@
 "use strict";
 (() => {
   // src/service-worker.ts
-  var CACHE = "emberline-v7.1.14";
+  var CACHE = "emberline-v7.1.15";
   var ASSETS = [
     "./",
     "./index.html",
@@ -49,8 +49,6 @@
       url.pathname === "/party"
     )
       return;
-    if (request.cache === "reload" || request.cache === "no-cache" || request.cache === "no-store")
-      return;
     const freshAsset =
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/dist/game.js") ||
@@ -81,6 +79,8 @@
       );
       return;
     }
+    if (request.cache === "reload" || request.cache === "no-cache" || request.cache === "no-store")
+      return;
     event.respondWith(
       caches.match(request).then(
         (cached) =>

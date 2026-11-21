@@ -79,7 +79,7 @@ export interface HostileProjectile extends Projectile {
 }
 export interface Traversal {
   kind: "portal" | "pad";
-  role?: "exit";
+  role?: "entry" | "exit";
   x: number;
   y: number;
   w: number;
@@ -91,6 +91,7 @@ export interface TraversalEffect {
   life: number;
   duration: number;
   distance: number;
+  entry?: { x: number; y: number };
 }
 export interface GameEvent {
   type: string;

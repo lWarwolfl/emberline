@@ -84,7 +84,13 @@ test("10,000 generated chunks respect bounds, rewards, clearance and spacing", (
       assert(encounter.gap >= Config.generation.minimumGapSeconds);
       assert(state.next > state.distance + encounter.width + state.speed * encounter.gap);
       const ordered = dangers.sort((a, b) => a.x - b.x);
-      for (let j = 1; j < ordered.length; j++) assert(ordered[j].x - ordered[j - 1].x >= 155);
+      for (let j = 1; j < ordered.length; j++) {
+        const left = ordered[j - 1];
+        const right = ordered[j];
+        if (right.x - left.x >= 155) continue;
+        assert(state.sector >= 4 && left.kind === "enemy" && right.kind === "enemy");
+        assert(right.x - left.x >= 48 && left.extraSpeed === right.extraSpeed);
+      }
       state.objects = [];
     }
   }

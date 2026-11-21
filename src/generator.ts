@@ -61,6 +61,54 @@ function enemy(state: GameState, x: number, variant?: string): WorldObject {
   };
 }
 
+// Width, elevation, and gap after each one-way platform.
+const platformRoutes = [
+  [
+    ["step", 82, 21, 32],
+    ["step", 56, 41, 37],
+    ["bridge", 118, 58, 0],
+  ],
+  [
+    ["bridge", 116, 25, 48],
+    ["island", 44, 43, 48],
+    ["bridge", 102, 23, 0],
+  ],
+  [
+    ["island", 48, 22, 34],
+    ["island", 38, 34, 46],
+    ["step", 61, 49, 29],
+    ["island", 48, 26, 0],
+  ],
+  [
+    ["step", 67, 20, 40],
+    ["bridge", 142, 39, 36],
+    ["step", 78, 52, 0],
+  ],
+] as const;
+
+function enemyGroup(state: GameState, x: number, speed: number, count: number) {
+  const flying = Content.enemies.filter(
+    (item) => item.unlock <= state.sector && item.altitude > item.h,
+  );
+  const leader =
+    count > 2
+      ? enemy(state, x, Random.weighted(state.rng, flying, state.lastVariant.enemies).id)
+      : enemy(state, x);
+  const airborne = leader.baseY! + leader.h < Config.floor;
+  const companions = Content.enemies.filter(
+    (item) => item.unlock <= state.sector && item.altitude > item.h === airborne,
+  );
+  const spacing = Math.max(48, speed * (airborne ? 0.32 : 0.38));
+  const group = [leader];
+  for (let i = 1; i < count; i++) {
+    const variant = Random.weighted(state.rng, companions, state.lastVariant.enemies).id;
+    const member = enemy(state, x + i * spacing, variant);
+    member.extraSpeed = leader.extraSpeed;
+    group.push(member);
+  }
+  return group;
+}
+
 function coinPath(state: GameState, pattern: string, startX: number, width: number) {
   const points: WorldObject[] = [];
   const count = [
@@ -187,29 +235,30 @@ function spawn(state: GameState) {
   const safetySpeed = Difficulty.safetySpeed(state);
   const separation = Math.max(155, safetySpeed * 1.25);
   const dangers: WorldObject[] = [];
+  const grouped = state.sector >= 4;
   switch (pattern) {
     case "hurdle":
       dangers.push(obstacle(state, x));
       break;
     case "escort":
     case "patrol":
-      dangers.push(enemy(state, x));
-      dangers.push(enemy(state, x + Math.max(155, safetySpeed * 1.25)));
+      if (grouped) dangers.push(...enemyGroup(state, x, safetySpeed, 2));
+      else dangers.push(enemy(state, x), enemy(state, x + separation));
       break;
     case "steps":
       dangers.push(obstacle(state, x), obstacle(state, x + separation));
       break;
-    case "mixed":
-      if (Random.next(state.rng) < 0.5)
-        dangers.push(obstacle(state, x), enemy(state, x + separation));
-      else dangers.push(enemy(state, x), obstacle(state, x + separation));
-      break;
-    case "squad": {
-      const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
-      for (let i = 0; i < count; i++)
-        dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+    case "mixed": {
+      const obstacleFirst = Random.next(state.rng) < 0.5;
+      const enemyX = obstacleFirst ? x + separation : x;
+      const group = grouped ? enemyGroup(state, enemyX, safetySpeed, 2) : [enemy(state, enemyX)];
+      if (obstacleFirst) dangers.push(obstacle(state, x), ...group);
+      else dangers.push(...group, obstacle(state, group.at(-1)!.x + separation));
       break;
     }
+    case "squad":
+      dangers.push(...enemyGroup(state, x, safetySpeed, state.sector >= 8 ? 4 : 3));
+      break;
     case "crossfire":
       dangers.push(
         enemy(state, x, "sentry"),
@@ -218,8 +267,7 @@ function spawn(state: GameState) {
       );
       break;
     case "convoy":
-      // Extra room lets the dash recharge even if both enemies are on the floor.
-      dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
+      dangers.push(...enemyGroup(state, x, safetySpeed, 3));
       break;
     case "coin-break":
       break;
@@ -229,35 +277,29 @@ function spawn(state: GameState) {
 
   const platformRoll = Random.next(state.rng);
   if (platformRoll < 0.28) {
-    const tiers = platformRoll < 0.09 ? [30, 54, 30] : platformRoll < 0.18 ? [52, 28] : [28, 50];
-    const platformStart = Math.max(x, ...dangers.map((o) => o.x + o.w)) + 180;
-    const platformWidth = 240;
-    for (const [i, height] of tiers.entries()) {
-      const px = platformStart + i * (platformWidth + 24);
+    const route =
+      platformRoutes[Math.min(platformRoutes.length - 1, Math.floor(platformRoll / 0.07))];
+    let px = Math.max(x, ...dangers.map((o) => o.x + o.w)) + Math.max(180, safetySpeed);
+    for (const [variant, width, height, gap] of route) {
+      const y = Config.floor - height;
       dangers.push({
         kind: "platform",
-        variant: "ledge",
+        variant,
         x: px,
-        y: Config.floor - height,
-        w: platformWidth,
-        h: 6,
+        y,
+        w: width,
+        h: variant === "bridge" ? 8 : variant === "step" ? 12 : 16,
       });
-      for (let coinX = 12; coinX < platformWidth - 12; coinX += 23)
-        dangers.push({
-          kind: "ember",
-          variant: "platform",
-          x: px + coinX,
-          y: Config.floor - height - 12,
-          w: 5,
-          h: 6,
-        });
-      if (i === 1 && state.sector >= 2) {
-        const foe = enemy(state, px + platformWidth * 0.65, "crawler");
-        foe.y = foe.baseY = Config.floor - height - foe.h;
+      for (let coinX = 10; coinX < width - 8; coinX += 22)
+        dangers.push({ kind: "ember", variant: "platform", x: px + coinX, y: y - 12, w: 5, h: 6 });
+      if (width >= 130 && state.sector >= 2) {
+        const foe = enemy(state, px + width * 0.57, "crawler");
+        foe.y = foe.baseY = y - foe.h;
         foe.amplitude = 0;
         foe.extraSpeed = 0;
         dangers.push(foe);
       }
+      px += width + gap;
     }
   }
   const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
@@ -308,7 +350,9 @@ function spawn(state: GameState) {
       age: 0,
     } as const;
     state.traversals.push(device);
-    if (state.traversals.length > 4) state.traversals.shift();
+    const approaches = state.traversals.filter((item) => !item.role);
+    if (approaches.length > 4)
+      state.traversals = state.traversals.filter((item) => item !== approaches[0]);
     travelEnd = device.x + device.w;
   }
 

@@ -13,6 +13,27 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
   const sprites = Sprites.create(ctx, reducedMotion);
   const { rect } = Pixel.create(ctx);
 
+  function portalPose(world: GameState, courier: GameState) {
+    const { player } = courier;
+    const effect = world.traversalEffect;
+    const entry = world.traversals.find((device) => device.role === "entry");
+    if (effect?.kind !== "portal" || !entry) return { x: player.x, y: player.y, alpha: 1 };
+    const elapsed = effect.duration - effect.life;
+    const { portalEnter, portalReveal } = Config.traversal;
+    if (elapsed < portalEnter) {
+      const remaining = 1 - elapsed / portalEnter;
+      const center = entry.x + (entry.w - 13) / 2;
+      const start = (effect.entry?.x ?? center) + player.x - world.player.x;
+      return {
+        x: reducedMotion ? start : center + (start - center) * remaining,
+        y: effect.entry?.y ?? player.y,
+        alpha: remaining,
+      };
+    }
+    const alpha = Math.min(1, (elapsed - portalEnter) / portalReveal);
+    return { x: player.x - (reducedMotion ? 0 : 5 * (1 - alpha)), y: player.y, alpha };
+  }
+
   function draw(
     state: GameState,
     time: number,
@@ -22,6 +43,13 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
     party: Party.PartyRun | null = null,
     localId = "",
   ) {
+    const team = party ? Party.sorted(party).filter(Party.alive) : [];
+    const world = party?.world ?? state;
+    const tracked = team.find((member) => member.id === localId)?.state ?? state;
+    const trackedX = state.mode === "menu" ? Config.playerX : portalPose(world, tracked).x;
+    // The portrait stage shows 320 of the 480 logical pixels.
+    const pan = Math.max(0, Math.min(160, trackedX - 18, Math.max(40, trackedX - 278)));
+    canvas.style.setProperty("--playfield-pan", `${pan / 1.6}%`);
     ctx.save();
     if (feedback.shake > 0 && !reducedMotion) {
       ctx.translate(
@@ -50,7 +78,13 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       sprites.courier(294, 177, time, false, state);
       sprites.object({ kind: "hazard", variant: "barrier", x: 440, y: 178, w: 25, h: 18 }, time);
     } else {
-      for (const device of state.traversals) sprites.traversal(device);
+      for (const device of state.traversals) {
+        sprites.traversal(device);
+        if (device.role === "exit") {
+          for (let i = 1; i < team.length; i++)
+            sprites.traversal({ ...device, x: device.x - i * Config.partySpacing }, false);
+        }
+      }
       for (const object of state.objects)
         if (object.kind === "platform") sprites.object(object, time);
       for (const object of state.objects)
@@ -95,30 +129,32 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
         for (const [i, member] of Party.sorted(party).entries()) {
           if (!Party.alive(member)) continue;
           const s = member.state;
-          sprites.courier(s.player.x, s.player.y, time, s.dash > 0, s);
+          const { x, y, alpha } = portalPose(world, s);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          sprites.courier(x, y, time, s.dash > 0, s);
           ctx.font = "bold 5px monospace";
           ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
           ctx.textAlign = "center";
           ctx.fillText(
             `${i + 1}${member.id === localId ? " / YOU" : ""}`,
-            s.player.x + 6,
-            Math.max(12, s.player.y - 15),
+            x + 6,
+            Math.max(12, y - 15),
           );
           ctx.textAlign = "left";
           for (let hp = 0; hp < s.health; hp++)
-            rect(
-              s.player.x + hp * 4,
-              s.player.y - 10,
-              3,
-              2,
-              hp < s.health - s.hits ? "#a2ecc5" : "#68454c",
-            );
+            rect(x + hp * 4, y - 10, 3, 2, hp < s.health - s.hits ? "#a2ecc5" : "#68454c");
+          ctx.restore();
         }
       } else if (
         state.mode !== "dead" &&
         !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
       ) {
-        sprites.courier(state.player.x, state.player.y, time, state.dash > 0, state);
+        const { x, y, alpha } = portalPose(state, state);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        sprites.courier(x, y, time, state.dash > 0, state);
+        ctx.restore();
       }
     }
     sprites.travelEffect(state);
@@ -138,28 +174,18 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
     }
     for (const bolt of state.projectiles) {
-      if (bolt.homing) {
-        const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
-        const ux = bolt.vx / speed;
-        const uy = bolt.vy / speed;
-        for (let i = 5; i >= 0; i--)
-          rect(
-            bolt.x - ux * i * 2,
-            bolt.y - uy * i * 2,
-            i === 0 ? 3 : 2,
-            i === 0 ? 3 : 2,
-            i === 0 ? "#fff1c7" : bolt.color,
-          );
-        continue;
+      const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
+      const ux = bolt.vx / speed;
+      const uy = bolt.vy / speed;
+      const segments = reducedMotion ? 2 : bolt.color === "#c6b3ff" ? 7 : 5;
+      ctx.save();
+      for (let i = segments; i > 0; i--) {
+        ctx.globalAlpha = 1 - i / (segments + 1);
+        rect(bolt.x - ux * i * 3, bolt.y - uy * i * 3, 3, i < 3 ? 2 : 1, bolt.color);
       }
-      rect(
-        bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
-        bolt.y,
-        bolt.color === "#c6b3ff" ? 20 : 7,
-        2,
-        bolt.color,
-      );
-      rect(bolt.x + 1, bolt.y, 2, 2, "#fff1c7");
+      ctx.restore();
+      rect(bolt.x - 1, bolt.y - 1, 5, 4, bolt.color);
+      rect(bolt.x + 1, bolt.y, 3, 2, "#fff1c7");
     }
     for (const particle of particles) {
       ctx.globalAlpha = Math.min(1, particle.life * 2);

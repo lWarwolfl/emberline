@@ -5,15 +5,23 @@ function create() {
   let particles: Particle[] = [];
   let enabled = true;
 
-  function burst(x: number, y: number, count: number, color: string, power = 50) {
+  function burst(
+    x: number,
+    y: number,
+    count: number,
+    color: string,
+    power = 50,
+    forward = 0,
+    lifetime = 1,
+  ) {
     if (!enabled) return;
     for (let i = 0; i < count; i++) {
       particles.push({
         x,
         y,
-        vx: (Math.random() - 0.5) * power * 2,
+        vx: forward + (Math.random() - 0.5) * power * 2,
         vy: (Math.random() - 0.65) * power * 2,
-        life: 0.25 + Math.random() * 0.6,
+        life: (0.25 + Math.random() * 0.6) * lifetime,
         color,
         size: Math.random() > 0.7 ? 2 : 1,
       });

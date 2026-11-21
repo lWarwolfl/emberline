@@ -54,6 +54,12 @@ function damage(state: GameState, object: WorldObject, amount: number, method: s
   return true;
 }
 
+function barrelLength(id: string) {
+  if (id === "siegebreaker") return 21;
+  if (id === "rail") return 18;
+  return id === "scatter" || id === "nova" ? 12 : 9;
+}
+
 function attack(state: GameState) {
   if (state.mode !== "playing" || state.attackCooldown > 0) return false;
   const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon);
@@ -62,8 +68,8 @@ function attack(state: GameState) {
   state.attackId++;
   state.events.push({
     type: weapon.id === "punch" ? "punch" : "shoot",
-    x: state.player.x + 15,
-    y: state.player.y + 9,
+    x: state.player.x + (weapon.id === "punch" ? 15 : 13 + barrelLength(weapon.id)),
+    y: state.player.y + 10,
   });
   if (weapon.id === "punch") return true;
   const x = state.player.x + 15,
@@ -200,7 +206,13 @@ function update(state: GameState, dt: number, moveProjectiles = true) {
             });
           }
         } else damage(state, object, bolt.damage, "shot");
-        if (!breakable(object) && !object.dead)
+        if (object.dead && object.kind === "hazard") {
+          state.events.push({
+            type: "shot-break",
+            x: Math.max(object.x, Math.min(bolt.x, object.x + object.w)),
+            y: Math.max(object.y, Math.min(bolt.y, object.y + object.h)),
+          });
+        } else if (!breakable(object) && !object.dead)
           state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
         if (
           (breakable(object) || (bolt.armored && object.kind === "hazard")) &&
@@ -220,4 +232,4 @@ function update(state: GameState, dt: number, moveProjectiles = true) {
       bolt.life > 0 && bolt.x < Config.width + 30 && bolt.y > 0 && bolt.y < Config.floor + 10,
   );
 }
-export = { armor, durability, breakable, damage, attack, guide, update };
+export = { barrelLength, armor, durability, breakable, damage, attack, guide, update };

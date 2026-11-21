@@ -236,19 +236,8 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         line(x + 29, y + 15, 6, "#ffe3ab");
       }
     } else {
-      rect(
-        x + 13,
-        y + 8,
-        weapon.id === "siegebreaker"
-          ? 21
-          : weapon.id === "rail"
-            ? 18
-            : weapon.id === "scatter" || weapon.id === "nova"
-              ? 12
-              : 9,
-        4,
-        "#9da995",
-      );
+      const length = Combat.barrelLength(weapon.id);
+      rect(x + 13, y + 8, length, 4, "#9da995");
       if (weapon.id === "siegebreaker") {
         rect(x + 15, y + 6, 9, 8, "#65776c");
         rect(x + 29, y + 7, 5, 6, weapon.color);
@@ -267,8 +256,9 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       }
       rect(x + 16, y + 9, 6, 2, weapon.color);
       if (striking) {
-        rect(x + 24, y + 7, 5, 6, weapon.color);
-        rect(x + 26, y + 9, 5, 2, "#fff2c9");
+        const muzzle = x + 13 + length;
+        rect(muzzle, y + 7, 4, 6, weapon.color);
+        rect(muzzle, y + 9, 6, 2, "#fff2c9");
       }
     }
     ctx.restore();
@@ -401,9 +391,20 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   function object(o: WorldObject, time: number) {
     if (o.x > Config.width + 35 || o.x + o.w < -10) return;
     if (o.kind === "platform") {
-      rect(o.x, o.y, o.w, o.h, "#52685c");
-      line(o.x, o.y, o.w, "#b6dbc3");
-      for (let i = 8; i < o.w - 4; i += 18) rect(o.x + i, o.y + 3, 7, 2, "#83967e");
+      const { x, y, w, h } = o;
+      rect(x, y, w, Math.min(5, h), "#52685c");
+      line(x, y, w, "#b6dbc3");
+      if (o.variant === "island") {
+        rect(x + 4, y + 5, w - 8, 4, "#52685c");
+        rect(x + 9, y + 9, w - 18, h - 9, "#3c514a");
+        rect(x + w / 2 - 3, y + 9, 6, 2, "#9ac5ad");
+      } else {
+        for (let i = 6; i < w - 7; i += 17) {
+          rect(x + i, y + 3, 7, 2, "#83967e");
+          rect(x + i + 2, y + 5, 3, h - 5, "#40574f");
+        }
+        line(x + 2, y + h - 1, w - 4, "#52685c");
+      }
     } else if (o.kind === "heart" || o.kind === "powerup") {
       const color =
         o.rarity === "legendary"
@@ -467,27 +468,43 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       line(o.x + 2, o.y + 2, Math.max(3, o.w - 4), Combat.breakable(o) ? "#ffce83" : "#c0d2c4");
     }
   }
-  function traversal(device: Traversal) {
+  function traversal(device: Traversal, label = true) {
     const { x, y, w, h } = device;
     const time = reducedMotion ? 0 : device.age;
     if (device.kind === "portal") {
       const exit = device.role === "exit";
-      const open = exit ? Math.min(1, device.age / 0.35) : 1;
+      const { portalEnter, portalReveal, portalDuration } = Config.traversal;
+      const closeStart = exit ? portalEnter + portalReveal + 0.1 : portalEnter;
+      const close = Math.max(
+        0,
+        1 - (device.age - closeStart) / (exit ? portalDuration - closeStart : 0.16),
+      );
+      const open = !device.role ? 1 : Math.min(1, close, exit ? 0.2 + device.age / portalEnter : 1);
+      if (open <= 0) return;
+      const aperture = reducedMotion ? 1 : open;
+      const centerX = x + w / 2;
       ctx.save();
-      ctx.globalAlpha = 0.3 + (exit ? 0.35 * (1 - Math.min(1, device.age / 1.4)) : 0);
-      rect(x + 5, y + 6, (w - 10) * open, h - 12, exit ? "#b7f0d8" : "#a5adff");
-      ctx.restore();
+      ctx.globalAlpha = open * 0.45;
+      rect(
+        centerX - ((w - 10) * aperture) / 2,
+        y + 6,
+        (w - 10) * aperture,
+        h - 12,
+        exit ? "#b7f0d8" : "#a5adff",
+      );
+      ctx.globalAlpha = Math.min(1, open * 1.8);
       for (let i = 0; i < 28; i++) {
         const phase = (i / 28) * Math.PI * 2;
         rect(
-          x + w / 2 + Math.cos(phase) * (w / 2 - 1),
+          centerX + Math.cos(phase) * (w / 2 - 1) * aperture,
           y + h / 2 + (Math.sin(phase) * h) / 2,
           2,
           3,
-          i % 3 === Math.floor(time * 8) % 3 ? "#ece0ff" : "#9d9bde",
+          i % 3 === Math.floor(time * 16) % 3 ? "#ece0ff" : exit ? "#75ccb9" : "#9d9bde",
         );
       }
-      rect(x + w / 2 - 3, y + h / 2 + Math.sin(time * 3) * 7, 6, 2, "#cde7ff");
+      rect(centerX - 3 * aperture, y + h / 2 + Math.sin(time * 12) * 7, 6 * aperture, 2, "#cde7ff");
+      ctx.restore();
     } else {
       rect(x, y + 1, w, h - 1, "#5f8782");
       line(x, y, w, "#adf3cc");
@@ -497,6 +514,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         line(x + 9, y - lift - 2, 8, "#8bd4b3");
       }
     }
+    if (!label || device.role === "entry") return;
     ctx.font = "5px monospace";
     ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
     ctx.fillText(
@@ -507,30 +525,17 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   }
   function travelEffect(state: GameState) {
     const effect = state.traversalEffect;
-    if (!effect) return;
+    if (effect?.kind !== "pad") return;
     const ratio = effect.life / effect.duration;
-    const color = effect.kind === "portal" ? "#d2c7ff" : "#9fecc7";
+    const color = "#9fecc7";
     if (reducedMotion) {
       line(state.player.x - 4, state.player.y + 22, 24, color);
       return;
     }
     ctx.save();
     ctx.globalAlpha = ratio * 0.7;
-    if (effect.kind === "portal") {
-      const radius = 12 + (1 - ratio) * 80;
-      for (let i = 0; i < 32; i++) {
-        const angle = (i / 32) * Math.PI * 2;
-        rect(
-          state.player.x + 7 + Math.cos(angle) * radius,
-          state.player.y + 10 + Math.sin(angle) * radius,
-          3,
-          3,
-          color,
-        );
-      }
-    } else
-      for (let i = 0; i < 6; i++)
-        line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
+    for (let i = 0; i < 6; i++)
+      line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
     ctx.restore();
   }
   return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };

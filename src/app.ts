@@ -238,7 +238,6 @@ function create(doc: Document) {
     revive: [65, "#b1ffe3", 100],
     front: [20, "#9ee9ec", 50],
     down: [35, "#ec9865", 65],
-    portal: [65, "#c5bbff", 95],
     pad: [45, "#9de9c2", 85],
     deflect: [16, "#fff0b4", 60],
     "enemy-shot": [5, "#ff8a93", 25],
@@ -269,9 +268,19 @@ function create(doc: Document) {
         popups.add(event);
       audio.play(event.type, state.combo);
       const burst = event.label === "BLAST" ? bursts.explosion : bursts[event.type];
-      if (burst && !(reducedMotion && ["portal", "pad", "revive"].includes(event.type)))
+      if (burst && !(reducedMotion && ["pad", "revive"].includes(event.type)))
         particles.burst(event.x, event.y, ...burst);
       switch (event.type) {
+        case "shoot":
+          if (!reducedMotion) {
+            particles.burst(event.x, event.y, 8, "#ffcb7c", 25, 60, 0.55);
+            particles.burst(event.x, event.y, 4, "#fff2c9", 17, 90, 0.5);
+          }
+          break;
+        case "shot-break":
+          particles.burst(event.x, event.y, reducedMotion ? 8 : 22, "#ffae62", 80);
+          if (!reducedMotion) particles.burst(event.x, event.y, 14, "#fff2c9", 48, 0, 0.7);
+          break;
         case "heal":
         case "powerup-pickup":
         case "powerup":
@@ -283,7 +292,7 @@ function create(doc: Document) {
           break;
         case "portal":
         case "pad":
-          feedback.shake = event.type === "portal" ? 4 : 2;
+          if (event.type === "pad") feedback.shake = 2;
           ui.announce(event.label ?? "SHORTCUT", 2.5);
           break;
         case "smash":

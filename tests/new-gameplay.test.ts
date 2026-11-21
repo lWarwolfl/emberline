@@ -153,20 +153,25 @@ for (const titanIndex of [0, 1]) {
 }
 test("generated platform tiers have short traversable gaps and changing heights", () => {
   const s = run(17);
-  let found = false;
+  const widths = new Set<number>();
+  const shapes = new Set<string>();
   for (let i = 0; i < 100; i++) {
     s.objects = [];
     Generator.spawn(s);
     const platforms = s.objects.filter((o) => o.kind === "platform");
-    assert(platforms.every((platform) => platform.w >= 220));
+    if (platforms.length) assert(Config.floor - platforms[0].y <= 27);
+    for (const platform of platforms) {
+      widths.add(platform.w);
+      shapes.add(platform.variant);
+    }
     for (let j = 1; j < platforms.length; j++) {
-      found = true;
       const gap = platforms[j].x - platforms[j - 1].x - platforms[j - 1].w;
-      assert(gap >= 16 && gap <= 32);
+      assert(gap >= 25 && gap <= 50);
       assert(Math.abs(platforms[j].y - platforms[j - 1].y) <= 26);
     }
   }
-  assert(found);
+  assert(widths.size >= 8);
+  assert.equal(shapes.size, 3);
 });
 
 test("hearts are scarce while power-up odds remain unchanged", () => {

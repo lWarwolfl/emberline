@@ -2469,7 +2469,7 @@ body {
   }
   #shell canvas {
     object-fit: cover;
-    object-position: 25% 50%;
+    object-position: var(--playfield-pan, 25%) 50%;
   }
   #shell .subfooter,
   .beacon-trail {

@@ -119,9 +119,11 @@ export function scaling(count: number) {
   };
 }
 function place(run: PartyRun, member: Member, index: number, dt: number, instant: boolean) {
+  if (!instant && Traversal.emerging(run.world)) return;
   const state = member.state;
   const home =
-    Config.playerX + (run.members.filter((item) => item.connected).length - index - 1) * 32;
+    Config.playerX +
+    (run.members.filter((item) => item.connected).length - index - 1) * Config.partySpacing;
   const dashing = !instant && state.dash > 0;
   const strafe = state.strafe || 0;
   const target = Engine.laneTarget(
@@ -131,13 +133,15 @@ function place(run: PartyRun, member: Member, index: number, dt: number, instant
   );
   state.player.x = instant
     ? target
-    : Engine.seekX(
-        state.player.x,
-        target,
-        dt,
-        dashing,
-        state.stats.dashLungeSpeed,
-        strafe === 0 ? 0 : Config.strafeSpeed,
+    : Engine.boundX(
+        Engine.seekX(
+          state.player.x,
+          target,
+          dt,
+          dashing,
+          state.stats.dashLungeSpeed,
+          strafe === 0 ? 0 : Config.strafeSpeed,
+        ),
       );
 }
 function formation(run: PartyRun, instant = false, dt = 0) {
@@ -287,6 +291,7 @@ function step(run: PartyRun, dt: number) {
   const beforeTravel = w.distance;
   Traversal.update(w, dt);
   if (w.distance !== beforeTravel) {
+    const arrivalX = w.player.x;
     for (const m of live) {
       m.state.invincible = Config.traversal.arrivalGrace;
       Object.assign(m.state.player, {
@@ -296,6 +301,12 @@ function step(run: PartyRun, dt: number) {
       });
     }
     formation(run, true);
+    if (w.traversalEffect?.kind === "portal") {
+      const offset = Math.max(0, arrivalX - live[0].state.player.x);
+      for (const m of live) m.state.player.x += offset;
+      const exit = w.traversals.find((device) => device.role === "exit");
+      if (exit) exit.x = live[0].state.player.x + (13 - exit.w) / 2;
+    }
   }
   for (const [i, m] of live.entries()) {
     const s = m.state;
@@ -372,7 +383,8 @@ function step(run: PartyRun, dt: number) {
       w.score += 25n;
     }
   }
-  const anchor = Config.playerX + (run.members.filter((m) => m.connected).length - 1) * 32;
+  const anchor =
+    Config.playerX + (run.members.filter((m) => m.connected).length - 1) * Config.partySpacing;
   if (!run.checkpoint && run.beaconDistance - w.distance <= Config.width + 36 - anchor) {
     run.checkpoint = {
       x: Math.max(anchor + 30, anchor + run.beaconDistance - w.distance + distance),
@@ -451,10 +463,7 @@ function coast(run: PartyRun, dt: number) {
   w.time += dt;
   w.biomeBlend = Math.min(1, w.biomeBlend + dt / Config.generation.themeFadeSeconds);
   w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
-  if (w.traversalEffect) {
-    w.traversalEffect.life -= dt;
-    if (w.traversalEffect.life <= 0) w.traversalEffect = null;
-  }
+  Traversal.animate(w, dt);
   const distance = w.runSpeed * dt;
   w.distance += distance;
   formation(run, false, dt);
@@ -493,7 +502,7 @@ function coast(run: PartyRun, dt: number) {
     bolt.y += bolt.vy * dt;
   }
   for (const device of w.traversals) {
-    device.x -= distance;
+    if (!device.role) device.x -= distance;
     device.age += dt;
   }
   if (run.checkpoint) {
@@ -667,7 +676,7 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
       current = null;
     }
     if (!current) return { ...target };
-    current.x = approach(current.x, target.x, amount, 80);
+    current.x = target.role ? target.x : approach(current.x, target.x, amount, 80);
     current.age = target.age;
     return current;
   });
@@ -699,8 +708,13 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
     });
     local.player.vy = remote.player.vy;
     local.player.jumps = remote.player.jumps;
-    local.player.x = approach(local.player.x, remote.player.x, amount, 48);
-    local.player.y = approach(local.player.y, remote.player.y, amount, 64);
+    const emerging = Traversal.emerging(from);
+    local.player.x = emerging
+      ? remote.player.x
+      : approach(local.player.x, remote.player.x, amount, 48);
+    local.player.y = emerging
+      ? remote.player.y
+      : approach(local.player.y, remote.player.y, amount, 64);
     return member;
   });
   shown.order = authority.order.slice();

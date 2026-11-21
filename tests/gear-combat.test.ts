@@ -18,22 +18,25 @@ function target(variant = "crate", x = 115): WorldObject {
 test("A and D move at the same speed, A stays, and D eases home", () => {
   const state = run();
   state.strafe = -1;
-  advance(state, 0.4);
+  advance(state, 0.2);
   const left = Config.playerX - state.player.x;
+  advance(state, 1);
+  assert.equal(state.player.x, Config.playerLeft);
   state.strafe = 0;
   const held = state.player.x;
   advance(state, 0.5);
   assert.equal(state.player.x, held);
   state.player.x = Config.playerX;
   state.strafe = 1;
-  advance(state, 0.4);
+  advance(state, 0.2);
   const right = state.player.x - Config.playerX;
   assert(Math.abs(left - right) < 1);
-  assert(right < Config.strafeReach);
+  advance(state, 2);
+  assert.equal(state.player.x, Config.playerRight);
   state.strafe = 0;
   advance(state, 0.15);
-  assert(state.player.x > Config.playerX + right * 0.5);
-  advance(state, 1.6);
+  assert(state.player.x > Config.width / 2);
+  advance(state, 4);
   assert.equal(state.player.x, Config.playerX);
 });
 test("crouch blocks a jump and ducks a high crate", () => {

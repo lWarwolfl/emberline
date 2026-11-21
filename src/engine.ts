@@ -97,8 +97,11 @@ function strafeAnchor(x: number, home: number, strafe: number, dashing: boolean)
   if (strafe === 0 && !dashing && x < home - 0.5) return x;
   return home;
 }
+function boundX(x: number) {
+  return Math.max(Config.playerLeft, Math.min(Config.playerRight, x));
+}
 function laneTarget(anchor: number, strafe: number, dashBonus: number) {
-  return anchor + strafe * Config.strafeReach + dashBonus;
+  return boundX(anchor + strafe * Config.strafeReach + dashBonus);
 }
 function seekX(
   x: number,
@@ -231,21 +234,27 @@ function step(state: GameState, dt: number) {
   state.invincible = Math.max(0, state.invincible - dt);
   state.attackCooldown = Math.max(0, state.attackCooldown - dt);
   const player = state.player;
-  const previousPlayerX = player.x;
+  let previousPlayerX = player.x;
   const strafe = state.strafe || 0;
-  const target = laneTarget(
-    strafeAnchor(player.x, Config.playerX, strafe, dashing),
-    strafe,
-    dashing ? state.stats.dashLungeMax : 0,
-  );
-  player.x = seekX(
-    player.x,
-    target,
-    dt,
-    dashing,
-    state.stats.dashLungeSpeed,
-    strafe === 0 ? 0 : Config.strafeSpeed,
-  );
+  if (!Traversal.emerging(state)) {
+    const anchor =
+      strafe < 0
+        ? Config.playerLeft
+        : strafe > 0
+          ? Config.playerRight
+          : strafeAnchor(player.x, Config.playerX, strafe, dashing);
+    const target = boundX(anchor + (dashing ? state.stats.dashLungeMax : 0));
+    player.x = boundX(
+      seekX(
+        player.x,
+        target,
+        dt,
+        dashing,
+        state.stats.dashLungeSpeed,
+        strafe ? Config.strafeSpeed : 0,
+      ),
+    );
+  }
   const previousY = player.y;
   groundStep(state);
   player.vy += Config.gravity * dt;
@@ -266,7 +275,10 @@ function step(state: GameState, dt: number) {
     Generator.move(object, state.runSpeed, dt);
   }
   // Attacks resolve before body collisions, so a well-timed punch saves the run.
+  const previousTravel = state.traversalEffect;
   Traversal.update(state, dt);
+  if (state.traversalEffect !== previousTravel && state.traversalEffect?.kind === "portal")
+    previousPlayerX = player.x;
   Combat.update(state, dt);
   EnemyFire.update(state, dt);
   for (const bolt of state.hostileProjectiles) {
@@ -317,6 +329,7 @@ function update(state: GameState, seconds: number) {
 }
 export = {
   strafeAnchor,
+  boundX,
   laneTarget,
   seekX,
   ground,

@@ -1,7 +1,7 @@
 export {};
 declare const self: ServiceWorkerGlobalScope;
 /* Offline cache for the static build. Bump CACHE when any cached file changes. */
-const CACHE = "emberline-v7.1.14";
+const CACHE = "emberline-v7.1.15";
 const ASSETS = [
   "./",
   "./index.html",
@@ -51,8 +51,6 @@ self.addEventListener("fetch", (event) => {
     url.pathname === "/party"
   )
     return;
-  if (request.cache === "reload" || request.cache === "no-cache" || request.cache === "no-store")
-    return;
   const freshAsset =
     url.pathname.endsWith("/style.css") ||
     url.pathname.endsWith("/dist/game.js") ||
@@ -84,6 +82,8 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+  if (request.cache === "reload" || request.cache === "no-cache" || request.cache === "no-store")
+    return;
   event.respondWith(
     caches.match(request).then(
       (cached) =>

@@ -66,7 +66,10 @@
         dashLungeSpeed: 150,
         dashLungeMax: 18,
         dashReturnSpeed: 95,
+        playerLeft: 20,
+        playerRight: 438,
         strafeReach: 110,
+        partySpacing: 32,
         strafeSpeed: 220,
         damageGrace: 1.6,
         pickupRecharge: 0.06,
@@ -90,7 +93,15 @@
           coinClearance: 7,
           themeFadeSeconds: 2.2,
         },
-        traversal: { spawnChance: 0.05, portalSkip: 650, padSkip: 350, arrivalGrace: 1.5 },
+        traversal: {
+          spawnChance: 0.05,
+          portalSkip: 650,
+          padSkip: 350,
+          arrivalGrace: 1.5,
+          portalEnter: 0.16,
+          portalReveal: 0.18,
+          portalDuration: 0.8,
+        },
         enemyFire: { warningSeconds: 0.65, maxProjectiles: 24, maxCharging: 2 },
         simulationStep: 1 / 120,
         maxFrameSeconds: 0.1,
@@ -551,6 +562,11 @@
         });
         return true;
       }
+      function barrelLength(id) {
+        if (id === "siegebreaker") return 21;
+        if (id === "rail") return 18;
+        return id === "scatter" || id === "nova" ? 12 : 9;
+      }
       function attack(state) {
         if (state.mode !== "playing" || state.attackCooldown > 0) return false;
         const weapon = import_loadout3.default.find(
@@ -562,8 +578,8 @@
         state.attackId++;
         state.events.push({
           type: weapon.id === "punch" ? "punch" : "shoot",
-          x: state.player.x + 15,
-          y: state.player.y + 9,
+          x: state.player.x + (weapon.id === "punch" ? 15 : 13 + barrelLength(weapon.id)),
+          y: state.player.y + 10,
         });
         if (weapon.id === "punch") return true;
         const x = state.player.x + 15,
@@ -701,7 +717,13 @@
                   });
                 }
               } else damage(state, object, bolt.damage, "shot");
-              if (!breakable(object) && !object.dead)
+              if (object.dead && object.kind === "hazard") {
+                state.events.push({
+                  type: "shot-break",
+                  x: Math.max(object.x, Math.min(bolt.x, object.x + object.w)),
+                  y: Math.max(object.y, Math.min(bolt.y, object.y + object.h)),
+                });
+              } else if (!breakable(object) && !object.dead)
                 state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
               if (
                 (breakable(object) || (bolt.armored && object.kind === "hazard")) &&
@@ -724,7 +746,16 @@
             bolt.y < import_config4.default.floor + 10,
         );
       }
-      module.exports = { armor, durability, breakable, damage, attack, guide, update: update2 };
+      module.exports = {
+        barrelLength,
+        armor,
+        durability,
+        breakable,
+        damage,
+        attack,
+        guide,
+        update: update2,
+      };
     },
   });
 
@@ -998,7 +1029,7 @@
         { id: "steps", unlock: 2 },
         { id: "mixed", unlock: 3 },
         { id: "convoy", unlock: 4 },
-        { id: "squad", unlock: 5 },
+        { id: "squad", unlock: 4 },
         { id: "crossfire", unlock: 7 },
       ];
       var coinPatterns = [
@@ -1687,6 +1718,59 @@
           passed: false,
         };
       }
+      var platformRoutes = [
+        [
+          ["step", 82, 21, 32],
+          ["step", 56, 41, 37],
+          ["bridge", 118, 58, 0],
+        ],
+        [
+          ["bridge", 116, 25, 48],
+          ["island", 44, 43, 48],
+          ["bridge", 102, 23, 0],
+        ],
+        [
+          ["island", 48, 22, 34],
+          ["island", 38, 34, 46],
+          ["step", 61, 49, 29],
+          ["island", 48, 26, 0],
+        ],
+        [
+          ["step", 67, 20, 40],
+          ["bridge", 142, 39, 36],
+          ["step", 78, 52, 0],
+        ],
+      ];
+      function enemyGroup(state, x, speed, count) {
+        const flying = import_content2.default.enemies.filter(
+          (item) => item.unlock <= state.sector && item.altitude > item.h,
+        );
+        const leader =
+          count > 2
+            ? enemy(
+                state,
+                x,
+                import_random2.default.weighted(state.rng, flying, state.lastVariant.enemies).id,
+              )
+            : enemy(state, x);
+        const airborne = leader.baseY + leader.h < import_config4.default.floor;
+        const companions = import_content2.default.enemies.filter(
+          (item) => item.unlock <= state.sector && item.altitude > item.h === airborne,
+        );
+        const spacing = Math.max(48, speed * (airborne ? 0.32 : 0.38));
+        const group = [leader];
+        for (let i = 1; i < count; i++) {
+          const variant = import_random2.default.weighted(
+            state.rng,
+            companions,
+            state.lastVariant.enemies,
+          ).id;
+          const member = enemy(state, x + i * spacing, variant);
+          member.extraSpeed = leader.extraSpeed;
+          group.push(member);
+        }
+        return group;
+      }
       function coinPath(state, pattern, startX, width) {
         const points = [];
         const count = [
@@ -1822,29 +1906,32 @@
         const safetySpeed = import_difficulty3.default.safetySpeed(state);
         const separation = Math.max(155, safetySpeed * 1.25);
         const dangers = [];
+        const grouped = state.sector >= 4;
         switch (pattern) {
           case "hurdle":
             dangers.push(obstacle(state, x));
             break;
           case "escort":
           case "patrol":
-            dangers.push(enemy(state, x));
-            dangers.push(enemy(state, x + Math.max(155, safetySpeed * 1.25)));
+            if (grouped) dangers.push(...enemyGroup(state, x, safetySpeed, 2));
+            else dangers.push(enemy(state, x), enemy(state, x + separation));
             break;
           case "steps":
             dangers.push(obstacle(state, x), obstacle(state, x + separation));
             break;
-          case "mixed":
-            if (import_random2.default.next(state.rng) < 0.5)
-              dangers.push(obstacle(state, x), enemy(state, x + separation));
-            else dangers.push(enemy(state, x), obstacle(state, x + separation));
-            break;
-          case "squad": {
-            const count = Math.min(4, 2 + Math.floor((state.sector - 5) / 3));
-            for (let i = 0; i < count; i++)
-              dangers.push(enemy(state, x + i * Math.max(separation, safetySpeed * 1.7)));
+          case "mixed": {
+            const obstacleFirst = import_random2.default.next(state.rng) < 0.5;
+            const enemyX = obstacleFirst ? x + separation : x;
+            const group = grouped
+              ? enemyGroup(state, enemyX, safetySpeed, 2)
+              : [enemy(state, enemyX)];
+            if (obstacleFirst) dangers.push(obstacle(state, x), ...group);
+            else dangers.push(...group, obstacle(state, group.at(-1).x + separation));
             break;
           }
+          case "squad":
+            dangers.push(...enemyGroup(state, x, safetySpeed, state.sector >= 8 ? 4 : 3));
+            break;
           case "crossfire":
             dangers.push(
               enemy(state, x, "sentry"),
@@ -1853,7 +1940,7 @@
             );
             break;
           case "convoy":
-            dangers.push(enemy(state, x), enemy(state, x + Math.max(separation, safetySpeed * 2)));
+            dangers.push(...enemyGroup(state, x, safetySpeed, 3));
             break;
           case "coin-break":
             break;
@@ -1862,36 +1949,36 @@
         }
         const platformRoll = import_random2.default.next(state.rng);
         if (platformRoll < 0.28) {
-          const tiers =
-            platformRoll < 0.09 ? [30, 54, 30] : platformRoll < 0.18 ? [52, 28] : [28, 50];
-          const platformStart = Math.max(x, ...dangers.map((o) => o.x + o.w)) + 180;
-          const platformWidth = 240;
-          for (const [i, height] of tiers.entries()) {
-            const px = platformStart + i * (platformWidth + 24);
+          const route =
+            platformRoutes[Math.min(platformRoutes.length - 1, Math.floor(platformRoll / 0.07))];
+          let px = Math.max(x, ...dangers.map((o) => o.x + o.w)) + Math.max(180, safetySpeed);
+          for (const [variant, width, height, gap2] of route) {
+            const y = import_config4.default.floor - height;
             dangers.push({
               kind: "platform",
-              variant: "ledge",
+              variant,
               x: px,
-              y: import_config4.default.floor - height,
-              w: platformWidth,
-              h: 6,
+              y,
+              w: width,
+              h: variant === "bridge" ? 8 : variant === "step" ? 12 : 16,
             });
-            for (let coinX = 12; coinX < platformWidth - 12; coinX += 23)
+            for (let coinX = 10; coinX < width - 8; coinX += 22)
               dangers.push({
                 kind: "ember",
                 variant: "platform",
                 x: px + coinX,
-                y: import_config4.default.floor - height - 12,
+                y: y - 12,
                 w: 5,
                 h: 6,
               });
-            if (i === 1 && state.sector >= 2) {
-              const foe = enemy(state, px + platformWidth * 0.65, "crawler");
-              foe.y = foe.baseY = import_config4.default.floor - height - foe.h;
+            if (width >= 130 && state.sector >= 2) {
+              const foe = enemy(state, px + width * 0.57, "crawler");
+              foe.y = foe.baseY = y - foe.h;
               foe.amplitude = 0;
               foe.extraSpeed = 0;
               dangers.push(foe);
             }
+            px += width + gap2;
           }
         }
         const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
@@ -1944,7 +2031,9 @@
             age: 0,
           };
           state.traversals.push(device);
-          if (state.traversals.length > 4) state.traversals.shift();
+          const approaches = state.traversals.filter((item) => !item.role);
+          if (approaches.length > 4)
+            state.traversals = state.traversals.filter((item) => item !== approaches[0]);
           travelEnd = device.x + device.w;
         }
         const gap =
@@ -2220,7 +2309,7 @@
       "use strict";
       var import_config4 = __toESM(require_config());
       function activate(state, device) {
-        if (device.role === "exit") return;
+        if (device.role) return;
         const distance =
           device.kind === "portal"
             ? import_config4.default.traversal.portalSkip
@@ -2234,50 +2323,70 @@
           state.invincible,
           import_config4.default.traversal.arrivalGrace,
         );
-        state.player.x = import_config4.default.playerX;
-        state.traversals = state.traversals.filter((item) => item !== device);
+        const entry = device.kind === "portal" ? { x: state.player.x, y: state.player.y } : void 0;
+        state.traversals = state.traversals.filter((item) => !item.role && item !== device);
         if (device.kind === "portal") {
+          state.player.x = Math.min(
+            import_config4.default.playerRight,
+            Math.max(import_config4.default.playerX, device.x + 90),
+          );
+          state.traversals.push({ ...device, role: "entry", age: 0 });
           state.player.y = import_config4.default.floor - import_config4.default.playerHeight;
           state.player.vy = 0;
           state.player.jumps = 0;
           state.traversals.push({
             kind: "portal",
             role: "exit",
-            x: Math.min(
-              import_config4.default.width - 40,
-              Math.max(device.x + 130, state.player.x + 160),
-            ),
+            x: state.player.x + (13 - device.w) / 2,
             y: device.y,
             w: device.w,
             h: device.h,
             age: 0,
           });
         } else {
+          state.player.x = import_config4.default.playerX;
           state.player.vy = -260;
           state.player.jumps = 1;
         }
-        const duration = device.kind === "portal" ? 0.8 : 1.5;
-        state.traversalEffect = { kind: device.kind, life: duration, duration, distance };
+        const duration =
+          device.kind === "portal" ? import_config4.default.traversal.portalDuration : 1.5;
+        state.traversalEffect = { kind: device.kind, life: duration, duration, distance, entry };
         state.events.push({
           type: device.kind,
-          x: state.player.x,
-          y: state.player.y,
+          x: entry?.x ?? state.player.x,
+          y: entry ? device.y - 8 : state.player.y,
           points: distance,
           label: `${device.kind === "portal" ? "WARP" : "LAUNCH"} / ${distance}m`,
         });
       }
-      function update2(state, dt) {
+      function emerging(state) {
+        const effect = state.traversalEffect;
+        return (
+          effect?.kind === "portal" &&
+          effect.duration - effect.life <
+            import_config4.default.traversal.portalEnter +
+              import_config4.default.traversal.portalReveal
+        );
+      }
+      function animate(state, dt) {
         if (state.traversalEffect) {
           state.traversalEffect.life -= dt;
-          if (state.traversalEffect.life <= 0) state.traversalEffect = null;
+          if (state.traversalEffect.life <= 0) {
+            state.traversalEffect = null;
+            state.traversals = state.traversals.filter((device) => !device.role);
+          }
         }
+      }
+      function update2(state, dt) {
+        animate(state, dt);
         for (const device of state.traversals) {
+          device.age += dt;
+          if (device.role) continue;
           const previousX = device.x;
           device.x -= state.runSpeed * dt;
-          device.age += dt;
           const player = state.player;
           if (
-            device.role !== "exit" &&
+            !emerging(state) &&
             player.x + 13 > Math.min(previousX, device.x) &&
             player.x < Math.max(previousX, device.x) + device.w &&
             player.y + import_config4.default.playerHeight > device.y &&
@@ -2287,11 +2396,9 @@
             return;
           }
         }
-        state.traversals = state.traversals.filter(
-          (device) => device.x + device.w > -20 && !(device.role === "exit" && device.age > 1.4),
-        );
+        state.traversals = state.traversals.filter((device) => device.x + device.w > -20);
       }
-      module.exports = { activate, update: update2 };
+      module.exports = { activate, animate, emerging, update: update2 };
     },
   });
 
@@ -2390,8 +2497,14 @@
         if (strafe === 0 && !dashing && x < home - 0.5) return x;
         return home;
       }
+      function boundX(x) {
+        return Math.max(
+          import_config4.default.playerLeft,
+          Math.min(import_config4.default.playerRight, x),
+        );
+      }
       function laneTarget(anchor, strafe, dashBonus) {
-        return anchor + strafe * import_config4.default.strafeReach + dashBonus;
+        return boundX(anchor + strafe * import_config4.default.strafeReach + dashBonus);
       }
       function seekX(x, target, dt, dashing, dashSpeed, pace = 0) {
         const delta = target - x;
@@ -2532,21 +2645,27 @@
         state.invincible = Math.max(0, state.invincible - dt);
         state.attackCooldown = Math.max(0, state.attackCooldown - dt);
         const player = state.player;
-        const previousPlayerX = player.x;
+        let previousPlayerX = player.x;
         const strafe = state.strafe || 0;
-        const target = laneTarget(
-          strafeAnchor(player.x, import_config4.default.playerX, strafe, dashing),
-          strafe,
-          dashing ? state.stats.dashLungeMax : 0,
-        );
-        player.x = seekX(
-          player.x,
-          target,
-          dt,
-          dashing,
-          state.stats.dashLungeSpeed,
-          strafe === 0 ? 0 : import_config4.default.strafeSpeed,
-        );
+        if (!import_traversal3.default.emerging(state)) {
+          const anchor =
+            strafe < 0
+              ? import_config4.default.playerLeft
+              : strafe > 0
+                ? import_config4.default.playerRight
+                : strafeAnchor(player.x, import_config4.default.playerX, strafe, dashing);
+          const target = boundX(anchor + (dashing ? state.stats.dashLungeMax : 0));
+          player.x = boundX(
+            seekX(
+              player.x,
+              target,
+              dt,
+              dashing,
+              state.stats.dashLungeSpeed,
+              strafe ? import_config4.default.strafeSpeed : 0,
+            ),
+          );
+        }
         const previousY = player.y;
         groundStep(state);
         player.vy += import_config4.default.gravity * dt;
@@ -2566,7 +2685,10 @@
           import_generator3.default.evolve(object, state.time);
           import_generator3.default.move(object, state.runSpeed, dt);
         }
+        const previousTravel = state.traversalEffect;
         import_traversal3.default.update(state, dt);
+        if (state.traversalEffect !== previousTravel && state.traversalEffect?.kind === "portal")
+          previousPlayerX = player.x;
         import_combat3.default.update(state, dt);
         import_enemy_fire3.default.update(state, dt);
         for (const bolt of state.hostileProjectiles) {
@@ -2623,6 +2745,7 @@
       }
       module.exports = {
         strafeAnchor,
+        boundX,
         laneTarget,
         seekX,
         ground,
@@ -2737,10 +2860,12 @@
     };
   }
   function place(run, member, index, dt, instant) {
+    if (!instant && import_traversal.default.emerging(run.world)) return;
     const state = member.state;
     const home =
       import_config.default.playerX +
-      (run.members.filter((item) => item.connected).length - index - 1) * 32;
+      (run.members.filter((item) => item.connected).length - index - 1) *
+        import_config.default.partySpacing;
     const dashing = !instant && state.dash > 0;
     const strafe = state.strafe || 0;
     const target = import_engine.default.laneTarget(
@@ -2750,13 +2875,15 @@
     );
     state.player.x = instant
       ? target
-      : import_engine.default.seekX(
-          state.player.x,
-          target,
-          dt,
-          dashing,
-          state.stats.dashLungeSpeed,
-          strafe === 0 ? 0 : import_config.default.strafeSpeed,
+      : import_engine.default.boundX(
+          import_engine.default.seekX(
+            state.player.x,
+            target,
+            dt,
+            dashing,
+            state.stats.dashLungeSpeed,
+            strafe === 0 ? 0 : import_config.default.strafeSpeed,
+          ),
         );
   }
   function formation(run, instant = false, dt = 0) {
@@ -2922,6 +3049,7 @@
     const beforeTravel = w.distance;
     import_traversal.default.update(w, dt);
     if (w.distance !== beforeTravel) {
+      const arrivalX = w.player.x;
       for (const m of live) {
         m.state.invincible = import_config.default.traversal.arrivalGrace;
         Object.assign(m.state.player, {
@@ -2931,6 +3059,12 @@
         });
       }
       formation(run, true);
+      if (w.traversalEffect?.kind === "portal") {
+        const offset = Math.max(0, arrivalX - live[0].state.player.x);
+        for (const m of live) m.state.player.x += offset;
+        const exit = w.traversals.find((device) => device.role === "exit");
+        if (exit) exit.x = live[0].state.player.x + (13 - exit.w) / 2;
+      }
     }
     for (const [i, m] of live.entries()) {
       const s = m.state;
@@ -3007,7 +3141,8 @@
       }
     }
     const anchor =
-      import_config.default.playerX + (run.members.filter((m) => m.connected).length - 1) * 32;
+      import_config.default.playerX +
+      (run.members.filter((m) => m.connected).length - 1) * import_config.default.partySpacing;
     if (
       !run.checkpoint &&
       run.beaconDistance - w.distance <= import_config.default.width + 36 - anchor
@@ -3099,10 +3234,7 @@
       w.biomeBlend + dt / import_config.default.generation.themeFadeSeconds,
     );
     w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
-    if (w.traversalEffect) {
-      w.traversalEffect.life -= dt;
-      if (w.traversalEffect.life <= 0) w.traversalEffect = null;
-    }
+    import_traversal.default.animate(w, dt);
     const distance = w.runSpeed * dt;
     w.distance += distance;
     formation(run, false, dt);
@@ -3146,7 +3278,7 @@
       bolt.y += bolt.vy * dt;
     }
     for (const device of w.traversals) {
-      device.x -= distance;
+      if (!device.role) device.x -= distance;
       device.age += dt;
     }
     if (run.checkpoint) {
@@ -3321,7 +3453,7 @@
         current = null;
       }
       if (!current) return { ...target };
-      current.x = approach(current.x, target.x, amount, 80);
+      current.x = target.role ? target.x : approach(current.x, target.x, amount, 80);
       current.age = target.age;
       return current;
     });
@@ -3353,8 +3485,13 @@
       });
       local.player.vy = remote.player.vy;
       local.player.jumps = remote.player.jumps;
-      local.player.x = approach(local.player.x, remote.player.x, amount, 48);
-      local.player.y = approach(local.player.y, remote.player.y, amount, 64);
+      const emerging = import_traversal.default.emerging(from);
+      local.player.x = emerging
+        ? remote.player.x
+        : approach(local.player.x, remote.player.x, amount, 48);
+      local.player.y = emerging
+        ? remote.player.y
+        : approach(local.player.y, remote.player.y, amount, 64);
       return member;
     });
     shown.order = authority.order.slice();
@@ -4053,15 +4190,15 @@
       function create5() {
         let particles = [];
         let enabled = true;
-        function burst(x, y, count, color, power = 50) {
+        function burst(x, y, count, color, power = 50, forward = 0, lifetime = 1) {
           if (!enabled) return;
           for (let i = 0; i < count; i++) {
             particles.push({
               x,
               y,
-              vx: (Math.random() - 0.5) * power * 2,
+              vx: forward + (Math.random() - 0.5) * power * 2,
               vy: (Math.random() - 0.65) * power * 2,
-              life: 0.25 + Math.random() * 0.6,
+              life: (0.25 + Math.random() * 0.6) * lifetime,
               color,
               size: Math.random() > 0.7 ? 2 : 1,
             });
@@ -4595,19 +4732,8 @@
               line(x + 29, y + 15, 6, "#ffe3ab");
             }
           } else {
-            rect(
-              x + 13,
-              y + 8,
-              weapon.id === "siegebreaker"
-                ? 21
-                : weapon.id === "rail"
-                  ? 18
-                  : weapon.id === "scatter" || weapon.id === "nova"
-                    ? 12
-                    : 9,
-              4,
-              "#9da995",
-            );
+            const length = import_combat3.default.barrelLength(weapon.id);
+            rect(x + 13, y + 8, length, 4, "#9da995");
             if (weapon.id === "siegebreaker") {
               rect(x + 15, y + 6, 9, 8, "#65776c");
               rect(x + 29, y + 7, 5, 6, weapon.color);
@@ -4626,8 +4752,9 @@
             }
             rect(x + 16, y + 9, 6, 2, weapon.color);
             if (striking) {
-              rect(x + 24, y + 7, 5, 6, weapon.color);
-              rect(x + 26, y + 9, 5, 2, "#fff2c9");
+              const muzzle = x + 13 + length;
+              rect(muzzle, y + 7, 4, 6, weapon.color);
+              rect(muzzle, y + 9, 6, 2, "#fff2c9");
             }
           }
           ctx.restore();
@@ -4771,9 +4898,20 @@
         function object(o, time) {
           if (o.x > import_config4.default.width + 35 || o.x + o.w < -10) return;
           if (o.kind === "platform") {
-            rect(o.x, o.y, o.w, o.h, "#52685c");
-            line(o.x, o.y, o.w, "#b6dbc3");
-            for (let i = 8; i < o.w - 4; i += 18) rect(o.x + i, o.y + 3, 7, 2, "#83967e");
+            const { x, y, w, h } = o;
+            rect(x, y, w, Math.min(5, h), "#52685c");
+            line(x, y, w, "#b6dbc3");
+            if (o.variant === "island") {
+              rect(x + 4, y + 5, w - 8, 4, "#52685c");
+              rect(x + 9, y + 9, w - 18, h - 9, "#3c514a");
+              rect(x + w / 2 - 3, y + 9, 6, 2, "#9ac5ad");
+            } else {
+              for (let i = 6; i < w - 7; i += 17) {
+                rect(x + i, y + 3, 7, 2, "#83967e");
+                rect(x + i + 2, y + 5, 3, h - 5, "#40574f");
+              }
+              line(x + 2, y + h - 1, w - 4, "#52685c");
+            }
           } else if (o.kind === "heart" || o.kind === "powerup") {
             const color =
               o.rarity === "legendary"
@@ -4842,27 +4980,51 @@
             );
           }
         }
-        function traversal(device) {
+        function traversal(device, label = true) {
           const { x, y, w, h } = device;
           const time = reducedMotion ? 0 : device.age;
           if (device.kind === "portal") {
             const exit = device.role === "exit";
-            const open = exit ? Math.min(1, device.age / 0.35) : 1;
+            const { portalEnter, portalReveal, portalDuration } = import_config4.default.traversal;
+            const closeStart = exit ? portalEnter + portalReveal + 0.1 : portalEnter;
+            const close = Math.max(
+              0,
+              1 - (device.age - closeStart) / (exit ? portalDuration - closeStart : 0.16),
+            );
+            const open = !device.role
+              ? 1
+              : Math.min(1, close, exit ? 0.2 + device.age / portalEnter : 1);
+            if (open <= 0) return;
+            const aperture = reducedMotion ? 1 : open;
+            const centerX = x + w / 2;
             ctx.save();
-            ctx.globalAlpha = 0.3 + (exit ? 0.35 * (1 - Math.min(1, device.age / 1.4)) : 0);
-            rect(x + 5, y + 6, (w - 10) * open, h - 12, exit ? "#b7f0d8" : "#a5adff");
-            ctx.restore();
+            ctx.globalAlpha = open * 0.45;
+            rect(
+              centerX - ((w - 10) * aperture) / 2,
+              y + 6,
+              (w - 10) * aperture,
+              h - 12,
+              exit ? "#b7f0d8" : "#a5adff",
+            );
+            ctx.globalAlpha = Math.min(1, open * 1.8);
             for (let i = 0; i < 28; i++) {
               const phase = (i / 28) * Math.PI * 2;
               rect(
-                x + w / 2 + Math.cos(phase) * (w / 2 - 1),
+                centerX + Math.cos(phase) * (w / 2 - 1) * aperture,
                 y + h / 2 + (Math.sin(phase) * h) / 2,
                 2,
                 3,
-                i % 3 === Math.floor(time * 8) % 3 ? "#ece0ff" : "#9d9bde",
+                i % 3 === Math.floor(time * 16) % 3 ? "#ece0ff" : exit ? "#75ccb9" : "#9d9bde",
               );
             }
-            rect(x + w / 2 - 3, y + h / 2 + Math.sin(time * 3) * 7, 6, 2, "#cde7ff");
+            rect(
+              centerX - 3 * aperture,
+              y + h / 2 + Math.sin(time * 12) * 7,
+              6 * aperture,
+              2,
+              "#cde7ff",
+            );
+            ctx.restore();
           } else {
             rect(x, y + 1, w, h - 1, "#5f8782");
             line(x, y, w, "#adf3cc");
@@ -4872,6 +5034,7 @@
               line(x + 9, y - lift - 2, 8, "#8bd4b3");
             }
           }
+          if (!label || device.role === "entry") return;
           ctx.font = "5px monospace";
           ctx.fillStyle = device.kind === "portal" ? "#cecaff" : "#a8e9c9";
           ctx.fillText(
@@ -4882,30 +5045,17 @@
         }
         function travelEffect(state) {
           const effect = state.traversalEffect;
-          if (!effect) return;
+          if (effect?.kind !== "pad") return;
           const ratio = effect.life / effect.duration;
-          const color = effect.kind === "portal" ? "#d2c7ff" : "#9fecc7";
+          const color = "#9fecc7";
           if (reducedMotion) {
             line(state.player.x - 4, state.player.y + 22, 24, color);
             return;
           }
           ctx.save();
           ctx.globalAlpha = ratio * 0.7;
-          if (effect.kind === "portal") {
-            const radius = 12 + (1 - ratio) * 80;
-            for (let i = 0; i < 32; i++) {
-              const angle = (i / 32) * Math.PI * 2;
-              rect(
-                state.player.x + 7 + Math.cos(angle) * radius,
-                state.player.y + 10 + Math.sin(angle) * radius,
-                3,
-                3,
-                color,
-              );
-            }
-          } else
-            for (let i = 0; i < 6; i++)
-              line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
+          for (let i = 0; i < 6; i++)
+            line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
           ctx.restore();
         }
         return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
@@ -4929,7 +5079,34 @@
         const background = import_backgrounds2.default.create(ctx);
         const sprites = import_sprites2.default.create(ctx, reducedMotion);
         const { rect } = import_pixel2.default.create(ctx);
+        function portalPose(world, courier) {
+          const { player } = courier;
+          const effect = world.traversalEffect;
+          const entry = world.traversals.find((device) => device.role === "entry");
+          if (effect?.kind !== "portal" || !entry) return { x: player.x, y: player.y, alpha: 1 };
+          const elapsed = effect.duration - effect.life;
+          const { portalEnter, portalReveal } = import_config4.default.traversal;
+          if (elapsed < portalEnter) {
+            const remaining = 1 - elapsed / portalEnter;
+            const center = entry.x + (entry.w - 13) / 2;
+            const start2 = (effect.entry?.x ?? center) + player.x - world.player.x;
+            return {
+              x: reducedMotion ? start2 : center + (start2 - center) * remaining,
+              y: effect.entry?.y ?? player.y,
+              alpha: remaining,
+            };
+          }
+          const alpha = Math.min(1, (elapsed - portalEnter) / portalReveal);
+          return { x: player.x - (reducedMotion ? 0 : 5 * (1 - alpha)), y: player.y, alpha };
+        }
         function draw(state, time, particles, feedback, popups = [], party = null, localId = "") {
+          const team = party ? sorted(party).filter(alive) : [];
+          const world = party?.world ?? state;
+          const tracked = team.find((member) => member.id === localId)?.state ?? state;
+          const trackedX =
+            state.mode === "menu" ? import_config4.default.playerX : portalPose(world, tracked).x;
+          const pan = Math.max(0, Math.min(160, trackedX - 18, Math.max(40, trackedX - 278)));
+          canvas.style.setProperty("--playfield-pan", `${pan / 1.6}%`);
           ctx.save();
           if (feedback.shake > 0 && !reducedMotion) {
             ctx.translate(
@@ -4961,7 +5138,16 @@
               time,
             );
           } else {
-            for (const device of state.traversals) sprites.traversal(device);
+            for (const device of state.traversals) {
+              sprites.traversal(device);
+              if (device.role === "exit") {
+                for (let i = 1; i < team.length; i++)
+                  sprites.traversal(
+                    { ...device, x: device.x - i * import_config4.default.partySpacing },
+                    false,
+                  );
+              }
+            }
             for (const object of state.objects)
               if (object.kind === "platform") sprites.object(object, time);
             for (const object of state.objects)
@@ -5006,30 +5192,32 @@
               for (const [i, member] of sorted(party).entries()) {
                 if (!alive(member)) continue;
                 const s = member.state;
-                sprites.courier(s.player.x, s.player.y, time, s.dash > 0, s);
+                const { x, y, alpha } = portalPose(world, s);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                sprites.courier(x, y, time, s.dash > 0, s);
                 ctx.font = "bold 5px monospace";
                 ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
                 ctx.textAlign = "center";
                 ctx.fillText(
                   `${i + 1}${member.id === localId ? " / YOU" : ""}`,
-                  s.player.x + 6,
-                  Math.max(12, s.player.y - 15),
+                  x + 6,
+                  Math.max(12, y - 15),
                 );
                 ctx.textAlign = "left";
                 for (let hp = 0; hp < s.health; hp++)
-                  rect(
-                    s.player.x + hp * 4,
-                    s.player.y - 10,
-                    3,
-                    2,
-                    hp < s.health - s.hits ? "#a2ecc5" : "#68454c",
-                  );
+                  rect(x + hp * 4, y - 10, 3, 2, hp < s.health - s.hits ? "#a2ecc5" : "#68454c");
+                ctx.restore();
               }
             } else if (
               state.mode !== "dead" &&
               !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
             ) {
-              sprites.courier(state.player.x, state.player.y, time, state.dash > 0, state);
+              const { x, y, alpha } = portalPose(state, state);
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              sprites.courier(x, y, time, state.dash > 0, state);
+              ctx.restore();
             }
           }
           sprites.travelEffect(state);
@@ -5049,28 +5237,18 @@
             rect(bolt.x, bolt.y, 2, 2, "#fff0cc");
           }
           for (const bolt of state.projectiles) {
-            if (bolt.homing) {
-              const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
-              const ux = bolt.vx / speed;
-              const uy = bolt.vy / speed;
-              for (let i = 5; i >= 0; i--)
-                rect(
-                  bolt.x - ux * i * 2,
-                  bolt.y - uy * i * 2,
-                  i === 0 ? 3 : 2,
-                  i === 0 ? 3 : 2,
-                  i === 0 ? "#fff1c7" : bolt.color,
-                );
-              continue;
+            const speed = Math.hypot(bolt.vx, bolt.vy) || 1;
+            const ux = bolt.vx / speed;
+            const uy = bolt.vy / speed;
+            const segments = reducedMotion ? 2 : bolt.color === "#c6b3ff" ? 7 : 5;
+            ctx.save();
+            for (let i = segments; i > 0; i--) {
+              ctx.globalAlpha = 1 - i / (segments + 1);
+              rect(bolt.x - ux * i * 3, bolt.y - uy * i * 3, 3, i < 3 ? 2 : 1, bolt.color);
             }
-            rect(
-              bolt.x - (bolt.color === "#c6b3ff" ? 18 : 5),
-              bolt.y,
-              bolt.color === "#c6b3ff" ? 20 : 7,
-              2,
-              bolt.color,
-            );
-            rect(bolt.x + 1, bolt.y, 2, 2, "#fff1c7");
+            ctx.restore();
+            rect(bolt.x - 1, bolt.y - 1, 5, 4, bolt.color);
+            rect(bolt.x + 1, bolt.y, 3, 2, "#fff1c7");
           }
           for (const particle of particles) {
             ctx.globalAlpha = Math.min(1, particle.life * 2);
@@ -16558,7 +16736,6 @@
           revive: [65, "#b1ffe3", 100],
           front: [20, "#9ee9ec", 50],
           down: [35, "#ec9865", 65],
-          portal: [65, "#c5bbff", 95],
           pad: [45, "#9de9c2", 85],
           deflect: [16, "#fff0b4", 60],
           "enemy-shot": [5, "#ff8a93", 25],
@@ -16588,9 +16765,19 @@
               popups.add(event);
             audio.play(event.type, state.combo);
             const burst = event.label === "BLAST" ? bursts.explosion : bursts[event.type];
-            if (burst && !(reducedMotion && ["portal", "pad", "revive"].includes(event.type)))
+            if (burst && !(reducedMotion && ["pad", "revive"].includes(event.type)))
               particles.burst(event.x, event.y, ...burst);
             switch (event.type) {
+              case "shoot":
+                if (!reducedMotion) {
+                  particles.burst(event.x, event.y, 8, "#ffcb7c", 25, 60, 0.55);
+                  particles.burst(event.x, event.y, 4, "#fff2c9", 17, 90, 0.5);
+                }
+                break;
+              case "shot-break":
+                particles.burst(event.x, event.y, reducedMotion ? 8 : 22, "#ffae62", 80);
+                if (!reducedMotion) particles.burst(event.x, event.y, 14, "#fff2c9", 48, 0, 0.7);
+                break;
               case "heal":
               case "powerup-pickup":
               case "powerup":
@@ -16602,7 +16789,7 @@
                 break;
               case "portal":
               case "pad":
-                feedback.shake = event.type === "portal" ? 4 : 2;
+                if (event.type === "pad") feedback.shake = 2;
                 ui.announce(event.label ?? "SHORTCUT", 2.5);
                 break;
               case "smash":

@@ -20,7 +20,8 @@ async function main() {
     const errors: string[] = [];
     await page.addInitScript(() => {
       if (!localStorage.getItem("test.gear-funded")) {
-        localStorage.setItem("emberline.coins", "50000");
+        // This fixture buys the entire catalog to exercise every preview.
+        localStorage.setItem("emberline.coins", "100000");
         localStorage.setItem("test.gear-funded", "yes");
       }
     });

@@ -78,8 +78,8 @@ test("enemy groups grow to four and later encounters contain more enemies", () =
   }
   assert(later > first * 1.5);
   for (const [sector, size] of [
-    [5, 2],
-    [8, 3],
+    [4, 3],
+    [8, 4],
     [14, 4],
     [100, 4],
   ]) {
@@ -88,7 +88,11 @@ test("enemy groups grow to four and later encounters contain more enemies", () =
     encounter(state, "squad");
     assert.equal(state.objects.filter((o) => o.kind === "enemy").length, size);
     const enemies = state.objects.filter((o) => o.kind === "enemy");
-    for (let i = 1; i < enemies.length; i++) assert(enemies[i].x - enemies[i - 1].x >= 155);
+    for (let i = 1; i < enemies.length; i++) {
+      assert(enemies[i].x - enemies[i - 1].x >= 48);
+      assert(enemies[i].x - enemies[i - 1].x < 155);
+      assert.equal(enemies[i].extraSpeed, enemies[0].extraSpeed);
+    }
   }
 });
 
@@ -187,7 +191,7 @@ test("portals and pads share a seeded 5% encounter chance and both appear", () =
 
 test("portals skip once, keep the route, open an exit, and never credit skipped coins", () => {
   const state = run();
-  state.objects = [{ kind: "ember", variant: "ground", x: 400, y: 181, w: 5, h: 6 }];
+  state.objects = [{ kind: "ember", variant: "ground", x: 125, y: 181, w: 5, h: 6 }];
   state.hostileProjectiles = [bolt()];
   state.traversals = [{ kind: "portal", x: 84, y: 153, w: 22, h: 43, age: 0 }];
   Engine.update(state, 0.001);
@@ -196,14 +200,18 @@ test("portals skip once, keep the route, open an exit, and never credit skipped 
   assert.equal(state.embers, 0);
   assert.equal(state.objects.length, 1);
   assert.equal(state.hostileProjectiles.length, 1);
-  assert.equal(state.traversals.filter((device) => device.role === "exit").length, 1);
+  const exit = state.traversals.find((device) => device.role === "exit")!;
+  assert.equal(exit.x + exit.w / 2, state.player.x + 13 / 2);
+  assert.equal(exit.age, 0);
   assert.equal(state.traversalEffect?.kind, "portal");
   const skipped = state.distance;
   advance(state, 0.2);
   assert(state.distance - skipped < 40);
   assert.equal(state.embers, 0);
+  assert.equal(exit.x + exit.w / 2, state.player.x + 13 / 2);
   advance(state, 0.7);
   assert.equal(state.traversalEffect, null);
+  assert.equal(state.traversals.length, 0);
 });
 
 test("jump pads launch, skip distance, boost travel, and leave a safe landing", () => {
