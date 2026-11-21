@@ -36,6 +36,13 @@ const tracks: {
     description:
       "Prestige unlock: one extra mid-air jump. Buy once for 5,000 coins; no further levels or charges.",
   },
+  {
+    id: "power",
+    name: "Power core",
+    maxLevel: 10,
+    description:
+      "Extends timed pickups and improves their strength, collection radius, or fire rate.",
+  },
 ];
 function definition(id: string) {
   return tracks.find((track) => track.id === id);
@@ -84,6 +91,11 @@ function stats(value: unknown = {}) {
     dashLungeMax: Config.dashLungeMax + (basic.dash * 5 + advanced.dash * 3),
     dashLungeSpeed: Config.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
     damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
+    powerDuration: 1 + levels.power * 0.08,
+    titanMultiplier: 2.5 + levels.power * 0.1,
+    blastReach: Config.width + levels.power * 18,
+    magnetRadius: 56 + levels.power * 4,
+    overclockRate: 1.6 + levels.power * 0.08,
   };
 }
 function describe(id: string, value: unknown) {
@@ -108,6 +120,15 @@ function describe(id: string, value: unknown) {
       );
     case "damage":
       return result.damageMultiplier.toFixed(2) + "× damage on all attacks";
+    case "power":
+      return (
+        Math.round(result.powerDuration * 100) +
+        "% duration · " +
+        result.magnetRadius +
+        "px magnet · " +
+        result.overclockRate.toFixed(2) +
+        "× overclock"
+      );
     case "triple":
       return result.maxJumps + " jumps before landing";
     default:

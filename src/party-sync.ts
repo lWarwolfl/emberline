@@ -62,7 +62,7 @@ function replay(state: GameState, action: Party.Action) {
   else if (action === "dash") Engine.dash(state);
   else if (action === "attack") Engine.attack(state);
   else if (action === "ground") Engine.ground(state);
-  else if (action === "powerup") Engine.powerup(state);
+  else if (action === "climb" || action === "level") state.climb = action === "climb";
   else if (action === "strafe-left") state.strafe = -1;
   else if (action === "strafe-right") state.strafe = 1;
   else if (action === "strafe-stop") state.strafe = 0;
@@ -92,8 +92,9 @@ function predict(
   local.state.attackTime = source.state.attackTime;
   local.state.attackCooldown = source.state.attackCooldown;
   local.state.invincible = source.state.invincible;
-  local.state.activePowerup = source.state.activePowerup ? { ...source.state.activePowerup } : null;
-  local.state.powerups = source.state.powerups.slice();
+  local.state.activePowerups = { ...source.state.activePowerups };
+  local.state.ship = latest.world.ship;
+  local.state.climb = source.state.climb;
   for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
   Party.steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
   const front = Party.sorted(shown).find(Party.alive);
@@ -145,6 +146,8 @@ export function follow(
   world.embers = to.world.embers;
   world.sector = to.world.sector;
   world.bossActive = to.world.bossActive;
+  world.ship = to.world.ship ? { ...to.world.ship } : null;
+  world.traversalEffect = to.world.traversalEffect ? { ...to.world.traversalEffect } : null;
   world.objects = blendObjects(from.world.objects, to.world.objects, amount);
   world.projectiles = blendBolts(from.world.projectiles, to.world.projectiles, amount);
   world.hostileProjectiles = blendBolts(

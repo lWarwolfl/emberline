@@ -37,17 +37,12 @@ test("ground pull rejects paused, dead, downed and already grounded couriers", (
   assert(!Engine.ground(state));
 });
 
-test("ground pull cancels flight without consuming stored powers and still takes hazard damage", () => {
+test("ground pull cancels flight, preserves other active effects, and still takes hazard damage", () => {
   const state = run();
   state.player.y = 90;
-  state.activePowerup = { id: "flight", remaining: 8 };
-  state.powerups = ["titan"];
+  state.activePowerups = { flight: 8, titan: 10 };
   assert(Engine.ground(state));
-  assert.equal(state.activePowerup, null);
-  assert.deepEqual(state.powerups, ["titan"]);
-  state.powerups = ["flight"];
-  assert(!Engine.powerup(state));
-  assert.deepEqual(state.powerups, ["flight"]);
+  assert.deepEqual(state.activePowerups, { titan: 10 });
   state.objects = [{ kind: "hazard", variant: "pipe", x: state.player.x, y: 170, w: 30, h: 26 }];
   for (let i = 0; i < 3; i++) Engine.update(state, 0.1);
   assert.equal(state.hits, 1);

@@ -1,6 +1,7 @@
 import type { GameState, Loadout, Seed, UpgradeLevels } from "./types";
 import Engine from "./engine";
 import Powerups from "./powerups";
+import Ships from "./ships";
 import Config from "./config";
 import Difficulty from "./difficulty";
 import Generator from "./generator";
@@ -42,7 +43,8 @@ export type Action =
   | "jump"
   | "dash"
   | "attack"
-  | "powerup"
+  | "climb"
+  | "level"
   | "ground"
   | "strafe-left"
   | "strafe-right"
@@ -204,6 +206,11 @@ export function action(run: PartyRun, id: string, action: Action) {
   s.objects = run.world.objects;
   s.projectiles = run.world.projectiles;
   s.runSpeed = run.world.runSpeed;
+  s.ship = run.world.ship;
+  if (action === "climb" || action === "level") {
+    s.climb = action === "climb";
+    return true;
+  }
   if (action === "strafe-left" || action === "strafe-right" || action === "strafe-stop") {
     s.strafe = action === "strafe-left" ? -1 : action === "strafe-right" ? 1 : 0;
     return true;
@@ -236,7 +243,9 @@ function revive(run: PartyRun) {
 function step(run: PartyRun, dt: number) {
   const w = run.world;
   w.time += dt;
+  const previousSector = w.sector;
   Difficulty.update(w, dt);
+  Ships.update(w, previousSector, dt);
   const live = sorted(run).filter(alive);
   if (!live.length) {
     w.mode = "dead";
@@ -262,17 +271,20 @@ function step(run: PartyRun, dt: number) {
     s.cooldown = Math.max(0, s.cooldown - dt);
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-    const previousY = s.player.y;
-    Engine.groundStep(s);
-    s.player.vy += Config.gravity * dt;
-    s.player.y += s.player.vy * dt;
+    s.ship = w.ship;
+    if (!Ships.steer(s, dt)) {
+      const previousY = s.player.y;
+      Engine.groundStep(s);
+      s.player.vy += Config.gravity * dt;
+      s.player.y += s.player.vy * dt;
+      Powerups.land(s, previousY, dt);
+      if (s.player.y >= Config.floor - Config.playerHeight)
+        Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
+      Engine.groundStep(s);
+    }
     Powerups.update(s, dt);
-    Powerups.land(s, previousY, dt);
-    if (s.player.y >= Config.floor - Config.playerHeight)
-      Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
-    Engine.groundStep(s);
   }
-  if (w.distance >= w.next) {
+  if (!w.ship && w.distance >= w.next) {
     const before = w.objects.length;
     Generator.spawn(w);
     const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -317,11 +329,11 @@ function step(run: PartyRun, dt: number) {
     w.projectiles = s.projectiles;
     w.score += s.score - score;
   }
-  EnemyFire.update(w, dt);
+  if (w.ship?.phase !== "crash") EnemyFire.update(w, dt);
   // Swept projectiles resolve against the frontmost intersecting body, once only.
   for (const bolt of w.hostileProjectiles) {
     const target = live.find(
-      (m) => alive(m) && EnemyFire.hitsPlayer(bolt, m.state.player, m.state.crouching),
+      (m) => alive(m) && EnemyFire.hitsPlayer(bolt, m.state.player, m.state.crouching && !w.ship),
     );
     if (!target) continue;
     bolt.life = 0;
@@ -350,14 +362,14 @@ function step(run: PartyRun, dt: number) {
     const target = live.find(
       (m) =>
         alive(m) &&
-        (object.kind !== "powerup" || m.state.powerups.length < 3) &&
-        Engine.collides(
-          m.state.player,
-          object,
-          previous.get(object) ?? object.x,
-          m.state.player.x,
-          m.state.crouching,
-        ),
+        (Powerups.attracts(m.state, object) ||
+          Engine.collides(
+            m.state.player,
+            object,
+            previous.get(object) ?? object.x,
+            m.state.player.x,
+            m.state.crouching && !w.ship,
+          )),
     );
     if (target) {
       const s = target.state,
@@ -385,7 +397,7 @@ function step(run: PartyRun, dt: number) {
   }
   const anchor =
     Config.playerX + (run.members.filter((m) => m.connected).length - 1) * Config.partySpacing;
-  if (!run.checkpoint && run.beaconDistance - w.distance <= Config.width + 36 - anchor) {
+  if (!w.ship && !run.checkpoint && run.beaconDistance - w.distance <= Config.width + 36 - anchor) {
     run.checkpoint = {
       x: Math.max(anchor + 30, anchor + run.beaconDistance - w.distance + distance),
       age: 0,
@@ -394,7 +406,7 @@ function step(run: PartyRun, dt: number) {
     };
   }
   const beacon = run.checkpoint;
-  if (beacon) {
+  if (beacon && !w.ship) {
     const oldX = beacon.x;
     beacon.x -= w.runSpeed * dt;
     beacon.age += dt;
@@ -464,6 +476,7 @@ function coast(run: PartyRun, dt: number) {
   w.biomeBlend = Math.min(1, w.biomeBlend + dt / Config.generation.themeFadeSeconds);
   w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
   Traversal.animate(w, dt);
+  if (w.ship) w.ship.age += dt;
   const distance = w.runSpeed * dt;
   w.distance += distance;
   formation(run, false, dt);
@@ -478,17 +491,20 @@ function coast(run: PartyRun, dt: number) {
     s.cooldown = Math.max(0, s.cooldown - dt);
     s.invincible = Math.max(0, s.invincible - dt);
     s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-    if (s.grounding) {
-      if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
-      else s.player.vy = Math.max(520, s.player.vy);
+    s.ship = w.ship;
+    if (!Ships.steer(s, dt)) {
+      if (s.grounding) {
+        if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
+        else s.player.vy = Math.max(520, s.player.vy);
+      }
+      const previousY = s.player.y;
+      s.player.vy += Config.gravity * dt;
+      s.player.y += s.player.vy * dt;
+      Powerups.land(s, previousY, dt);
+      if (s.player.y >= Config.floor - Config.playerHeight)
+        Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
     }
-    const previousY = s.player.y;
-    s.player.vy += Config.gravity * dt;
-    s.player.y += s.player.vy * dt;
     Powerups.update(s, dt);
-    Powerups.land(s, previousY, dt);
-    if (s.player.y >= Config.floor - Config.playerHeight)
-      Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
   }
   for (const object of w.objects) Generator.move(object, w.runSpeed, dt);
   for (const bolt of w.projectiles) {
@@ -505,7 +521,7 @@ function coast(run: PartyRun, dt: number) {
     if (!device.role) device.x -= distance;
     device.age += dt;
   }
-  if (run.checkpoint) {
+  if (run.checkpoint && !w.ship) {
     run.checkpoint.x -= distance;
     run.checkpoint.age += dt;
     run.checkpoint.flash = Math.max(0, run.checkpoint.flash - dt);
@@ -567,6 +583,7 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
   to.groupIndex = from.groupIndex;
   to.biomeIndex = from.biomeIndex;
   to.bossActive = from.bossActive;
+  to.ship = from.ship ? { ...from.ship } : null;
   to.score = from.score;
   to.scoreRemainder = from.scoreRemainder;
   to.embers = from.embers;
@@ -703,8 +720,9 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
       loadout: remote.loadout,
       stats: remote.stats,
       rules: remote.rules,
-      powerups: remote.powerups.slice(),
-      activePowerup: remote.activePowerup ? { ...remote.activePowerup } : null,
+      activePowerups: { ...remote.activePowerups },
+      ship: to.ship,
+      climb: remote.climb,
     });
     local.player.vy = remote.player.vy;
     local.player.jumps = remote.player.jumps;
@@ -757,17 +775,20 @@ export function steer(run: PartyRun, id: string, seconds: number) {
       .filter(alive)
       .findIndex((item) => item.id === id);
     if (index >= 0) place(run, member, index, dt, false);
-    if (s.grounding) {
-      if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
-      else s.player.vy = Math.max(520, s.player.vy);
+    s.ship = run.world.ship;
+    if (!Ships.steer(s, dt)) {
+      if (s.grounding) {
+        if (s.player.y >= Config.floor - Config.playerHeight) s.grounding = false;
+        else s.player.vy = Math.max(520, s.player.vy);
+      }
+      const previousY = s.player.y;
+      s.player.vy += Config.gravity * dt;
+      s.player.y += s.player.vy * dt;
+      Powerups.land(s, previousY, dt);
+      if (s.player.y >= Config.floor - Config.playerHeight)
+        Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
     }
-    const previousY = s.player.y;
-    s.player.vy += Config.gravity * dt;
-    s.player.y += s.player.vy * dt;
     Powerups.update(s, dt);
-    Powerups.land(s, previousY, dt);
-    if (s.player.y >= Config.floor - Config.playerHeight)
-      Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
     remaining -= dt;
   }
 }
@@ -836,8 +857,7 @@ export function view(run: PartyRun, id: string): GameState {
   return local
     ? {
         ...run.world,
-        powerups: local.powerups,
-        activePowerup: local.activePowerup,
+        activePowerups: local.activePowerups,
         grounding: local.grounding,
         player: local.player,
         health: local.health,

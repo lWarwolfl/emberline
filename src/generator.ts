@@ -4,6 +4,7 @@ import Config from "./config";
 import Random from "./random";
 import Content from "./content";
 import Difficulty from "./difficulty";
+import Powerups from "./powerups";
 
 function choose<T extends "obstacles" | "enemies">(
   state: GameState,
@@ -326,11 +327,11 @@ function spawn(state: GameState) {
       h: 9,
     });
   else if (drop < 0.17) {
-    const roll = Random.next(state.rng);
+    const power = Powerups.drop(state);
     state.objects.push({
       kind: "powerup",
-      variant: roll < 0.65 ? "blast" : roll < 0.92 ? "titan" : "flight",
-      rarity: roll < 0.65 ? "rare" : roll < 0.92 ? "epic" : "legendary",
+      variant: power.id,
+      rarity: power.rarity,
       x: end + 35,
       y: Config.floor - 40,
       w: 12,

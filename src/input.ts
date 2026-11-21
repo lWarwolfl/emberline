@@ -5,14 +5,16 @@ let strafe: -1 | 0 | 1 = 0;
 let left = false;
 let right = false;
 let crouch = false;
+let climb = false;
 
 function pose() {
-  return { strafe, crouch };
+  return { strafe, crouch, climb };
 }
 function release() {
   left = false;
   right = false;
   crouch = false;
+  climb = false;
   strafe = 0;
 }
 function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
@@ -22,7 +24,6 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     setup: actions.setup,
     "menu-setup": actions.setup,
     attack: actions.attack,
-    powerup: actions.powerup,
     pause: actions.pause,
     sound: actions.sound,
     fullscreen: actions.fullscreen,
@@ -43,7 +44,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     ["touch-jump", actions.jump],
     ["touch-dash", actions.dash],
     ["touch-attack", actions.attack],
-    ["touch-powerup", actions.powerup],
+    ["ship-fire", actions.attack],
   ] as [string, () => void][]) {
     byId(id).addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -60,6 +61,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     });
     node.addEventListener("pointerup", lift);
     node.addEventListener("pointercancel", lift);
+    node.addEventListener("lostpointercapture", lift);
   }
   hold(
     "touch-left",
@@ -94,6 +96,32 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     },
   );
 
+  function flightButton(id: string, set: (held: boolean) => void) {
+    hold(
+      id,
+      () => set(true),
+      () => set(false),
+    );
+    const node = byId(id);
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      set(event.type === "keydown");
+    };
+    node.addEventListener("keydown", keyboard);
+    node.addEventListener("keyup", keyboard);
+    node.addEventListener("blur", () => set(false));
+  }
+  flightButton("ship-up", (held) => {
+    climb = held;
+  });
+  flightButton("ship-down", (held) => {
+    crouch = held;
+  });
+  byId("ship-fire").addEventListener("click", (event) => {
+    if (event.detail === 0) actions.attack();
+  });
+
   const keys: Record<string, (() => void) | undefined> = {
     Enter: actions.enter,
     Space: actions.jump,
@@ -102,7 +130,6 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     ShiftRight: actions.dash,
     KeyX: actions.attack,
     KeyJ: actions.attack,
-    KeyC: actions.powerup,
     KeyS: actions.ground,
     ArrowDown: actions.ground,
     KeyH: actions.controls,
@@ -127,6 +154,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
       right = false;
       strafe = left ? -1 : 0;
     } else if (event.code === "KeyS" || event.code === "ArrowDown") crouch = false;
+    else if (event.code === "ArrowUp") climb = false;
   });
   doc.addEventListener("keydown", (event) => {
     if (doc.querySelector("dialog[open]")) {
@@ -146,6 +174,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
       return;
     }
     if (!event.repeat && (event.code === "KeyS" || event.code === "ArrowDown")) crouch = true;
+    if (!event.repeat && event.code === "ArrowUp") climb = true;
     // Keep standard keyboard activation when deliberately tabbing through UI.
     if (
       event.target instanceof Element &&

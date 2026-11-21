@@ -62,7 +62,7 @@ The TypeScript source is in `src/`; only editing requires Node and a build.
 | Shift      | Dash through enemies; jump over ground hazards    |
 | S / Down   | Crouch. In the air, magnet back to the ground     |
 | X / J      | Punch or shoot with the selected weapon           |
-| C          | Activate the next stored power-up                 |
+| Up / Down  | Hold to steer during ship sections                |
 | L          | Open character, gear and difficulty setup         |
 | P          | Pause / resume                                    |
 | F          | Fullscreen / windowed                             |
@@ -72,8 +72,7 @@ The TypeScript source is in `src/`; only editing requires Node and a build.
 
 CONTROLS opens the complete field guide. Touch players also have a GROUND button.
 The magnetic pull passes through ledges and resets jumps after reaching the floor;
-hazards still hurt during descent. The header groups coins beside the icon, and
-the three power-up slots show compact names in activation order.
+hazards still hurt during descent. The control dock shows timers for active power-ups.
 
 Buying equipment triggers an acquired-item reveal and an original two-second
 arcade jingle. Upgrades play a short metal clank. Exceeding an existing best score
@@ -104,10 +103,17 @@ rare hearts restore two. Red hearts appear in about 5% of encounters (4% uncommo
 1% rare). Random 240px ledges alternate height and carry matching coin
 trails and occasional enemies. Jump through a ledge and land on its upper surface.
 
-Store up to three power-ups, then press C or tap POWER-UP to activate the oldest:
-rare Chain Blast explodes visible enemies, epic Titan makes you larger and stronger
-for 10 seconds, and legendary Jet Flight gives 12 seconds of flight. Jump repeatedly
-to climb while flying. A timed power must finish before the next one activates.
+Power-ups activate when collected. Chain Blast clears enemies and breakable
+obstacles. Titan boosts damage, Jet Flight lifts you off the ground, Prism Shield
+blocks damage, Ember Magnet collects nearby coins, and Overclock recharges weapons
+faster. Different timed powers can overlap. Upgrade the Power Core in the shop to
+strengthen pickups on future runs.
+
+Selected biomes start with a damaged Sparrow, Lancer, or Mule. Use the flight
+buttons or hold Up and Down, and press X to fire. The Sparrow fires fast, the
+Lancer pierces multiple targets, and the Mule fires a spread. The controls appear
+during takeoff, before enemy waves begin. The ship crash-lands when the biome
+ends, and you continue on foot.
 
 Most gunfire travels straight ahead. Jump or use platforms to align with enemies;
 enemy projectile hitboxes include a small vertical allowance. Scatter fires a

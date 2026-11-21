@@ -18,7 +18,7 @@ export interface CustomRules {
   health: number;
 }
 export type Loadout = Record<LoadoutGroup, string> & { custom: CustomRules };
-export type UpgradeId = "dash" | "jump" | "damage" | "triple";
+export type UpgradeId = "dash" | "jump" | "damage" | "triple" | "power";
 export type UpgradeLevels = Record<UpgradeId, number>;
 export type Rules = ReturnType<typeof Loadouts.rules>;
 export type RunStats = ReturnType<typeof Upgrades.stats>;
@@ -34,7 +34,15 @@ export interface Player {
   vy: number;
   jumps: number;
 }
-export type PowerupId = "blast" | "titan" | "flight";
+export type PowerupId = "blast" | "titan" | "flight" | "shield" | "magnet" | "overclock";
+export type ShipId = "sparrow" | "lancer" | "mule";
+export interface ShipFlight {
+  id: ShipId;
+  phase: "launch" | "flight" | "crash";
+  age: number;
+  nextWave: number;
+  wave: number;
+}
 export interface WorldObject {
   kind: "hazard" | "enemy" | "ember" | "heart" | "powerup" | "platform";
   variant: string;
@@ -114,8 +122,9 @@ export interface GameState {
   grounding: boolean;
   crouching: boolean;
   strafe: -1 | 0 | 1;
-  powerups: PowerupId[];
-  activePowerup: { id: PowerupId; remaining: number } | null;
+  activePowerups: Partial<Record<PowerupId, number>>;
+  ship: ShipFlight | null;
+  climb: boolean;
   seed: Seed;
   loadout: Loadout;
   rules: Rules;
@@ -196,7 +205,6 @@ export interface Feedback {
 export interface Actions {
   ground: () => void;
   controls: () => void;
-  powerup: () => void;
   start: () => void;
   setup: () => void;
   attack: () => void;

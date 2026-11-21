@@ -1,6 +1,7 @@
 import type { Seed } from "./types";
 import type { GameEvent, GameState, Player, WorldObject } from "./types";
 import Powerups from "./powerups";
+import Ships from "./ships";
 import Config from "./config";
 import Random from "./random";
 import Difficulty from "./difficulty";
@@ -22,8 +23,9 @@ function create(
     grounding: false,
     crouching: false,
     strafe: 0,
-    powerups: [],
-    activePowerup: null,
+    activePowerups: {},
+    ship: null,
+    climb: false,
     seed,
     loadout,
     rules,
@@ -120,6 +122,7 @@ function seekX(
 function jump(state: GameState) {
   if (
     state.mode !== "playing" ||
+    state.ship ||
     state.grounding ||
     state.crouching ||
     state.player.jumps >= state.stats.maxJumps
@@ -139,13 +142,14 @@ function ground(state: GameState) {
   if (
     state.mode !== "playing" ||
     state.hits >= state.health ||
+    state.ship ||
     state.grounding ||
     state.player.y >= Config.floor - Config.playerHeight
   )
     return false;
   state.grounding = true;
   state.player.vy = Math.max(520, state.player.vy);
-  if (state.activePowerup?.id === "flight") state.activePowerup = null;
+  delete state.activePowerups.flight;
   emit(state, "ground", state.player.x, state.player.y + Config.playerHeight);
   return true;
 }
@@ -157,7 +161,7 @@ function groundStep(state: GameState) {
   } else state.player.vy = Math.max(520, state.player.vy);
 }
 function dash(state: GameState) {
-  if (state.mode !== "playing" || state.cooldown > 0) return false;
+  if (state.mode !== "playing" || state.ship || state.cooldown > 0) return false;
   state.dashId++;
   state.dash = state.stats.dashDuration;
   state.cooldown = state.stats.dashCooldown;
@@ -195,7 +199,8 @@ function collect(state: GameState, object: WorldObject) {
   });
 }
 function hit(state: GameState, object: WorldObject) {
-  if (state.activePowerup?.id === "titan" && object.kind === "enemy") {
+  if (state.ship && state.ship.phase !== "flight") return;
+  if (state.activePowerups.titan && object.kind === "enemy") {
     Combat.damage(state, object, 10, "titan");
     return;
   }
@@ -204,7 +209,7 @@ function hit(state: GameState, object: WorldObject) {
       object.lastDash = state.dashId;
       Combat.damage(state, object, state.stats.damageMultiplier, "dash");
     }
-  } else if (state.invincible <= 0) {
+  } else if (state.invincible <= 0 && !state.activePowerups.shield) {
     state.hits++;
     state.combo = 0;
     state.invincible = Config.damageGrace;
@@ -218,7 +223,9 @@ function hit(state: GameState, object: WorldObject) {
 }
 function step(state: GameState, dt: number) {
   state.time += dt;
+  const previousSector = state.sector;
   Difficulty.update(state, dt);
+  Ships.update(state, previousSector, dt);
   const dashing = state.dash > 0;
   state.runSpeed =
     state.speed *
@@ -256,18 +263,22 @@ function step(state: GameState, dt: number) {
     );
   }
   const previousY = player.y;
-  groundStep(state);
-  player.vy += Config.gravity * dt;
-  player.y += player.vy * dt;
-  if (player.y >= Config.floor - Config.playerHeight) {
-    player.y = Config.floor - Config.playerHeight;
-    player.vy = 0;
-    player.jumps = 0;
+  if (!Ships.steer(state, dt)) {
+    groundStep(state);
+    player.vy += Config.gravity * dt;
+    player.y += player.vy * dt;
+    if (player.y >= Config.floor - Config.playerHeight) {
+      player.y = Config.floor - Config.playerHeight;
+      player.vy = 0;
+      player.jumps = 0;
+    }
+    groundStep(state);
   }
-  groundStep(state);
   Powerups.update(state, dt);
-  Powerups.land(state, previousY, dt);
-  if (state.distance >= state.next) Generator.spawn(state);
+  if (!state.ship) {
+    Powerups.land(state, previousY, dt);
+    if (state.distance >= state.next) Generator.spawn(state);
+  }
   const previousPositions = new Map();
   for (const object of state.objects) {
     previousPositions.set(object, object.x);
@@ -280,9 +291,9 @@ function step(state: GameState, dt: number) {
   if (state.traversalEffect !== previousTravel && state.traversalEffect?.kind === "portal")
     previousPlayerX = player.x;
   Combat.update(state, dt);
-  EnemyFire.update(state, dt);
+  if (state.ship?.phase !== "crash") EnemyFire.update(state, dt);
   for (const bolt of state.hostileProjectiles) {
-    if (!EnemyFire.hitsPlayer(bolt, state.player, state.crouching)) continue;
+    if (!EnemyFire.hitsPlayer(bolt, state.player, state.crouching && !state.ship)) continue;
     bolt.life = 0;
     if (state.dash > 0) {
       addScore(state, 25);
@@ -296,7 +307,14 @@ function step(state: GameState, dt: number) {
     if (object.dead || object.kind === "platform") continue;
     if (
       !object.passed &&
-      collides(player, object, previousPositions.get(object)!, previousPlayerX, state.crouching)
+      (Powerups.attracts(state, object) ||
+        collides(
+          player,
+          object,
+          previousPositions.get(object)!,
+          previousPlayerX,
+          state.crouching && !state.ship,
+        ))
     ) {
       if (Powerups.collect(state, object)) continue;
       if (object.kind === "ember") collect(state, object);
@@ -334,8 +352,6 @@ export = {
   seekX,
   ground,
   groundStep,
-  powerup: Powerups.activate,
-  activatePowerup: Powerups.activate,
   create,
   update,
   jump,

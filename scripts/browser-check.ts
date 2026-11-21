@@ -152,9 +152,14 @@ async function main() {
     assert.equal(await page.locator("#sector").innerText(), "SECTOR 03");
     assert.notEqual(await page.locator("#velocity").innerText(), "98 PX/S");
 
-    // Deliberately place the last hit to test the death/retry/persistence flow.
+    assert.equal(await page.locator("#ship-controls").isVisible(), true);
+    // Return to the ground before placing the last hit for the death/retry flow.
     await page.evaluate(() => {
-      const state = EmberlineDebug.app.state;
+      const { app, engine } = EmberlineDebug;
+      const state = app.state;
+      state.time = Emberline.Config.sectorSeconds * 3;
+      for (let i = 0; i < 170; i++) engine.update(state, 1 / 120);
+      if (state.ship) throw new Error("The ship did not finish its crash landing");
       Object.assign(state, { hits: 2, invincible: 0, dash: 0 });
       Object.assign(state.player, { y: 178, vy: 0, jumps: 0 });
       state.objects = [{ kind: "hazard", variant: "crate", x: 83, y: 182, w: 13, h: 14 }];

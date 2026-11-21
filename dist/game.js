@@ -110,756 +110,6 @@
     },
   });
 
-  // src/loadout.ts
-  var require_loadout = __commonJS({
-    "src/loadout.ts"(exports, module) {
-      "use strict";
-      var characters = [
-        {
-          id: "fox",
-          name: "Ember fox",
-          description: "The original courier. Warm fur, pointed ears.",
-          skin: "#e6b579",
-          light: "#f1cd90",
-          jacket: "#b5c49b",
-          trim: "#dae0ad",
-          boots: "#778c6b",
-        },
-        {
-          id: "bot",
-          name: "Relay bot",
-          description: "Square steel helmet, antenna and a signal visor.",
-          skin: "#8ab8b1",
-          light: "#c4ddd0",
-          jacket: "#d1a76b",
-          trim: "#f0cd8e",
-          boots: "#638f89",
-        },
-        {
-          id: "hare",
-          name: "Moon hare",
-          description: "Long ears, silver fur and a blue flight suit.",
-          skin: "#dad6c8",
-          light: "#f2e9d1",
-          jacket: "#8faec2",
-          trim: "#c1d9df",
-          boots: "#6d8caa",
-        },
-        {
-          id: "ranger",
-          name: "Dust ranger",
-          description: "Sealed copper helmet and a desert-green suit.",
-          skin: "#ba956e",
-          light: "#e4c391",
-          jacket: "#b6a27d",
-          trim: "#e2cf9b",
-          boots: "#7b856b",
-        },
-        {
-          id: "lynx",
-          name: "Copper lynx",
-          description: "Tufted ears, dark cheek stripes and a copper coat.",
-          skin: "#d7a06e",
-          light: "#ffe0a1",
-          jacket: "#627b76",
-          trim: "#abd2bd",
-          boots: "#415c58",
-        },
-        {
-          id: "moth",
-          name: "Lunar moth",
-          description: "Feathery antennae and a luminous violet flight suit.",
-          skin: "#d1c5ee",
-          light: "#efe4ff",
-          jacket: "#7b6aa3",
-          trim: "#c8edcf",
-          boots: "#51466f",
-        },
-        {
-          id: "diver",
-          name: "Deep relay diver",
-          description: "A reinforced round helmet with an ocean-blue visor.",
-          skin: "#729ca9",
-          light: "#bce3e5",
-          jacket: "#3f7080",
-          trim: "#f5bf77",
-          boots: "#365366",
-        },
-        {
-          id: "specter",
-          name: "Signal specter",
-          description: "A pale hood and a bright signal mask from a lost relay.",
-          skin: "#c5dbd1",
-          light: "#e3f4de",
-          jacket: "#4c6974",
-          trim: "#8ae5dc",
-          boots: "#314b58",
-        },
-      ];
-      var capes = [
-        {
-          id: "ember",
-          name: "Ember pennant",
-          description: "A broad cloth cape with a warm gold hem.",
-          color: "#d97549",
-          shade: "#96503c",
-          trim: "#ffc47d",
-          length: 24,
-          width: 8,
-        },
-        {
-          id: "signal",
-          name: "Signal ribbons",
-          description: "Two mint streamers that move independently.",
-          color: "#9bcbb7",
-          shade: "#547b6a",
-          trim: "#d9ecc4",
-          length: 29,
-          width: 5,
-        },
-        {
-          id: "storm",
-          name: "Storm mantle",
-          description: "A long, notched midnight cape with copper stitching.",
-          color: "#7c93ae",
-          shade: "#435c77",
-          trim: "#d0b188",
-          length: 33,
-          width: 11,
-        },
-        {
-          id: "none",
-          name: "No cape",
-          description: "Travel light. Keep the silhouette clean.",
-          length: 0,
-        },
-        {
-          id: "aurora",
-          name: "Aurora swallowtail",
-          description: "A forked mint cape with a pale woven edge.",
-          color: "#8fc9b5",
-          shade: "#456e62",
-          trim: "#d9ecc4",
-          length: 35,
-          width: 12,
-        },
-        {
-          id: "cinder",
-          name: "Cinder scarf",
-          description: "A narrow copper scarf with bright checker stitching.",
-          color: "#ce805b",
-          shade: "#7e4738",
-          trim: "#ffe0a3",
-          length: 38,
-          width: 5,
-        },
-        {
-          id: "relay",
-          name: "Relay standard",
-          description: "A square sage banner with twin signal bands.",
-          color: "#9dad82",
-          shade: "#54684e",
-          trim: "#ece6d6",
-          length: 28,
-          width: 14,
-        },
-      ];
-      var jetpacks = [
-        {
-          id: "ember",
-          name: "Ember thruster",
-          description: "One compact fuel cell with a hot orange plume.",
-          color: "#a9956d",
-          flame: "#ffb66d",
-          kind: "single",
-        },
-        {
-          id: "twin",
-          name: "Twin rockets",
-          description: "Paired steel tanks with two blue exhaust trails.",
-          color: "#a6c3c7",
-          flame: "#99e2de",
-          kind: "twin",
-        },
-        {
-          id: "coil",
-          name: "Arc coil",
-          description: "A circular induction pack with a flickering mint core.",
-          color: "#a7c69e",
-          flame: "#cbf1a4",
-          kind: "coil",
-        },
-        {
-          id: "none",
-          name: "No jetpack",
-          description: "Boots, cloth and momentum. No engine attached.",
-          kind: "none",
-        },
-        {
-          id: "comet",
-          name: "Comet drive",
-          description: "A swept copper engine with a long gold exhaust.",
-          color: "#c89566",
-          flame: "#ffe0a3",
-          kind: "comet",
-        },
-        {
-          id: "halo",
-          name: "Halo turbine",
-          description: "An open ring turbine with four mint vanes.",
-          color: "#9ac7b7",
-          flame: "#d5ffe3",
-          kind: "halo",
-        },
-        {
-          id: "forge",
-          name: "Forge array",
-          description: "Three compact steel cells with ember jets.",
-          color: "#819b92",
-          flame: "#ffae62",
-          kind: "forge",
-        },
-      ];
-      var weapons = [
-        {
-          id: "punch",
-          name: "Impact glove",
-          short: "PUNCH",
-          description: "A basic close-range strike. 1 damage \xB7 0.60s recharge.",
-          damage: 1,
-          cooldown: 0.6,
-          range: 28,
-          duration: 0.16,
-          color: "#ffd096",
-        },
-        {
-          id: "pulse",
-          name: "Pulse blaster",
-          short: "SHOOT",
-          description: "A straight precision bolt. 1 base damage \xB7 0.48s recharge.",
-          damage: 1,
-          cooldown: 0.48,
-          speed: 300,
-          life: 1.05,
-          color: "#a6e4d1",
-        },
-        {
-          id: "scatter",
-          name: "Scatter gun",
-          short: "SCATTER",
-          description: "Three parallel bolts, 0.7 damage each \xB7 0.85s recharge.",
-          damage: 0.7,
-          cooldown: 0.85,
-          speed: 265,
-          life: 0.95,
-          color: "#ffbf7a",
-        },
-        {
-          id: "repeater",
-          name: "Needle repeater",
-          short: "REPEAT",
-          description: "Fast precision fire. 0.6 damage \xB7 0.20s recharge.",
-          damage: 0.6,
-          cooldown: 0.2,
-          speed: 370,
-          life: 1,
-          color: "#c3e87e",
-        },
-        {
-          id: "rail",
-          name: "Prism railgun",
-          short: "RAIL",
-          description: "Pierces up to three targets. 2 damage \xB7 1.05s recharge.",
-          damage: 2.4,
-          cooldown: 1.05,
-          speed: 650,
-          life: 0.85,
-          pierce: 2,
-          color: "#c6b3ff",
-        },
-        {
-          id: "nova",
-          name: "Nova fan",
-          short: "NOVA",
-          description: "Five homing missiles. 0.55 damage each \xB7 1.10s recharge.",
-          damage: 0.55,
-          cooldown: 1.1,
-          speed: 300,
-          life: 0.9,
-          color: "#ff95b0",
-        },
-        {
-          id: "siegebreaker",
-          name: "Siegebreaker cannon",
-          short: "SIEGE",
-          description:
-            "Breaks armored obstacles. 5 damage \xB7 1.40s recharge \xB7 pierces two targets.",
-          damage: 5,
-          cooldown: 1.4,
-          speed: 450,
-          life: 1.1,
-          pierce: 1,
-          armorPiercing: true,
-          color: "#ffe0a3",
-        },
-      ];
-      var difficulties = [
-        {
-          id: "easy",
-          name: "Night stroll",
-          description: "Gentle start, wide gaps, five integrity. 1 coin per pickup.",
-          speed: 0.85,
-          growth: 0.8,
-          density: 0.8,
-          health: 5,
-          coinReward: 1,
-        },
-        {
-          id: "standard",
-          name: "Courier",
-          description: "The intended pace, three integrity. 2 coins per pickup.",
-          speed: 1,
-          growth: 1,
-          density: 1,
-          health: 3,
-          coinReward: 2,
-        },
-        {
-          id: "hard",
-          name: "Overdrive",
-          description: "Faster escalation, two integrity. 3 coins per pickup.",
-          speed: 1.18,
-          growth: 1.25,
-          density: 1.2,
-          health: 2,
-          coinReward: 3,
-        },
-        {
-          id: "custom",
-          name: "Custom route",
-          description: "Tune your own route. Practice only: pickups give score, no coins.",
-        },
-      ];
-      var defaults = {
-        character: "fox",
-        cape: "ember",
-        jetpack: "ember",
-        weapon: "punch",
-        difficulty: "standard",
-        custom: { speed: 1, growth: 1, density: 1, health: 3 },
-      };
-      function clamp(value, min, max, fallback) {
-        return Number.isFinite(Number(value))
-          ? Math.max(min, Math.min(max, Number(value)))
-          : fallback;
-      }
-      function find(group, id) {
-        return group.find((item) => item.id === id) || group[0];
-      }
-      function sanitize(value = {}) {
-        if (!value || typeof value !== "object") value = {};
-        const source = value;
-        const result = { ...defaults };
-        for (const [key, group] of Object.entries({
-          character: characters,
-          cape: capes,
-          jetpack: jetpacks,
-          weapon: weapons,
-          difficulty: difficulties,
-        })) {
-          result[key] = group.some((item) => item.id === source[key])
-            ? String(source[key])
-            : defaults[key];
-        }
-        const custom = source.custom || {};
-        result.custom = {
-          speed: clamp(custom.speed, 0.75, 1.4, 1),
-          growth: clamp(custom.growth, 0.6, 1.8, 1),
-          density: clamp(custom.density, 0.7, 1.4, 1),
-          health: Math.round(clamp(custom.health, 2, 5, 3)),
-        };
-        return result;
-      }
-      function rules(loadout) {
-        const selected = sanitize(loadout);
-        const difficulty = find(difficulties, selected.difficulty);
-        const numbers = selected.difficulty === "custom" ? selected.custom : difficulty;
-        return {
-          id: difficulty.id,
-          name: difficulty.name,
-          speed: numbers.speed,
-          growth: numbers.growth,
-          gap: 1 / numbers.density,
-          health: numbers.health,
-          coinReward: difficulty.coinReward || 0,
-        };
-      }
-      module.exports = {
-        characters,
-        capes,
-        jetpacks,
-        weapons,
-        difficulties,
-        defaults,
-        find,
-        sanitize,
-        rules,
-      };
-    },
-  });
-
-  // src/combat.ts
-  var require_combat = __commonJS({
-    "src/combat.ts"(exports, module) {
-      "use strict";
-      var import_config4 = __toESM(require_config());
-      var import_loadout3 = __toESM(require_loadout());
-      var armor = { crate: 1, barrier: 1, stack: 2.6 };
-      function durability(object) {
-        if (object.kind === "enemy")
-          return (
-            {
-              drone: 1.2,
-              crawler: 2.4,
-              jelly: 1.5,
-              bat: 1,
-              sentry: 2.2,
-              beetle: 3.2,
-              wasp: 1.8,
-              wisp: 1.4,
-              boss: 18,
-            }[object.variant] || 1
-          );
-        return armor[object.variant] || 0;
-      }
-      function breakable(object) {
-        return (object.kind === "hazard" || object.kind === "enemy") && durability(object) > 0;
-      }
-      function damage(state, object, amount, method) {
-        if (object.dead || !breakable(object)) return false;
-        if (method !== "shot" && state.activePowerup?.id === "titan") amount *= 2.5;
-        object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1e3) / 1e3;
-        if (object.hp > 0) {
-          state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
-          return false;
-        }
-        object.dead = true;
-        const points = object.kind === "enemy" ? 150 : 100;
-        state.score += BigInt(points);
-        state.events.push({
-          type: "smash",
-          x: object.x,
-          y: object.y,
-          points,
-          label:
-            method === "blast"
-              ? "BLAST"
-              : method === "dash"
-                ? "DASH"
-                : object.kind === "enemy"
-                  ? "ENEMY"
-                  : "BREAK",
-        });
-        return true;
-      }
-      function barrelLength(id) {
-        if (id === "siegebreaker") return 21;
-        if (id === "rail") return 18;
-        return id === "scatter" || id === "nova" ? 12 : 9;
-      }
-      function attack(state) {
-        if (state.mode !== "playing" || state.attackCooldown > 0) return false;
-        const weapon = import_loadout3.default.find(
-          import_loadout3.default.weapons,
-          state.loadout.weapon,
-        );
-        state.attackCooldown = weapon.cooldown;
-        state.attackTime = weapon.duration || 0.12;
-        state.attackId++;
-        state.events.push({
-          type: weapon.id === "punch" ? "punch" : "shoot",
-          x: state.player.x + (weapon.id === "punch" ? 15 : 13 + barrelLength(weapon.id)),
-          y: state.player.y + 10,
-        });
-        if (weapon.id === "punch") return true;
-        const x = state.player.x + 15,
-          y = state.player.y + 9;
-        const speed = weapon.speed;
-        const damage2 =
-          weapon.damage *
-          state.stats.damageMultiplier *
-          (state.activePowerup?.id === "titan" ? 2.5 : 1);
-        if (weapon.id === "nova") {
-          for (const angle of [-0.72, -0.36, 0, 0.36, 0.72])
-            state.projectiles.push({
-              x,
-              y,
-              vx: Math.cos(angle) * speed,
-              vy: Math.sin(angle) * speed,
-              homing: true,
-              armored: false,
-              life: weapon.life,
-              damage: damage2,
-              color: weapon.color,
-              pierce: weapon.pierce ?? 0,
-              hitTargets: [],
-            });
-          return true;
-        }
-        const spread = weapon.id === "scatter" ? [-3, 0, 3] : [0];
-        for (const offset of spread)
-          state.projectiles.push({
-            x,
-            y: y + offset,
-            vx: speed,
-            vy: 0,
-            armored: weapon.id === "siegebreaker",
-            life: weapon.life,
-            damage: damage2,
-            color: weapon.color,
-            pierce: weapon.pierce ?? 0,
-            hitTargets: [],
-          });
-        return true;
-      }
-      function seekable(object, boltX) {
-        return (
-          !object.dead &&
-          object.x + object.w > boltX - 8 &&
-          object.x < boltX + 340 &&
-          (object.kind === "enemy" || (object.kind === "hazard" && breakable(object)))
-        );
-      }
-      function guide(bolts, objects, dt) {
-        const turn = 5.5 * dt;
-        for (const bolt of bolts) {
-          if (!bolt.homing) continue;
-          const speed = Math.hypot(bolt.vx, bolt.vy);
-          if (speed < 1) continue;
-          const heading = Math.atan2(bolt.vy, bolt.vx);
-          let best = null;
-          let bestScore = Infinity;
-          for (const object of objects) {
-            if (!seekable(object, bolt.x)) continue;
-            const dx = object.x + object.w * 0.5 - bolt.x;
-            const dy = object.y + object.h * 0.5 - bolt.y;
-            let delta2 = Math.atan2(dy, dx) - heading;
-            if (delta2 > Math.PI) delta2 -= Math.PI * 2;
-            else if (delta2 < -Math.PI) delta2 += Math.PI * 2;
-            const score = Math.hypot(dx, dy) * (0.45 + Math.abs(delta2));
-            if (score < bestScore) {
-              best = object;
-              bestScore = score;
-            }
-          }
-          if (!best) continue;
-          let delta =
-            Math.atan2(best.y + best.h * 0.5 - bolt.y, best.x + best.w * 0.5 - bolt.x) - heading;
-          if (delta > Math.PI) delta -= Math.PI * 2;
-          else if (delta < -Math.PI) delta += Math.PI * 2;
-          const next = heading + Math.max(-turn, Math.min(turn, delta));
-          bolt.vx = Math.cos(next) * speed;
-          bolt.vy = Math.sin(next) * speed;
-        }
-      }
-      function update2(state, dt, moveProjectiles = true) {
-        const weapon = import_loadout3.default.find(
-          import_loadout3.default.weapons,
-          state.loadout.weapon,
-        );
-        if (state.attackTime > 0 && weapon.id === "punch") {
-          for (const object of state.objects) {
-            if (object.dead || object.lastPunch === state.attackId) continue;
-            if (
-              object.x < state.player.x + 13 + weapon.range &&
-              object.x + object.w > state.player.x + 9 &&
-              object.y + object.h > state.player.y + 1 &&
-              object.y < state.player.y + 21
-            ) {
-              object.lastPunch = state.attackId;
-              damage(state, object, weapon.damage * state.stats.damageMultiplier, "punch");
-            }
-          }
-        }
-        if (!moveProjectiles) return;
-        guide(state.projectiles, state.objects, dt);
-        for (const bolt of state.projectiles) {
-          const previousX = bolt.x,
-            previousY = bolt.y;
-          bolt.x += bolt.vx * dt;
-          bolt.y += bolt.vy * dt;
-          bolt.life -= dt;
-          for (const object of state.objects) {
-            if (
-              object.dead ||
-              !["enemy", "hazard"].includes(object.kind) ||
-              bolt.hitTargets?.includes(object)
-            )
-              continue;
-            if (
-              Math.max(bolt.x, previousX) + 3 >= object.x &&
-              Math.min(bolt.x, previousX) <= object.x + object.w &&
-              Math.max(bolt.y, previousY) + 2 >= object.y - (object.kind === "enemy" ? 5 : 0) &&
-              Math.min(bolt.y, previousY) <= object.y + object.h + (object.kind === "enemy" ? 5 : 0)
-            ) {
-              if (bolt.armored && object.kind === "hazard" && !breakable(object)) object.hp ??= 5;
-              if (bolt.armored && object.kind === "hazard" && !breakable(object)) {
-                object.hp -= bolt.damage;
-                if (object.hp <= 0) {
-                  object.dead = true;
-                  state.score += 100n;
-                  state.events.push({
-                    type: "smash",
-                    x: object.x,
-                    y: object.y,
-                    points: 100,
-                    label: "BREACH",
-                  });
-                }
-              } else damage(state, object, bolt.damage, "shot");
-              if (object.dead && object.kind === "hazard") {
-                state.events.push({
-                  type: "shot-break",
-                  x: Math.max(object.x, Math.min(bolt.x, object.x + object.w)),
-                  y: Math.max(object.y, Math.min(bolt.y, object.y + object.h)),
-                });
-              } else if (!breakable(object) && !object.dead)
-                state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
-              if (
-                (breakable(object) || (bolt.armored && object.kind === "hazard")) &&
-                (bolt.pierce ?? 0) > 0
-              ) {
-                bolt.pierce--;
-                (bolt.hitTargets ??= []).push(object);
-              } else {
-                bolt.life = 0;
-                break;
-              }
-            }
-          }
-        }
-        state.projectiles = state.projectiles.filter(
-          (bolt) =>
-            bolt.life > 0 &&
-            bolt.x < import_config4.default.width + 30 &&
-            bolt.y > 0 &&
-            bolt.y < import_config4.default.floor + 10,
-        );
-      }
-      module.exports = {
-        barrelLength,
-        armor,
-        durability,
-        breakable,
-        damage,
-        attack,
-        guide,
-        update: update2,
-      };
-    },
-  });
-
-  // src/powerups.ts
-  var require_powerups = __commonJS({
-    "src/powerups.ts"(exports, module) {
-      "use strict";
-      var import_config4 = __toESM(require_config());
-      var import_combat3 = __toESM(require_combat());
-      var catalog = [
-        { id: "blast", name: "Chain blast", rarity: "rare", duration: 0 },
-        { id: "titan", name: "Titan", rarity: "epic", duration: 10 },
-        { id: "flight", name: "Jet flight", rarity: "legendary", duration: 12 },
-      ];
-      function activate(state) {
-        if (
-          state.mode !== "playing" ||
-          state.hits >= state.health ||
-          state.activePowerup ||
-          (state.grounding && state.powerups[0] === "flight") ||
-          !state.powerups.length
-        )
-          return false;
-        const id = state.powerups.shift();
-        const item = catalog.find((p) => p.id === id);
-        if (id === "blast") {
-          for (const o of state.objects)
-            if (
-              o.kind === "enemy" &&
-              o.x + o.w > 0 &&
-              o.x < import_config4.default.width &&
-              o.y + o.h > 0 &&
-              o.y < import_config4.default.height
-            )
-              import_combat3.default.damage(state, o, 1e4, "blast");
-        } else state.activePowerup = { id, remaining: item.duration };
-        state.events.push({
-          type: "powerup",
-          x: state.player.x,
-          y: state.player.y,
-          label: item.name.toUpperCase(),
-        });
-        return true;
-      }
-      function collect(state, object) {
-        if (object.kind === "heart") {
-          object.dead = true;
-          state.hits = Math.max(0, state.hits - (object.rarity === "rare" ? 2 : 1));
-          state.events.push({
-            type: "heal",
-            x: object.x,
-            y: object.y,
-            label: object.rarity === "rare" ? "+2 HEARTS" : "+1 HEART",
-          });
-          return true;
-        }
-        if (object.kind === "powerup") {
-          if (state.powerups.length >= 3) return true;
-          object.dead = true;
-          state.powerups.push(object.variant);
-          state.events.push({ type: "powerup", x: object.x, y: object.y, label: "POWER STORED" });
-          return true;
-        }
-        return false;
-      }
-      function update2(state, dt) {
-        if (!state.activePowerup) return;
-        state.activePowerup.remaining -= dt;
-        if (state.activePowerup.id === "flight") {
-          state.player.vy -= import_config4.default.gravity * dt * 0.82;
-          state.player.vy = Math.min(28, state.player.vy);
-          if (state.player.y > import_config4.default.floor - 45) {
-            state.player.y = import_config4.default.floor - 45;
-            state.player.vy = 0;
-          }
-          if (state.player.y < 25) {
-            state.player.y = 25;
-            state.player.vy = Math.max(0, state.player.vy);
-          }
-          state.player.jumps = 0;
-        }
-        if (state.activePowerup.remaining <= 0) state.activePowerup = null;
-      }
-      function land(state, previousY, dt) {
-        const p = state.player;
-        if (p.vy < 0 || state.grounding || state.activePowerup?.id === "flight") return;
-        for (const o of state.objects) {
-          if (o.kind !== "platform" || o.dead) continue;
-          if (
-            p.x + 12 > o.x - state.runSpeed * dt &&
-            p.x < o.x + o.w &&
-            previousY + 18 <= o.y + 1 &&
-            p.y + 18 >= o.y
-          ) {
-            p.y = o.y - 18;
-            p.vy = 0;
-            p.jumps = 0;
-          }
-        }
-      }
-      module.exports = { catalog, activate, collect, update: update2, land };
-    },
-  });
-
   // src/random.ts
   var require_random = __commonJS({
     "src/random.ts"(exports, module) {
@@ -1518,6 +768,973 @@
     },
   });
 
+  // src/ships.ts
+  var require_ships = __commonJS({
+    "src/ships.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var import_content2 = __toESM(require_content());
+      var catalog = {
+        sparrow: {
+          name: "Sparrow",
+          color: "#e9b783",
+          speed: 120,
+          cooldown: 0.24,
+          damage: 5,
+          angles: [0],
+          pierce: 1,
+        },
+        lancer: {
+          name: "Lancer",
+          color: "#b5def9",
+          speed: 98,
+          cooldown: 0.48,
+          damage: 9,
+          angles: [0],
+          pierce: 3,
+        },
+        mule: {
+          name: "Mule",
+          color: "#c8e6a1",
+          speed: 88,
+          cooldown: 0.42,
+          damage: 5,
+          angles: [-0.16, 0, 0.16],
+          pierce: 0,
+        },
+      };
+      var launchTime = 1.15;
+      var crashTime = 1.25;
+      var deck = import_config4.default.floor - import_config4.default.playerHeight;
+      var ids = Object.keys(catalog);
+      function clearLane(state) {
+        state.objects = state.objects.filter((object) => object.variant === "boss" && !object.dead);
+        state.projectiles = [];
+        state.hostileProjectiles = [];
+        state.traversals = [];
+        state.traversalEffect = null;
+      }
+      function wave(state, flight) {
+        const layouts = [
+          [61, 109, 144],
+          [139, 93, 55],
+          [76, 76, 136, 136],
+          [126, 64, 126],
+        ];
+        const lanes = layouts[flight.wave % layouts.length];
+        const spacing = Math.max(46, state.speed * 0.28);
+        for (const [i, y] of lanes.entries()) {
+          const variant = flight.wave % 3 === 1 && i === 0 ? "wasp" : i % 2 ? "bat" : "drone";
+          const model = import_content2.default.enemies.find((enemy) => enemy.id === variant);
+          state.objects.push({
+            kind: "enemy",
+            variant,
+            x: import_config4.default.width + 14 + i * spacing,
+            y,
+            baseY: y,
+            w: model.w,
+            h: model.h,
+            amplitude: model.amplitude,
+            frequency: model.frequency,
+            hp: 4 + Math.min(4, state.groupIndex),
+            age: 0,
+            phase: i,
+          });
+        }
+        flight.wave++;
+        flight.nextWave += 3.2;
+      }
+      function update2(state, previousSector, dt) {
+        const flight = state.ship;
+        const changed = previousSector !== state.sector;
+        if (!flight) {
+          if (!changed || state.bossActive || state.biomeIndex !== 2) return;
+          const id = ids[(import_random2.default.hash(state.seed) + state.sector) % ids.length];
+          state.ship = { id, phase: "launch", age: 0, nextWave: 1.45, wave: 0 };
+          clearLane(state);
+          state.events.push({
+            type: "ship-launch",
+            x: state.player.x,
+            y: state.player.y,
+            label: catalog[id].name.toUpperCase() + " / TAKEOFF",
+          });
+          return;
+        }
+        if (changed && flight.phase !== "crash") {
+          clearLane(state);
+          for (const object of state.objects) object.x = import_config4.default.width + 75;
+          flight.phase = "crash";
+          flight.age = 0;
+          return;
+        }
+        flight.age += dt;
+        if (flight.phase === "launch" && flight.age >= launchTime) {
+          flight.phase = "flight";
+          flight.age = 0;
+        } else if (flight.phase === "flight" && flight.age >= flight.nextWave) {
+          wave(state, flight);
+        } else if (flight.phase === "crash" && flight.age >= crashTime) {
+          state.ship = null;
+          state.next = Math.max(state.next, state.distance + 65);
+          state.events.push({
+            type: "ship-crash",
+            x: state.player.x + 9,
+            y: import_config4.default.floor - 5,
+            label: "HULL LOST / ON FOOT",
+          });
+        }
+      }
+      function steer2(state, dt) {
+        const flight = state.ship;
+        if (!flight) return false;
+        const player = state.player;
+        const approach2 = (target, speed) =>
+          player.y +
+          Math.sign(target - player.y) * Math.min(Math.abs(target - player.y), speed * dt);
+        state.grounding = false;
+        state.dash = 0;
+        player.vy = 0;
+        player.jumps = 0;
+        if (flight.phase === "launch") {
+          player.y = approach2(98, 100);
+        } else if (flight.phase === "crash") {
+          player.y = approach2(deck, 178);
+          state.invincible = Math.max(state.invincible, 0.9);
+        } else {
+          const direction = Number(state.crouching) - Number(state.climb);
+          player.y = Math.max(
+            29,
+            Math.min(156, player.y + direction * catalog[flight.id].speed * dt),
+          );
+        }
+        return true;
+      }
+      function skyAmount(flight) {
+        if (flight.phase === "launch") return Math.min(1, flight.age / launchTime);
+        if (flight.phase === "crash") return Math.max(0, 1 - flight.age / (crashTime * 0.8));
+        return 1;
+      }
+      module.exports = { catalog, update: update2, steer: steer2, skyAmount };
+    },
+  });
+
+  // src/loadout.ts
+  var require_loadout = __commonJS({
+    "src/loadout.ts"(exports, module) {
+      "use strict";
+      var characters = [
+        {
+          id: "fox",
+          name: "Ember fox",
+          description: "The original courier. Warm fur, pointed ears.",
+          skin: "#e6b579",
+          light: "#f1cd90",
+          jacket: "#b5c49b",
+          trim: "#dae0ad",
+          boots: "#778c6b",
+        },
+        {
+          id: "bot",
+          name: "Relay bot",
+          description: "Square steel helmet, antenna and a signal visor.",
+          skin: "#8ab8b1",
+          light: "#c4ddd0",
+          jacket: "#d1a76b",
+          trim: "#f0cd8e",
+          boots: "#638f89",
+        },
+        {
+          id: "hare",
+          name: "Moon hare",
+          description: "Long ears, silver fur and a blue flight suit.",
+          skin: "#dad6c8",
+          light: "#f2e9d1",
+          jacket: "#8faec2",
+          trim: "#c1d9df",
+          boots: "#6d8caa",
+        },
+        {
+          id: "ranger",
+          name: "Dust ranger",
+          description: "Sealed copper helmet and a desert-green suit.",
+          skin: "#ba956e",
+          light: "#e4c391",
+          jacket: "#b6a27d",
+          trim: "#e2cf9b",
+          boots: "#7b856b",
+        },
+        {
+          id: "lynx",
+          name: "Copper lynx",
+          description: "Tufted ears, dark cheek stripes and a copper coat.",
+          skin: "#d7a06e",
+          light: "#ffe0a1",
+          jacket: "#627b76",
+          trim: "#abd2bd",
+          boots: "#415c58",
+        },
+        {
+          id: "moth",
+          name: "Lunar moth",
+          description: "Feathery antennae and a luminous violet flight suit.",
+          skin: "#d1c5ee",
+          light: "#efe4ff",
+          jacket: "#7b6aa3",
+          trim: "#c8edcf",
+          boots: "#51466f",
+        },
+        {
+          id: "diver",
+          name: "Deep relay diver",
+          description: "A reinforced round helmet with an ocean-blue visor.",
+          skin: "#729ca9",
+          light: "#bce3e5",
+          jacket: "#3f7080",
+          trim: "#f5bf77",
+          boots: "#365366",
+        },
+        {
+          id: "specter",
+          name: "Signal specter",
+          description: "A pale hood and a bright signal mask from a lost relay.",
+          skin: "#c5dbd1",
+          light: "#e3f4de",
+          jacket: "#4c6974",
+          trim: "#8ae5dc",
+          boots: "#314b58",
+        },
+      ];
+      var capes = [
+        {
+          id: "ember",
+          name: "Ember pennant",
+          description: "A broad cloth cape with a warm gold hem.",
+          color: "#d97549",
+          shade: "#96503c",
+          trim: "#ffc47d",
+          length: 24,
+          width: 8,
+        },
+        {
+          id: "signal",
+          name: "Signal ribbons",
+          description: "Two mint streamers that move independently.",
+          color: "#9bcbb7",
+          shade: "#547b6a",
+          trim: "#d9ecc4",
+          length: 29,
+          width: 5,
+        },
+        {
+          id: "storm",
+          name: "Storm mantle",
+          description: "A long, notched midnight cape with copper stitching.",
+          color: "#7c93ae",
+          shade: "#435c77",
+          trim: "#d0b188",
+          length: 33,
+          width: 11,
+        },
+        {
+          id: "none",
+          name: "No cape",
+          description: "Travel light. Keep the silhouette clean.",
+          length: 0,
+        },
+        {
+          id: "aurora",
+          name: "Aurora swallowtail",
+          description: "A forked mint cape with a pale woven edge.",
+          color: "#8fc9b5",
+          shade: "#456e62",
+          trim: "#d9ecc4",
+          length: 35,
+          width: 12,
+        },
+        {
+          id: "cinder",
+          name: "Cinder scarf",
+          description: "A narrow copper scarf with bright checker stitching.",
+          color: "#ce805b",
+          shade: "#7e4738",
+          trim: "#ffe0a3",
+          length: 38,
+          width: 5,
+        },
+        {
+          id: "relay",
+          name: "Relay standard",
+          description: "A square sage banner with twin signal bands.",
+          color: "#9dad82",
+          shade: "#54684e",
+          trim: "#ece6d6",
+          length: 28,
+          width: 14,
+        },
+      ];
+      var jetpacks = [
+        {
+          id: "ember",
+          name: "Ember thruster",
+          description: "One compact fuel cell with a hot orange plume.",
+          color: "#a9956d",
+          flame: "#ffb66d",
+          kind: "single",
+        },
+        {
+          id: "twin",
+          name: "Twin rockets",
+          description: "Paired steel tanks with two blue exhaust trails.",
+          color: "#a6c3c7",
+          flame: "#99e2de",
+          kind: "twin",
+        },
+        {
+          id: "coil",
+          name: "Arc coil",
+          description: "A circular induction pack with a flickering mint core.",
+          color: "#a7c69e",
+          flame: "#cbf1a4",
+          kind: "coil",
+        },
+        {
+          id: "none",
+          name: "No jetpack",
+          description: "Boots, cloth and momentum. No engine attached.",
+          kind: "none",
+        },
+        {
+          id: "comet",
+          name: "Comet drive",
+          description: "A swept copper engine with a long gold exhaust.",
+          color: "#c89566",
+          flame: "#ffe0a3",
+          kind: "comet",
+        },
+        {
+          id: "halo",
+          name: "Halo turbine",
+          description: "An open ring turbine with four mint vanes.",
+          color: "#9ac7b7",
+          flame: "#d5ffe3",
+          kind: "halo",
+        },
+        {
+          id: "forge",
+          name: "Forge array",
+          description: "Three compact steel cells with ember jets.",
+          color: "#819b92",
+          flame: "#ffae62",
+          kind: "forge",
+        },
+      ];
+      var weapons = [
+        {
+          id: "punch",
+          name: "Impact glove",
+          short: "PUNCH",
+          description: "A basic close-range strike. 1 damage \xB7 0.60s recharge.",
+          damage: 1,
+          cooldown: 0.6,
+          range: 28,
+          duration: 0.16,
+          color: "#ffd096",
+        },
+        {
+          id: "pulse",
+          name: "Pulse blaster",
+          short: "SHOOT",
+          description: "A straight precision bolt. 1 base damage \xB7 0.48s recharge.",
+          damage: 1,
+          cooldown: 0.48,
+          speed: 300,
+          life: 1.05,
+          color: "#a6e4d1",
+        },
+        {
+          id: "scatter",
+          name: "Scatter gun",
+          short: "SCATTER",
+          description: "Three parallel bolts, 0.7 damage each \xB7 0.85s recharge.",
+          damage: 0.7,
+          cooldown: 0.85,
+          speed: 265,
+          life: 0.95,
+          color: "#ffbf7a",
+        },
+        {
+          id: "repeater",
+          name: "Needle repeater",
+          short: "REPEAT",
+          description: "Fast precision fire. 0.6 damage \xB7 0.20s recharge.",
+          damage: 0.6,
+          cooldown: 0.2,
+          speed: 370,
+          life: 1,
+          color: "#c3e87e",
+        },
+        {
+          id: "rail",
+          name: "Prism railgun",
+          short: "RAIL",
+          description: "Pierces up to three targets. 2 damage \xB7 1.05s recharge.",
+          damage: 2.4,
+          cooldown: 1.05,
+          speed: 650,
+          life: 0.85,
+          pierce: 2,
+          color: "#c6b3ff",
+        },
+        {
+          id: "nova",
+          name: "Nova fan",
+          short: "NOVA",
+          description: "Five homing missiles. 0.55 damage each \xB7 1.10s recharge.",
+          damage: 0.55,
+          cooldown: 1.1,
+          speed: 300,
+          life: 0.9,
+          color: "#ff95b0",
+        },
+        {
+          id: "siegebreaker",
+          name: "Siegebreaker cannon",
+          short: "SIEGE",
+          description:
+            "Breaks armored obstacles. 5 damage \xB7 1.40s recharge \xB7 pierces two targets.",
+          damage: 5,
+          cooldown: 1.4,
+          speed: 450,
+          life: 1.1,
+          pierce: 1,
+          armorPiercing: true,
+          color: "#ffe0a3",
+        },
+      ];
+      var difficulties = [
+        {
+          id: "easy",
+          name: "Night stroll",
+          description: "Gentle start, wide gaps, five integrity. 1 coin per pickup.",
+          speed: 0.85,
+          growth: 0.8,
+          density: 0.8,
+          health: 5,
+          coinReward: 1,
+        },
+        {
+          id: "standard",
+          name: "Courier",
+          description: "The intended pace, three integrity. 2 coins per pickup.",
+          speed: 1,
+          growth: 1,
+          density: 1,
+          health: 3,
+          coinReward: 2,
+        },
+        {
+          id: "hard",
+          name: "Overdrive",
+          description: "Faster escalation, two integrity. 3 coins per pickup.",
+          speed: 1.18,
+          growth: 1.25,
+          density: 1.2,
+          health: 2,
+          coinReward: 3,
+        },
+        {
+          id: "custom",
+          name: "Custom route",
+          description: "Tune your own route. Practice only: pickups give score, no coins.",
+        },
+      ];
+      var defaults = {
+        character: "fox",
+        cape: "ember",
+        jetpack: "ember",
+        weapon: "punch",
+        difficulty: "standard",
+        custom: { speed: 1, growth: 1, density: 1, health: 3 },
+      };
+      function clamp(value, min, max, fallback) {
+        return Number.isFinite(Number(value))
+          ? Math.max(min, Math.min(max, Number(value)))
+          : fallback;
+      }
+      function find(group, id) {
+        return group.find((item) => item.id === id) || group[0];
+      }
+      function sanitize(value = {}) {
+        if (!value || typeof value !== "object") value = {};
+        const source = value;
+        const result = { ...defaults };
+        for (const [key, group] of Object.entries({
+          character: characters,
+          cape: capes,
+          jetpack: jetpacks,
+          weapon: weapons,
+          difficulty: difficulties,
+        })) {
+          result[key] = group.some((item) => item.id === source[key])
+            ? String(source[key])
+            : defaults[key];
+        }
+        const custom = source.custom || {};
+        result.custom = {
+          speed: clamp(custom.speed, 0.75, 1.4, 1),
+          growth: clamp(custom.growth, 0.6, 1.8, 1),
+          density: clamp(custom.density, 0.7, 1.4, 1),
+          health: Math.round(clamp(custom.health, 2, 5, 3)),
+        };
+        return result;
+      }
+      function rules(loadout) {
+        const selected = sanitize(loadout);
+        const difficulty = find(difficulties, selected.difficulty);
+        const numbers = selected.difficulty === "custom" ? selected.custom : difficulty;
+        return {
+          id: difficulty.id,
+          name: difficulty.name,
+          speed: numbers.speed,
+          growth: numbers.growth,
+          gap: 1 / numbers.density,
+          health: numbers.health,
+          coinReward: difficulty.coinReward || 0,
+        };
+      }
+      module.exports = {
+        characters,
+        capes,
+        jetpacks,
+        weapons,
+        difficulties,
+        defaults,
+        find,
+        sanitize,
+        rules,
+      };
+    },
+  });
+
+  // src/combat.ts
+  var require_combat = __commonJS({
+    "src/combat.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_ships2 = __toESM(require_ships());
+      var import_loadout3 = __toESM(require_loadout());
+      var armor = { crate: 1, barrier: 1, stack: 2.6 };
+      function durability(object) {
+        if (object.kind === "enemy")
+          return (
+            {
+              drone: 1.2,
+              crawler: 2.4,
+              jelly: 1.5,
+              bat: 1,
+              sentry: 2.2,
+              beetle: 3.2,
+              wasp: 1.8,
+              wisp: 1.4,
+              boss: 18,
+            }[object.variant] || 1
+          );
+        return armor[object.variant] || 0;
+      }
+      function breakable(object) {
+        return (object.kind === "hazard" || object.kind === "enemy") && durability(object) > 0;
+      }
+      function damage(state, object, amount, method) {
+        if (object.dead || !breakable(object)) return false;
+        if (method !== "shot" && state.activePowerups.titan) amount *= state.stats.titanMultiplier;
+        object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1e3) / 1e3;
+        if (object.hp > 0) {
+          state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
+          return false;
+        }
+        object.dead = true;
+        const points = object.kind === "enemy" ? 150 : 100;
+        state.score += BigInt(points);
+        state.events.push({
+          type: "smash",
+          x: object.x,
+          y: object.y,
+          points,
+          label:
+            method === "blast"
+              ? "BLAST"
+              : method === "dash"
+                ? "DASH"
+                : object.kind === "enemy"
+                  ? "ENEMY"
+                  : "BREAK",
+        });
+        return true;
+      }
+      function barrelLength(id) {
+        if (id === "siegebreaker") return 21;
+        if (id === "rail") return 18;
+        return id === "scatter" || id === "nova" ? 12 : 9;
+      }
+      function attack(state) {
+        if (state.mode !== "playing" || state.attackCooldown > 0) return false;
+        const recharge = state.activePowerups.overclock ? state.stats.overclockRate : 1;
+        const titan = state.activePowerups.titan ? state.stats.titanMultiplier : 1;
+        const damageScale = state.stats.damageMultiplier * titan;
+        if (state.ship) {
+          if (state.ship.phase === "crash") return false;
+          const ship = import_ships2.default.catalog[state.ship.id];
+          const x2 = state.player.x + 30;
+          const y2 = state.player.y + 8;
+          state.attackCooldown = ship.cooldown / recharge;
+          state.attackTime = 0.13;
+          state.events.push({ type: "shoot", x: x2, y: y2 });
+          for (const angle of ship.angles) {
+            state.projectiles.push({
+              x: x2,
+              y: y2,
+              vx: Math.cos(angle) * 430,
+              vy: Math.sin(angle) * 430,
+              life: 1.2,
+              damage: ship.damage * damageScale,
+              color: ship.color,
+              pierce: ship.pierce,
+            });
+          }
+          return true;
+        }
+        const weapon = import_loadout3.default.find(
+          import_loadout3.default.weapons,
+          state.loadout.weapon,
+        );
+        state.attackCooldown = weapon.cooldown / recharge;
+        state.attackTime = weapon.duration || 0.12;
+        state.attackId++;
+        state.events.push({
+          type: weapon.id === "punch" ? "punch" : "shoot",
+          x: state.player.x + (weapon.id === "punch" ? 15 : 13 + barrelLength(weapon.id)),
+          y: state.player.y + 10,
+        });
+        if (weapon.id === "punch") return true;
+        const x = state.player.x + 15,
+          y = state.player.y + 9;
+        const speed = weapon.speed;
+        const damage2 = weapon.damage * damageScale;
+        if (weapon.id === "nova") {
+          for (const angle of [-0.72, -0.36, 0, 0.36, 0.72])
+            state.projectiles.push({
+              x,
+              y,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              homing: true,
+              armored: false,
+              life: weapon.life,
+              damage: damage2,
+              color: weapon.color,
+              pierce: weapon.pierce ?? 0,
+              hitTargets: [],
+            });
+          return true;
+        }
+        const spread = weapon.id === "scatter" ? [-3, 0, 3] : [0];
+        for (const offset of spread)
+          state.projectiles.push({
+            x,
+            y: y + offset,
+            vx: speed,
+            vy: 0,
+            armored: weapon.id === "siegebreaker",
+            life: weapon.life,
+            damage: damage2,
+            color: weapon.color,
+            pierce: weapon.pierce ?? 0,
+            hitTargets: [],
+          });
+        return true;
+      }
+      function seekable(object, boltX) {
+        return (
+          !object.dead &&
+          object.x + object.w > boltX - 8 &&
+          object.x < boltX + 340 &&
+          (object.kind === "enemy" || (object.kind === "hazard" && breakable(object)))
+        );
+      }
+      function guide(bolts, objects, dt) {
+        const turn = 5.5 * dt;
+        for (const bolt of bolts) {
+          if (!bolt.homing) continue;
+          const speed = Math.hypot(bolt.vx, bolt.vy);
+          if (speed < 1) continue;
+          const heading = Math.atan2(bolt.vy, bolt.vx);
+          let best = null;
+          let bestScore = Infinity;
+          for (const object of objects) {
+            if (!seekable(object, bolt.x)) continue;
+            const dx = object.x + object.w * 0.5 - bolt.x;
+            const dy = object.y + object.h * 0.5 - bolt.y;
+            let delta2 = Math.atan2(dy, dx) - heading;
+            if (delta2 > Math.PI) delta2 -= Math.PI * 2;
+            else if (delta2 < -Math.PI) delta2 += Math.PI * 2;
+            const score = Math.hypot(dx, dy) * (0.45 + Math.abs(delta2));
+            if (score < bestScore) {
+              best = object;
+              bestScore = score;
+            }
+          }
+          if (!best) continue;
+          let delta =
+            Math.atan2(best.y + best.h * 0.5 - bolt.y, best.x + best.w * 0.5 - bolt.x) - heading;
+          if (delta > Math.PI) delta -= Math.PI * 2;
+          else if (delta < -Math.PI) delta += Math.PI * 2;
+          const next = heading + Math.max(-turn, Math.min(turn, delta));
+          bolt.vx = Math.cos(next) * speed;
+          bolt.vy = Math.sin(next) * speed;
+        }
+      }
+      function update2(state, dt, moveProjectiles = true) {
+        const weapon = import_loadout3.default.find(
+          import_loadout3.default.weapons,
+          state.loadout.weapon,
+        );
+        if (!state.ship && state.attackTime > 0 && weapon.id === "punch") {
+          for (const object of state.objects) {
+            if (object.dead || object.lastPunch === state.attackId) continue;
+            if (
+              object.x < state.player.x + 13 + weapon.range &&
+              object.x + object.w > state.player.x + 9 &&
+              object.y + object.h > state.player.y + 1 &&
+              object.y < state.player.y + 21
+            ) {
+              object.lastPunch = state.attackId;
+              damage(state, object, weapon.damage * state.stats.damageMultiplier, "punch");
+            }
+          }
+        }
+        if (!moveProjectiles) return;
+        guide(state.projectiles, state.objects, dt);
+        for (const bolt of state.projectiles) {
+          const previousX = bolt.x,
+            previousY = bolt.y;
+          bolt.x += bolt.vx * dt;
+          bolt.y += bolt.vy * dt;
+          bolt.life -= dt;
+          for (const object of state.objects) {
+            if (
+              object.dead ||
+              !["enemy", "hazard"].includes(object.kind) ||
+              bolt.hitTargets?.includes(object)
+            )
+              continue;
+            if (
+              Math.max(bolt.x, previousX) + 3 >= object.x &&
+              Math.min(bolt.x, previousX) <= object.x + object.w &&
+              Math.max(bolt.y, previousY) + 2 >= object.y - (object.kind === "enemy" ? 5 : 0) &&
+              Math.min(bolt.y, previousY) <= object.y + object.h + (object.kind === "enemy" ? 5 : 0)
+            ) {
+              if (bolt.armored && object.kind === "hazard" && !breakable(object)) object.hp ??= 5;
+              if (bolt.armored && object.kind === "hazard" && !breakable(object)) {
+                object.hp -= bolt.damage;
+                if (object.hp <= 0) {
+                  object.dead = true;
+                  state.score += 100n;
+                  state.events.push({
+                    type: "smash",
+                    x: object.x,
+                    y: object.y,
+                    points: 100,
+                    label: "BREACH",
+                  });
+                }
+              } else damage(state, object, bolt.damage, "shot");
+              if (object.dead && object.kind === "hazard") {
+                state.events.push({
+                  type: "shot-break",
+                  x: Math.max(object.x, Math.min(bolt.x, object.x + object.w)),
+                  y: Math.max(object.y, Math.min(bolt.y, object.y + object.h)),
+                });
+              } else if (!breakable(object) && !object.dead)
+                state.events.push({ type: "armor", x: object.x, y: object.y, label: "ARMORED" });
+              if (
+                (breakable(object) || (bolt.armored && object.kind === "hazard")) &&
+                (bolt.pierce ?? 0) > 0
+              ) {
+                bolt.pierce--;
+                (bolt.hitTargets ??= []).push(object);
+              } else {
+                bolt.life = 0;
+                break;
+              }
+            }
+          }
+        }
+        state.projectiles = state.projectiles.filter(
+          (bolt) =>
+            bolt.life > 0 &&
+            bolt.x < import_config4.default.width + 30 &&
+            bolt.y > 0 &&
+            bolt.y < import_config4.default.floor + 10,
+        );
+      }
+      module.exports = {
+        barrelLength,
+        armor,
+        durability,
+        breakable,
+        damage,
+        attack,
+        guide,
+        update: update2,
+      };
+    },
+  });
+
+  // src/powerups.ts
+  var require_powerups = __commonJS({
+    "src/powerups.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_combat3 = __toESM(require_combat());
+      var import_random2 = __toESM(require_random());
+      var catalog = [
+        {
+          id: "blast",
+          name: "Chain blast",
+          rarity: "rare",
+          duration: 0,
+          weight: 25,
+          color: "#ffcf83",
+        },
+        {
+          id: "magnet",
+          name: "Ember magnet",
+          rarity: "rare",
+          duration: 8,
+          weight: 24,
+          color: "#f8a782",
+        },
+        {
+          id: "overclock",
+          name: "Overclock",
+          rarity: "rare",
+          duration: 7,
+          weight: 18,
+          color: "#91e7ff",
+        },
+        { id: "titan", name: "Titan", rarity: "epic", duration: 10, weight: 15, color: "#eac5fb" },
+        {
+          id: "shield",
+          name: "Prism shield",
+          rarity: "epic",
+          duration: 6,
+          weight: 12,
+          color: "#9bf1bf",
+        },
+        {
+          id: "flight",
+          name: "Jet flight",
+          rarity: "legendary",
+          duration: 12,
+          weight: 6,
+          color: "#ffe3a8",
+        },
+      ];
+      function definition(id) {
+        return catalog.find((item) => item.id === id);
+      }
+      function drop(state) {
+        return import_random2.default.weighted(state.rng, catalog);
+      }
+      function collect(state, object) {
+        if (object.dead || state.mode !== "playing" || state.hits >= state.health) return false;
+        if (object.kind === "heart") {
+          object.dead = true;
+          state.hits = Math.max(0, state.hits - (object.rarity === "rare" ? 2 : 1));
+          state.events.push({
+            type: "heal",
+            x: object.x,
+            y: object.y,
+            label: object.rarity === "rare" ? "+2 HEARTS" : "+1 HEART",
+          });
+          return true;
+        }
+        const item = object.kind === "powerup" && definition(object.variant);
+        if (!item) return false;
+        object.dead = true;
+        if (item.id === "blast") {
+          for (const target of state.objects) {
+            const visible =
+              target.x + target.w > 0 &&
+              target.x < state.stats.blastReach &&
+              target.y + target.h > 0 &&
+              target.y < import_config4.default.height;
+            if (visible && (target.kind === "enemy" || target.kind === "hazard"))
+              import_combat3.default.damage(state, target, 1e4, "blast");
+          }
+        } else {
+          state.activePowerups[item.id] = item.duration * state.stats.powerDuration;
+          if (item.id === "flight") state.grounding = false;
+        }
+        state.events.push({
+          type: "powerup",
+          x: object.x,
+          y: object.y,
+          label: item.name.toUpperCase(),
+        });
+        return true;
+      }
+      function attracts(state, object) {
+        return (
+          state.activePowerups.magnet &&
+          object.kind === "ember" &&
+          Math.hypot(object.x + object.w / 2 - state.player.x - 6, object.y - state.player.y - 9) <=
+            state.stats.magnetRadius
+        );
+      }
+      function update2(state, dt) {
+        for (const { id } of catalog) {
+          const remaining = state.activePowerups[id];
+          if (remaining === void 0) continue;
+          if (remaining <= dt) delete state.activePowerups[id];
+          else state.activePowerups[id] = remaining - dt;
+        }
+        if (state.activePowerups.flight && !state.ship) {
+          const player = state.player;
+          player.vy = Math.min(28, player.vy - import_config4.default.gravity * dt * 0.82);
+          if (player.y > import_config4.default.floor - 45) {
+            player.y = import_config4.default.floor - 45;
+            player.vy = 0;
+          }
+          if (player.y < 25) {
+            player.y = 25;
+            player.vy = Math.max(0, player.vy);
+          }
+          player.jumps = 0;
+        }
+      }
+      function land(state, previousY, dt) {
+        const p = state.player;
+        if (p.vy < 0 || state.grounding || state.activePowerups.flight) return;
+        for (const o of state.objects) {
+          if (o.kind !== "platform" || o.dead) continue;
+          if (
+            p.x + 12 > o.x - state.runSpeed * dt &&
+            p.x < o.x + o.w &&
+            previousY + 18 <= o.y + 1 &&
+            p.y + 18 >= o.y
+          ) {
+            p.y = o.y - 18;
+            p.vy = 0;
+            p.jumps = 0;
+          }
+        }
+      }
+      module.exports = { catalog, definition, drop, collect, update: update2, attracts, land };
+    },
+  });
+
   // src/difficulty.ts
   var require_difficulty = __commonJS({
     "src/difficulty.ts"(exports, module) {
@@ -1663,6 +1880,7 @@
       var import_random2 = __toESM(require_random());
       var import_content2 = __toESM(require_content());
       var import_difficulty3 = __toESM(require_difficulty());
+      var import_powerups3 = __toESM(require_powerups());
       function choose(state, type) {
         const definitions = import_content2.default[type].filter(
           (item) => item.unlock <= state.sector,
@@ -2008,11 +2226,11 @@
             h: 9,
           });
         else if (drop < 0.17) {
-          const roll = import_random2.default.next(state.rng);
+          const power = import_powerups3.default.drop(state);
           state.objects.push({
             kind: "powerup",
-            variant: roll < 0.65 ? "blast" : roll < 0.92 ? "titan" : "flight",
-            rarity: roll < 0.65 ? "rare" : roll < 0.92 ? "epic" : "legendary",
+            variant: power.id,
+            rarity: power.rarity,
             x: end + 35,
             y: import_config4.default.floor - 40,
             w: 12,
@@ -2120,6 +2338,13 @@
           description:
             "Prestige unlock: one extra mid-air jump. Buy once for 5,000 coins; no further levels or charges.",
         },
+        {
+          id: "power",
+          name: "Power core",
+          maxLevel: 10,
+          description:
+            "Extends timed pickups and improves their strength, collection radius, or fire rate.",
+        },
       ];
       function definition(id) {
         return tracks.find((track) => track.id === id);
@@ -2176,6 +2401,11 @@
           dashLungeSpeed:
             import_config4.default.dashLungeSpeed + (basic.dash * 12 + advanced.dash * 8),
           damageMultiplier: 1 + basic.damage * 0.2 + advanced.damage * 0.12,
+          powerDuration: 1 + levels.power * 0.08,
+          titanMultiplier: 2.5 + levels.power * 0.1,
+          blastReach: import_config4.default.width + levels.power * 18,
+          magnetRadius: 56 + levels.power * 4,
+          overclockRate: 1.6 + levels.power * 0.08,
         };
       }
       function describe(id, value) {
@@ -2200,6 +2430,15 @@
             );
           case "damage":
             return result.damageMultiplier.toFixed(2) + "\xD7 damage on all attacks";
+          case "power":
+            return (
+              Math.round(result.powerDuration * 100) +
+              "% duration \xB7 " +
+              result.magnetRadius +
+              "px magnet \xB7 " +
+              result.overclockRate.toFixed(2) +
+              "\xD7 overclock"
+            );
           case "triple":
             return result.maxJumps + " jumps before landing";
           default:
@@ -2407,6 +2646,7 @@
     "src/engine.ts"(exports, module) {
       "use strict";
       var import_powerups3 = __toESM(require_powerups());
+      var import_ships2 = __toESM(require_ships());
       var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
       var import_difficulty3 = __toESM(require_difficulty());
@@ -2423,8 +2663,9 @@
           grounding: false,
           crouching: false,
           strafe: 0,
-          powerups: [],
-          activePowerup: null,
+          activePowerups: {},
+          ship: null,
+          climb: false,
           seed,
           loadout,
           rules,
@@ -2522,6 +2763,7 @@
       function jump(state) {
         if (
           state.mode !== "playing" ||
+          state.ship ||
           state.grounding ||
           state.crouching ||
           state.player.jumps >= state.stats.maxJumps
@@ -2541,13 +2783,14 @@
         if (
           state.mode !== "playing" ||
           state.hits >= state.health ||
+          state.ship ||
           state.grounding ||
           state.player.y >= import_config4.default.floor - import_config4.default.playerHeight
         )
           return false;
         state.grounding = true;
         state.player.vy = Math.max(520, state.player.vy);
-        if (state.activePowerup?.id === "flight") state.activePowerup = null;
+        delete state.activePowerups.flight;
         emit2(
           state,
           "ground",
@@ -2564,7 +2807,7 @@
         } else state.player.vy = Math.max(520, state.player.vy);
       }
       function dash(state) {
-        if (state.mode !== "playing" || state.cooldown > 0) return false;
+        if (state.mode !== "playing" || state.ship || state.cooldown > 0) return false;
         state.dashId++;
         state.dash = state.stats.dashDuration;
         state.cooldown = state.stats.dashCooldown;
@@ -2602,7 +2845,8 @@
         });
       }
       function hit(state, object) {
-        if (state.activePowerup?.id === "titan" && object.kind === "enemy") {
+        if (state.ship && state.ship.phase !== "flight") return;
+        if (state.activePowerups.titan && object.kind === "enemy") {
           import_combat3.default.damage(state, object, 10, "titan");
           return;
         }
@@ -2611,7 +2855,7 @@
             object.lastDash = state.dashId;
             import_combat3.default.damage(state, object, state.stats.damageMultiplier, "dash");
           }
-        } else if (state.invincible <= 0) {
+        } else if (state.invincible <= 0 && !state.activePowerups.shield) {
           state.hits++;
           state.combo = 0;
           state.invincible = import_config4.default.damageGrace;
@@ -2625,7 +2869,9 @@
       }
       function step2(state, dt) {
         state.time += dt;
+        const previousSector = state.sector;
         import_difficulty3.default.update(state, dt);
+        import_ships2.default.update(state, previousSector, dt);
         const dashing = state.dash > 0;
         state.runSpeed =
           state.speed *
@@ -2667,18 +2913,22 @@
           );
         }
         const previousY = player.y;
-        groundStep(state);
-        player.vy += import_config4.default.gravity * dt;
-        player.y += player.vy * dt;
-        if (player.y >= import_config4.default.floor - import_config4.default.playerHeight) {
-          player.y = import_config4.default.floor - import_config4.default.playerHeight;
-          player.vy = 0;
-          player.jumps = 0;
+        if (!import_ships2.default.steer(state, dt)) {
+          groundStep(state);
+          player.vy += import_config4.default.gravity * dt;
+          player.y += player.vy * dt;
+          if (player.y >= import_config4.default.floor - import_config4.default.playerHeight) {
+            player.y = import_config4.default.floor - import_config4.default.playerHeight;
+            player.vy = 0;
+            player.jumps = 0;
+          }
+          groundStep(state);
         }
-        groundStep(state);
         import_powerups3.default.update(state, dt);
-        import_powerups3.default.land(state, previousY, dt);
-        if (state.distance >= state.next) import_generator3.default.spawn(state);
+        if (!state.ship) {
+          import_powerups3.default.land(state, previousY, dt);
+          if (state.distance >= state.next) import_generator3.default.spawn(state);
+        }
         const previousPositions = /* @__PURE__ */ new Map();
         for (const object of state.objects) {
           previousPositions.set(object, object.x);
@@ -2690,9 +2940,16 @@
         if (state.traversalEffect !== previousTravel && state.traversalEffect?.kind === "portal")
           previousPlayerX = player.x;
         import_combat3.default.update(state, dt);
-        import_enemy_fire3.default.update(state, dt);
+        if (state.ship?.phase !== "crash") import_enemy_fire3.default.update(state, dt);
         for (const bolt of state.hostileProjectiles) {
-          if (!import_enemy_fire3.default.hitsPlayer(bolt, state.player, state.crouching)) continue;
+          if (
+            !import_enemy_fire3.default.hitsPlayer(
+              bolt,
+              state.player,
+              state.crouching && !state.ship,
+            )
+          )
+            continue;
           bolt.life = 0;
           if (state.dash > 0) {
             addScore(state, 25);
@@ -2706,13 +2963,14 @@
           if (object.dead || object.kind === "platform") continue;
           if (
             !object.passed &&
-            collides(
-              player,
-              object,
-              previousPositions.get(object),
-              previousPlayerX,
-              state.crouching,
-            )
+            (import_powerups3.default.attracts(state, object) ||
+              collides(
+                player,
+                object,
+                previousPositions.get(object),
+                previousPlayerX,
+                state.crouching && !state.ship,
+              ))
           ) {
             if (import_powerups3.default.collect(state, object)) continue;
             if (object.kind === "ember") collect(state, object);
@@ -2750,8 +3008,6 @@
         seekX,
         ground,
         groundStep,
-        powerup: import_powerups3.default.activate,
-        activatePowerup: import_powerups3.default.activate,
         create: create5,
         update: update2,
         jump,
@@ -2950,6 +3206,11 @@
     s.objects = run.world.objects;
     s.projectiles = run.world.projectiles;
     s.runSpeed = run.world.runSpeed;
+    s.ship = run.world.ship;
+    if (action2 === "climb" || action2 === "level") {
+      s.climb = action2 === "climb";
+      return true;
+    }
     if (action2 === "strafe-left" || action2 === "strafe-right" || action2 === "strafe-stop") {
       s.strafe = action2 === "strafe-left" ? -1 : action2 === "strafe-right" ? 1 : 0;
       return true;
@@ -2992,7 +3253,9 @@
   function step(run, dt) {
     const w = run.world;
     w.time += dt;
+    const previousSector = w.sector;
     import_difficulty.default.update(w, dt);
+    import_ships.default.update(w, previousSector, dt);
     const live = sorted(run).filter(alive);
     if (!live.length) {
       w.mode = "dead";
@@ -3018,21 +3281,24 @@
       s.cooldown = Math.max(0, s.cooldown - dt);
       s.invincible = Math.max(0, s.invincible - dt);
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-      const previousY = s.player.y;
-      import_engine.default.groundStep(s);
-      s.player.vy += import_config.default.gravity * dt;
-      s.player.y += s.player.vy * dt;
+      s.ship = w.ship;
+      if (!import_ships.default.steer(s, dt)) {
+        const previousY = s.player.y;
+        import_engine.default.groundStep(s);
+        s.player.vy += import_config.default.gravity * dt;
+        s.player.y += s.player.vy * dt;
+        import_powerups.default.land(s, previousY, dt);
+        if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
+          Object.assign(s.player, {
+            y: import_config.default.floor - import_config.default.playerHeight,
+            vy: 0,
+            jumps: 0,
+          });
+        import_engine.default.groundStep(s);
+      }
       import_powerups.default.update(s, dt);
-      import_powerups.default.land(s, previousY, dt);
-      if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
-        Object.assign(s.player, {
-          y: import_config.default.floor - import_config.default.playerHeight,
-          vy: 0,
-          jumps: 0,
-        });
-      import_engine.default.groundStep(s);
     }
-    if (w.distance >= w.next) {
+    if (!w.ship && w.distance >= w.next) {
       const before = w.objects.length;
       import_generator.default.spawn(w);
       const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -3075,11 +3341,12 @@
       w.projectiles = s.projectiles;
       w.score += s.score - score;
     }
-    import_enemy_fire.default.update(w, dt);
+    if (w.ship?.phase !== "crash") import_enemy_fire.default.update(w, dt);
     for (const bolt of w.hostileProjectiles) {
       const target = live.find(
         (m) =>
-          alive(m) && import_enemy_fire.default.hitsPlayer(bolt, m.state.player, m.state.crouching),
+          alive(m) &&
+          import_enemy_fire.default.hitsPlayer(bolt, m.state.player, m.state.crouching && !w.ship),
       );
       if (!target) continue;
       bolt.life = 0;
@@ -3108,14 +3375,14 @@
       const target = live.find(
         (m) =>
           alive(m) &&
-          (object.kind !== "powerup" || m.state.powerups.length < 3) &&
-          import_engine.default.collides(
-            m.state.player,
-            object,
-            previous.get(object) ?? object.x,
-            m.state.player.x,
-            m.state.crouching,
-          ),
+          (import_powerups.default.attracts(m.state, object) ||
+            import_engine.default.collides(
+              m.state.player,
+              object,
+              previous.get(object) ?? object.x,
+              m.state.player.x,
+              m.state.crouching && !w.ship,
+            )),
       );
       if (target) {
         const s = target.state,
@@ -3144,6 +3411,7 @@
       import_config.default.playerX +
       (run.members.filter((m) => m.connected).length - 1) * import_config.default.partySpacing;
     if (
+      !w.ship &&
       !run.checkpoint &&
       run.beaconDistance - w.distance <= import_config.default.width + 36 - anchor
     ) {
@@ -3155,7 +3423,7 @@
       };
     }
     const beacon = run.checkpoint;
-    if (beacon) {
+    if (beacon && !w.ship) {
       const oldX = beacon.x;
       beacon.x -= w.runSpeed * dt;
       beacon.age += dt;
@@ -3235,6 +3503,7 @@
     );
     w.runSpeed = w.speed * (w.traversalEffect?.kind === "pad" ? 1.8 : 1);
     import_traversal.default.animate(w, dt);
+    if (w.ship) w.ship.age += dt;
     const distance = w.runSpeed * dt;
     w.distance += distance;
     formation(run, false, dt);
@@ -3249,22 +3518,25 @@
       s.cooldown = Math.max(0, s.cooldown - dt);
       s.invincible = Math.max(0, s.invincible - dt);
       s.attackCooldown = Math.max(0, s.attackCooldown - dt);
-      if (s.grounding) {
+      s.ship = w.ship;
+      if (!import_ships.default.steer(s, dt)) {
+        if (s.grounding) {
+          if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
+            s.grounding = false;
+          else s.player.vy = Math.max(520, s.player.vy);
+        }
+        const previousY = s.player.y;
+        s.player.vy += import_config.default.gravity * dt;
+        s.player.y += s.player.vy * dt;
+        import_powerups.default.land(s, previousY, dt);
         if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
-          s.grounding = false;
-        else s.player.vy = Math.max(520, s.player.vy);
+          Object.assign(s.player, {
+            y: import_config.default.floor - import_config.default.playerHeight,
+            vy: 0,
+            jumps: 0,
+          });
       }
-      const previousY = s.player.y;
-      s.player.vy += import_config.default.gravity * dt;
-      s.player.y += s.player.vy * dt;
       import_powerups.default.update(s, dt);
-      import_powerups.default.land(s, previousY, dt);
-      if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
-        Object.assign(s.player, {
-          y: import_config.default.floor - import_config.default.playerHeight,
-          vy: 0,
-          jumps: 0,
-        });
     }
     for (const object of w.objects) import_generator.default.move(object, w.runSpeed, dt);
     for (const bolt of w.projectiles) {
@@ -3281,7 +3553,7 @@
       if (!device.role) device.x -= distance;
       device.age += dt;
     }
-    if (run.checkpoint) {
+    if (run.checkpoint && !w.ship) {
       run.checkpoint.x -= distance;
       run.checkpoint.age += dt;
       run.checkpoint.flash = Math.max(0, run.checkpoint.flash - dt);
@@ -3342,6 +3614,7 @@
     to.groupIndex = from.groupIndex;
     to.biomeIndex = from.biomeIndex;
     to.bossActive = from.bossActive;
+    to.ship = from.ship ? { ...from.ship } : null;
     to.score = from.score;
     to.scoreRemainder = from.scoreRemainder;
     to.embers = from.embers;
@@ -3480,8 +3753,9 @@
         loadout: remote.loadout,
         stats: remote.stats,
         rules: remote.rules,
-        powerups: remote.powerups.slice(),
-        activePowerup: remote.activePowerup ? { ...remote.activePowerup } : null,
+        activePowerups: { ...remote.activePowerups },
+        ship: to.ship,
+        climb: remote.climb,
       });
       local.player.vy = remote.player.vy;
       local.player.jumps = remote.player.jumps;
@@ -3534,22 +3808,25 @@
         .filter(alive)
         .findIndex((item) => item.id === id);
       if (index >= 0) place(run, member, index, dt, false);
-      if (s.grounding) {
+      s.ship = run.world.ship;
+      if (!import_ships.default.steer(s, dt)) {
+        if (s.grounding) {
+          if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
+            s.grounding = false;
+          else s.player.vy = Math.max(520, s.player.vy);
+        }
+        const previousY = s.player.y;
+        s.player.vy += import_config.default.gravity * dt;
+        s.player.y += s.player.vy * dt;
+        import_powerups.default.land(s, previousY, dt);
         if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
-          s.grounding = false;
-        else s.player.vy = Math.max(520, s.player.vy);
+          Object.assign(s.player, {
+            y: import_config.default.floor - import_config.default.playerHeight,
+            vy: 0,
+            jumps: 0,
+          });
       }
-      const previousY = s.player.y;
-      s.player.vy += import_config.default.gravity * dt;
-      s.player.y += s.player.vy * dt;
       import_powerups.default.update(s, dt);
-      import_powerups.default.land(s, previousY, dt);
-      if (s.player.y >= import_config.default.floor - import_config.default.playerHeight)
-        Object.assign(s.player, {
-          y: import_config.default.floor - import_config.default.playerHeight,
-          vy: 0,
-          jumps: 0,
-        });
       remaining -= dt;
     }
   }
@@ -3615,8 +3892,7 @@
     return local
       ? {
           ...run.world,
-          powerups: local.powerups,
-          activePowerup: local.activePowerup,
+          activePowerups: local.activePowerups,
           grounding: local.grounding,
           player: local.player,
           health: local.health,
@@ -3632,6 +3908,7 @@
   }
   var import_engine,
     import_powerups,
+    import_ships,
     import_config,
     import_difficulty,
     import_generator,
@@ -3646,6 +3923,7 @@
       "use strict";
       import_engine = __toESM(require_engine());
       import_powerups = __toESM(require_powerups());
+      import_ships = __toESM(require_ships());
       import_config = __toESM(require_config());
       import_difficulty = __toESM(require_difficulty());
       import_generator = __toESM(require_generator());
@@ -4102,6 +4380,7 @@
                 tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),
               );
               break;
+            case "ship-launch":
             case "pad":
               tone(180, 0.3, "triangle", 0.06, 900);
               noise(0.12, 0.025);
@@ -4131,6 +4410,7 @@
             case "powerup":
               tone(330, 0.3, "triangle", 0.04, 1320);
               break;
+            case "ship-crash":
             case "explosion":
               noise(0.22, 0.1);
               tone(120, 0.22, "square", 0.04, 35);
@@ -4496,6 +4776,8 @@
       var import_loadout3 = __toESM(require_loadout());
       var import_cloth2 = __toESM(require_cloth());
       var import_combat3 = __toESM(require_combat());
+      var import_ships2 = __toESM(require_ships());
+      var import_powerups3 = __toESM(require_powerups());
       function create5(ctx, reducedMotion = false) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function cape(x, y, time, definition, state) {
@@ -4597,7 +4879,7 @@
         }
         function courier(x, y, time, dashing, state) {
           ctx.save();
-          if (state.activePowerup?.id === "titan") {
+          if (state.activePowerups.titan) {
             ctx.translate(x, y + import_config4.default.playerHeight);
             ctx.scale(1.6, 1.6);
             x = 0;
@@ -4618,7 +4900,7 @@
           );
           const pack2 = import_loadout3.default.find(
             import_loadout3.default.jetpacks,
-            state.activePowerup?.id === "flight" && equipment.jetpack === "none"
+            state.activePowerups.flight && equipment.jetpack === "none"
               ? "ember"
               : equipment.jetpack,
           );
@@ -4634,7 +4916,7 @@
             y + 7 + chestDrop,
             time,
             pack2,
-            dashing || state.player.jumps > 0 || state.activePowerup?.id === "flight",
+            dashing || state.player.jumps > 0 || Boolean(state.activePowerups.flight),
           );
           if (dashing) {
             line(x - 34, y + 2 + chestDrop, 18, "#b9e4d0");
@@ -4913,7 +5195,9 @@
               line(x + 2, y + h - 1, w - 4, "#52685c");
             }
           } else if (o.kind === "heart" || o.kind === "powerup") {
-            const color =
+            const power =
+              o.kind === "powerup" ? import_powerups3.default.definition(o.variant) : void 0;
+            const rarityColor =
               o.rarity === "legendary"
                 ? "#ffe0a3"
                 : o.rarity === "epic"
@@ -4922,7 +5206,7 @@
                     ? "#9bd7e5"
                     : "#b6dbc3";
             rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-            line(o.x - 3, o.y - 3, o.w + 6, color);
+            line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
             if (o.kind === "heart") {
               const heartColor = "#f06d78";
               rect(o.x, o.y, 3, 3, heartColor);
@@ -4931,16 +5215,13 @@
               rect(o.x + 2, o.y + 5, 4, 2, heartColor);
               rect(o.x + 3, o.y + 7, 2, 1, heartColor);
               rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
-            } else {
-              rect(o.x + 2, o.y, 5, 9, color);
-              line(o.x, o.y + 4, 9, color);
+            } else if (power) {
+              rect(o.x + 2, o.y, 5, 9, power.color);
+              line(o.x, o.y + 4, 9, power.color);
+              rect(o.x + 3, o.y + 2, 2, 5, "#233d35");
               ctx.font = "5px monospace";
-              ctx.fillStyle = color;
-              ctx.fillText(
-                o.variant === "blast" ? "BLAST" : o.variant === "titan" ? "TITAN" : "FLIGHT",
-                o.x - 7,
-                o.y - 7,
-              );
+              ctx.fillStyle = power.color;
+              ctx.fillText(power.name.toUpperCase(), o.x - 7, o.y - 7);
             }
           } else if (o.kind === "ember") {
             const thin = Math.sin(time * 5 + o.x * 0.025) > 0.7;
@@ -5043,6 +5324,73 @@
             y - (device.kind === "portal" ? 5 : 24),
           );
         }
+        function ship(x, y, flight, firing, time) {
+          const { color } = import_ships2.default.catalog[flight.id];
+          const crashing = flight.phase === "crash";
+          ctx.save();
+          ctx.translate(Math.round(x), Math.round(y + 7));
+          if (crashing && !reducedMotion) ctx.rotate(Math.min(0.47, flight.age * 0.6));
+          const thrust = reducedMotion ? 5 : 5 + (Math.floor(time * 26) % 7);
+          if (flight.id === "sparrow") {
+            rect(-14, -4, 28, 11, color);
+            rect(11, -2, 15, 7, color);
+            rect(-11, -10, 8, 8, "#8c8177");
+            rect(-8, 4, 21, 6, "#685d59");
+            rect(16, 3, 12, 2, "#d5c9af");
+          } else if (flight.id === "lancer") {
+            rect(-17, -4, 23, 10, "#758b9b");
+            rect(-2, -6, 20, 14, color);
+            rect(14, -1, 16, 4, color);
+            rect(-11, 5, 12, 6, "#536879");
+            rect(-19, -10, 11, 4, color);
+          } else {
+            rect(-15, -7, 29, 16, color);
+            rect(13, -5, 11, 12, "#86938a");
+            rect(-19, -9, 6, 6, "#62756b");
+            rect(-17, 6, 18, 6, "#65776f");
+            rect(21, -4, 9, 3, color);
+            rect(21, 5, 9, 3, color);
+          }
+          rect(-12, -2, 11, 7, "#252d30");
+          rect(-10, -1, 5, 1, "#dc805d");
+          rect(-6, 0, 2, 4, "#dc805d");
+          rect(-3, -1, 2, 3, "#ffd590");
+          rect(2, -4, 10, 7, "#203d4e");
+          line(3, -3, 7, "#b5f5eb");
+          rect(4, -1, 3, 3, "#6bafb2");
+          rect(17, 0, 13, 3, "#5b6a74");
+          rect(28, 0, 2, 2, color);
+          if (firing && !crashing) {
+            rect(30, -2, 5, 6, color);
+            rect(32, 0, 6, 2, "#fff1c7");
+          }
+          if (!crashing) {
+            rect(-17 - thrust, 0, thrust, 3, "#de835a");
+            rect(-20, 0, 4, 2, "#ffdf9a");
+          }
+          if (!reducedMotion) {
+            for (let i = 0; i < (crashing ? 7 : 3); i++) {
+              const age = (time * 24 + i * 5) % (crashing ? 28 : 16);
+              rect(
+                -12 - age,
+                -3 - age * 0.52,
+                2 + Math.floor(age / 8),
+                2,
+                i % 2 ? "#767e83" : "#626972",
+              );
+            }
+          }
+          if (crashing) {
+            rect(-9, -4, 4, 7, "#d47751");
+            rect(-7, -6, 2, 4, "#ffe0a2");
+            if (flight.age > 0.82) {
+              const spread = Math.floor((flight.age - 0.82) * 38);
+              line(-14 - spread, 9, 40 + spread * 2, "#ffb27b");
+              rect(-5, 5, 16, 5, "#fff0ba");
+            }
+          }
+          ctx.restore();
+        }
         function travelEffect(state) {
           const effect = state.traversalEffect;
           if (effect?.kind !== "pad") return;
@@ -5058,7 +5406,7 @@
             line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
           ctx.restore();
         }
-        return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
+        return { courier, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
       }
       module.exports = { create: create5 };
     },
@@ -5069,6 +5417,7 @@
     "src/renderer.ts"(exports, module) {
       "use strict";
       var import_config4 = __toESM(require_config());
+      var import_ships2 = __toESM(require_ships());
       init_party();
       var import_pixel2 = __toESM(require_pixel());
       var import_backgrounds2 = __toESM(require_backgrounds());
@@ -5099,6 +5448,34 @@
           const alpha = Math.min(1, (elapsed - portalEnter) / portalReveal);
           return { x: player.x - (reducedMotion ? 0 : 5 * (1 - alpha)), y: player.y, alpha };
         }
+        function shield(x, y, ship) {
+          const radius = ship ? 28 : 13;
+          for (let i = 0; i < 14; i++) {
+            const angle = (i * Math.PI * 2) / 14;
+            rect(x + 6 + Math.cos(angle) * radius, y + 8 + Math.sin(angle) * 13, 2, 2, "#9bf1bf");
+          }
+        }
+        function drawSky(state, amount) {
+          ctx.save();
+          ctx.globalAlpha = amount;
+          rect(0, 0, import_config4.default.width, import_config4.default.height, "#101e2c");
+          rect(0, 91, import_config4.default.width, 45, "#152b39");
+          rect(0, 136, import_config4.default.width, 47, "#213e4b");
+          rect(0, 183, import_config4.default.width, 57, "#345363");
+          const distance = state.distance - state.parallax;
+          for (let i = 0; i < 30; i++) {
+            const x = (((i * 173 - distance * 0.09) % 500) + 500) % 500;
+            rect(x, 13 + ((i * 47) % 103), i % 5 ? 1 : 2, 1, i % 5 ? "#69919d" : "#c3d8d3");
+          }
+          for (let i = 0; i < 8; i++) {
+            const x = ((((i * 139 - distance * 0.35) % 560) + 560) % 560) - 65;
+            const y = 146 + ((i * 27) % 85);
+            rect(x, y + 8, 70, 9, "#52717a");
+            rect(x + 9, y + 3, 43, 6, "#52717a");
+            rect(x + 22, y, 23, 4, "#6d888a");
+          }
+          ctx.restore();
+        }
         function draw(state, time, particles, feedback, popups = [], party = null, localId = "") {
           const team = party ? sorted(party).filter(alive) : [];
           const world = party?.world ?? state;
@@ -5119,6 +5496,7 @@
             time,
             state,
           );
+          if (world.ship) drawSky(state, import_ships2.default.skyAmount(world.ship));
           if (state.mode === "menu") {
             for (let i = 0; i < 5; i++)
               sprites.object(
@@ -5154,7 +5532,7 @@
               if (object.kind !== "platform") sprites.object(object, time);
             if (party) {
               const beacon = party.checkpoint;
-              if (beacon) {
+              if (beacon && !world.ship) {
                 const pulse = reducedMotion ? 0.8 : 0.65 + Math.sin(beacon.age * 4) * 0.25;
                 const x = beacon.x + 11;
                 ctx.save();
@@ -5195,7 +5573,9 @@
                 const { x, y, alpha } = portalPose(world, s);
                 ctx.save();
                 ctx.globalAlpha = alpha;
-                sprites.courier(x, y, time, s.dash > 0, s);
+                if (world.ship) sprites.ship(x, y, world.ship, s.attackTime > 0, time);
+                else sprites.courier(x, y, time, s.dash > 0, s);
+                if (s.activePowerups.shield) shield(x, y, Boolean(world.ship));
                 ctx.font = "bold 5px monospace";
                 ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
                 ctx.textAlign = "center";
@@ -5211,12 +5591,15 @@
               }
             } else if (
               state.mode !== "dead" &&
-              !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
+              (world.ship ||
+                !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2))
             ) {
               const { x, y, alpha } = portalPose(state, state);
               ctx.save();
               ctx.globalAlpha = alpha;
-              sprites.courier(x, y, time, state.dash > 0, state);
+              if (world.ship) sprites.ship(x, y, world.ship, state.attackTime > 0, time);
+              else sprites.courier(x, y, time, state.dash > 0, state);
+              if (state.activePowerups.shield) shield(x, y, Boolean(world.ship));
               ctx.restore();
             }
           }
@@ -5313,6 +5696,8 @@
       init_dom();
       var import_content2 = __toESM(require_content());
       var import_loadout3 = __toESM(require_loadout());
+      var import_powerups3 = __toESM(require_powerups());
+      var import_ships2 = __toESM(require_ships());
       var format = (value) => value.toString().padStart(6, "0");
       function create5(doc) {
         const byId = (id) => element(doc, id);
@@ -5349,12 +5734,10 @@
           attack: element(doc, "attack", "button"),
         };
         const dashBar = el["dash-state"].querySelector("i");
-        const powerupButton = element(doc, "powerup", "button");
-        const touchPowerup = element(doc, "touch-powerup", "button");
-        const queue = element(doc, "powerup-queue");
-        const powerupNames = { blast: "BLAST", titan: "TITAN", flight: "FLIGHT" };
-        const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
-        let queueSignature = "";
+        const powerStatus = byId("powerup-active");
+        const flightControls = byId("ship-controls");
+        const shipName = byId("ship-name");
+        const shipBrief = byId("ship-brief");
         let announcementTime = 0;
         let countdownDigit = "";
         let countdownGoTime = 0;
@@ -5363,56 +5746,34 @@
         const countdownFigure = element(doc, "countdown-digit");
         const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild;
         function render(state, best, coins = 0n) {
-          const signature = state.powerups.join(",");
-          if (signature !== queueSignature || !queue.children[0]?.hasAttribute("data-slot")) {
-            queueSignature = signature;
-            queue.replaceChildren(
-              ...Array.from({ length: 3 }, (_, i) => {
-                const slot = doc.createElement("li");
-                const id = state.powerups[i];
-                slot.dataset.slot = String(i + 1);
-                slot.textContent = id ? powerupNames[id] : "\u2014";
-                slot.setAttribute(
-                  "aria-label",
-                  `Slot ${i + 1}: ${id ? powerupNames[id] : "empty"}`,
-                );
-                if (id) {
-                  slot.dataset.rarity = powerupRarities[id];
-                  slot.title = `${powerupRarities[id]} \xB7 ${i === 0 ? "Next to activate" : "Queued"}`;
-                }
-                return slot;
-              }),
-            );
+          const powers = import_powerups3.default.catalog
+            .flatMap(({ id, name }) => {
+              const remaining = state.activePowerups[id];
+              return remaining ? [name.toUpperCase() + " " + Math.ceil(remaining) + "s"] : [];
+            })
+            .join(" \xB7 ");
+          if (powerStatus.textContent !== powers) powerStatus.textContent = powers;
+          const ship = state.ship;
+          const inFlight = Boolean(
+            ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,
+          );
+          flightControls.hidden = !inFlight;
+          el.shell.classList.toggle("in-flight", Boolean(ship));
+          if (ship && inFlight) {
+            shipName.textContent = import_ships2.default.catalog[ship.id].name.toUpperCase();
+            shipBrief.hidden = ship.phase !== "launch" && ship.wave > 0;
           }
-          byId("powerup-count").textContent = `${state.powerups.length} / 3`;
-          const active = state.activePowerup;
-          const powerReady =
-            state.mode === "playing" &&
-            state.hits < state.health &&
-            state.powerups.length > 0 &&
-            !active &&
-            !(state.grounding && state.powerups[0] === "flight");
-          powerupButton.disabled = !powerReady;
-          touchPowerup.disabled = !powerReady;
-          powerupButton.textContent = "C / USE";
-          touchPowerup.textContent = state.powerups[0]
-            ? powerupNames[state.powerups[0]]
-            : "POWER-UP";
-          byId("powerup-active").textContent = active
-            ? `${powerupNames[active.id]} \xB7 ${Math.ceil(active.remaining)}s`
-            : state.powerups.length
-              ? "Activate in order \xB7 C"
-              : "Collect rare drops along the route.";
           el["coin-total"].textContent = coins.toString().padStart(4, "0");
-          const weapon = import_loadout3.default.find(
-            import_loadout3.default.weapons,
-            state.loadout.weapon,
-          ).short;
+          const weapon = ship
+            ? "CANNON"
+            : import_loadout3.default.find(import_loadout3.default.weapons, state.loadout.weapon)
+                .short;
           const ready = state.attackCooldown <= 0;
           el.attack.textContent = "X / " + weapon;
           el.attack.disabled = state.mode !== "playing" || !ready;
           el["touch-attack"].textContent = weapon;
-          el["combat-state"].textContent = weapon + (ready ? " READY" : " CHARGING");
+          el["combat-state"].textContent =
+            ship?.phase === "crash" ? "HULL FAILING" : weapon + (ready ? " READY" : " CHARGING");
           byId("jump-count").textContent = "\xD7" + state.stats.maxJumps;
           byId("touch-jump").textContent = "JUMP \xD7" + state.stats.maxJumps;
           el.score.textContent = format(state.score);
@@ -5532,13 +5893,15 @@
       var left = false;
       var right = false;
       var crouch = false;
+      var climb = false;
       function pose() {
-        return { strafe, crouch };
+        return { strafe, crouch, climb };
       }
       function release() {
         left = false;
         right = false;
         crouch = false;
+        climb = false;
         strafe = 0;
       }
       function bind(doc, actions, canvas) {
@@ -5548,7 +5911,6 @@
           setup: actions.setup,
           "menu-setup": actions.setup,
           attack: actions.attack,
-          powerup: actions.powerup,
           pause: actions.pause,
           sound: actions.sound,
           fullscreen: actions.fullscreen,
@@ -5569,7 +5931,7 @@
           ["touch-jump", actions.jump],
           ["touch-dash", actions.dash],
           ["touch-attack", actions.attack],
-          ["touch-powerup", actions.powerup],
+          ["ship-fire", actions.attack],
         ]) {
           byId(id).addEventListener("pointerdown", (event) => {
             event.preventDefault();
@@ -5586,6 +5948,7 @@
           });
           node.addEventListener("pointerup", lift);
           node.addEventListener("pointercancel", lift);
+          node.addEventListener("lostpointercapture", lift);
         }
         hold(
           "touch-left",
@@ -5619,6 +5982,31 @@
             crouch = false;
           },
         );
+        function flightButton(id, set) {
+          hold(
+            id,
+            () => set(true),
+            () => set(false),
+          );
+          const node = byId(id);
+          const keyboard = (event) => {
+            if (event.key !== " " && event.key !== "Enter") return;
+            event.preventDefault();
+            set(event.type === "keydown");
+          };
+          node.addEventListener("keydown", keyboard);
+          node.addEventListener("keyup", keyboard);
+          node.addEventListener("blur", () => set(false));
+        }
+        flightButton("ship-up", (held) => {
+          climb = held;
+        });
+        flightButton("ship-down", (held) => {
+          crouch = held;
+        });
+        byId("ship-fire").addEventListener("click", (event) => {
+          if (event.detail === 0) actions.attack();
+        });
         const keys = {
           Enter: actions.enter,
           Space: actions.jump,
@@ -5627,7 +6015,6 @@
           ShiftRight: actions.dash,
           KeyX: actions.attack,
           KeyJ: actions.attack,
-          KeyC: actions.powerup,
           KeyS: actions.ground,
           ArrowDown: actions.ground,
           KeyH: actions.controls,
@@ -5652,6 +6039,7 @@
             right = false;
             strafe = left ? -1 : 0;
           } else if (event.code === "KeyS" || event.code === "ArrowDown") crouch = false;
+          else if (event.code === "ArrowUp") climb = false;
         });
         doc.addEventListener("keydown", (event) => {
           if (doc.querySelector("dialog[open]")) {
@@ -5671,6 +6059,7 @@
             return;
           }
           if (!event.repeat && (event.code === "KeyS" || event.code === "ArrowDown")) crouch = true;
+          if (!event.repeat && event.code === "ArrowUp") climb = true;
           if (
             event.target instanceof Element &&
             event.target.matches("button,input,textarea,select,a,summary") &&
@@ -5760,6 +6149,7 @@
         jump: "Jump height",
         damage: "Attack damage",
         triple: "Triple jump",
+        power: "Power core",
       };
       function benefit(id, levels) {
         const stats = import_upgrades3.default.stats(levels);
@@ -5774,6 +6164,8 @@
             );
           case "damage":
             return "+" + Math.round((stats.damageMultiplier - 1) * 100) + "%";
+          case "power":
+            return "+" + Math.round((stats.powerDuration - 1) * 100) + "% duration";
           case "triple":
             return stats.maxJumps + " jumps";
         }
@@ -6372,7 +6764,7 @@
     else if (action2 === "dash") import_engine2.default.dash(state);
     else if (action2 === "attack") import_engine2.default.attack(state);
     else if (action2 === "ground") import_engine2.default.ground(state);
-    else if (action2 === "powerup") import_engine2.default.powerup(state);
+    else if (action2 === "climb" || action2 === "level") state.climb = action2 === "climb";
     else if (action2 === "strafe-left") state.strafe = -1;
     else if (action2 === "strafe-right") state.strafe = 1;
     else if (action2 === "strafe-stop") state.strafe = 0;
@@ -6395,10 +6787,9 @@
     local.state.attackTime = source.state.attackTime;
     local.state.attackCooldown = source.state.attackCooldown;
     local.state.invincible = source.state.invincible;
-    local.state.activePowerup = source.state.activePowerup
-      ? { ...source.state.activePowerup }
-      : null;
-    local.state.powerups = source.state.powerups.slice();
+    local.state.activePowerups = { ...source.state.activePowerups };
+    local.state.ship = latest.world.ship;
+    local.state.climb = source.state.climb;
     for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
     steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
     const front = sorted(shown).find(alive);
@@ -6442,6 +6833,8 @@
     world.embers = to.world.embers;
     world.sector = to.world.sector;
     world.bossActive = to.world.bossActive;
+    world.ship = to.world.ship ? { ...to.world.ship } : null;
+    world.traversalEffect = to.world.traversalEffect ? { ...to.world.traversalEffect } : null;
     world.objects = blendObjects(from.world.objects, to.world.objects, amount);
     world.projectiles = blendBolts(from.world.projectiles, to.world.projectiles, amount);
     world.hostileProjectiles = blendBolts(
@@ -15585,7 +15978,8 @@
                 "jump",
                 "dash",
                 "attack",
-                "powerup",
+                "climb",
+                "level",
                 "ground",
                 "strafe-left",
                 "strafe-right",
@@ -16598,14 +16992,18 @@
         let sawCountdown = false;
         let sentStrafe = 99;
         let sentCrouch = false;
+        let sentClimb = false;
         function syncPose(playing) {
           if (doc.querySelector("dialog[open]")) import_input2.default.release();
           const pose = import_input2.default.pose();
           if (!session.active) {
             sentStrafe = 99;
+            sentCrouch = false;
+            sentClimb = false;
             if (playing) {
               state.strafe = pose.strafe;
               state.crouching = pose.crouch;
+              state.climb = pose.climb;
             }
             return;
           }
@@ -16615,6 +17013,10 @@
             session.action(
               pose.strafe < 0 ? "strafe-left" : pose.strafe > 0 ? "strafe-right" : "strafe-stop",
             );
+          }
+          if (pose.climb !== sentClimb) {
+            sentClimb = pose.climb;
+            session.action(pose.climb ? "climb" : "level");
           }
           if (pose.crouch !== sentCrouch) {
             sentCrouch = pose.crouch;
@@ -16738,12 +17140,12 @@
           down: [35, "#ec9865", 65],
           pad: [45, "#9de9c2", 85],
           deflect: [16, "#fff0b4", 60],
+          "ship-crash": [50, "#ffae62", 105],
           "enemy-shot": [5, "#ff8a93", 25],
           jump: [10, "#d3c294", 25],
           dash: [25, "#b6dbc3", 90],
           pickup: [12, "#ffcb7c", 50],
           heal: [18, "#f06d78", 40],
-          "powerup-pickup": [22, "#e9cd91", 50],
           powerup: [35, "#ffae62", 75],
           explosion: [40, "#ffae62", 90],
           smash: [32, "#b6dbc3", 90],
@@ -16778,8 +17180,11 @@
                 particles.burst(event.x, event.y, reducedMotion ? 8 : 22, "#ffae62", 80);
                 if (!reducedMotion) particles.burst(event.x, event.y, 14, "#fff2c9", 48, 0, 0.7);
                 break;
+              case "ship-crash":
+                feedback.shake = 5;
+                ui.announce(event.label ?? "ON FOOT", 2);
+                break;
               case "heal":
-              case "powerup-pickup":
               case "powerup":
                 ui.announce(event.label ?? "POWER-UP", 2);
                 break;
@@ -16874,11 +17279,6 @@
               if (session.active) session.action("attack");
               else import_engine4.default.attack(state);
             },
-            powerup() {
-              audio.unlock();
-              if (session.active) session.action("powerup");
-              else import_engine4.default.powerup(state);
-            },
             effects(enabled) {
               particles.setEnabled(enabled);
               saves.write("effects", enabled);
@@ -16942,7 +17342,7 @@
             syncPose(true);
             import_engine4.default.update(state, dt);
             handleEvents();
-            if (Math.random() < dt * 24)
+            if (!state.ship && Math.random() < dt * 24)
               particles.burst(
                 state.player.x - 3,
                 state.player.y + 12,

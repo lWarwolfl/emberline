@@ -45,7 +45,7 @@ async function main() {
     await page.click("#setup");
     await page.click("#tab-upgrades");
     assert.equal(await page.locator(".profile-preview").isVisible(), false);
-    assert.equal(await page.locator(".upgrade-product").count(), 4);
+    assert.equal(await page.locator(".upgrade-product").count(), 5);
     assert.equal(
       await page
         .locator("#upgrade-row-jump details")
@@ -61,7 +61,7 @@ async function main() {
     await page.screenshot({ path: path.join(root, "test-results/v5-upgrades-basic.png") });
 
     let expected = 50000n;
-    for (const track of ["dash", "jump", "damage"]) {
+    for (const track of ["dash", "jump", "damage", "power"]) {
       for (let level = 0; level < 10; level++) {
         assert(
           (await page.locator("#upgrade-" + track).innerText()).includes(
@@ -121,6 +121,7 @@ async function main() {
       jump: 10,
       damage: 10,
       triple: 1,
+      power: 10,
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.click("#start");
@@ -129,6 +130,7 @@ async function main() {
       EmberlineDebug.app.state.next = Infinity;
     });
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.maxJumps), 3);
+    assert.equal(await page.evaluate(() => EmberlineDebug.app.state.stats.powerDuration), 1.8);
     assert.equal(await page.locator("#jump-count").innerText(), "×3");
     for (let i = 0; i < 3; i++) {
       await page.keyboard.press("Space");
@@ -164,7 +166,7 @@ async function main() {
     assert.equal(await page.evaluate(() => EmberlineDebug.app.state.objects.length), 0);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS upgrade browser: legacy ownership migration, 100..1750 prices, L10 limits, 5000-coin one-time triple jump, exact wallet debits, persistence, next-run stats, three actual jumps, max damage combat and mobile upgrade layout.",
+      "PASS upgrade browser: legacy ownership migration, 100..1750 prices, L10 limits, 5000-coin one-time triple jump, exact wallet debits, persistence, next-run stats, three actual jumps, Power Core, max damage combat and mobile upgrade layout.",
     );
   } finally {
     await browser.close();

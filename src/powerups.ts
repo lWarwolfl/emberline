@@ -1,42 +1,32 @@
-import type { GameState, PowerupId, WorldObject } from "./types";
+import type { GameState, WorldObject } from "./types";
 import Config from "./config";
 import Combat from "./combat";
+import Random from "./random";
+
 const catalog = [
-  { id: "blast", name: "Chain blast", rarity: "rare", duration: 0 },
-  { id: "titan", name: "Titan", rarity: "epic", duration: 10 },
-  { id: "flight", name: "Jet flight", rarity: "legendary", duration: 12 },
+  { id: "blast", name: "Chain blast", rarity: "rare", duration: 0, weight: 25, color: "#ffcf83" },
+  { id: "magnet", name: "Ember magnet", rarity: "rare", duration: 8, weight: 24, color: "#f8a782" },
+  { id: "overclock", name: "Overclock", rarity: "rare", duration: 7, weight: 18, color: "#91e7ff" },
+  { id: "titan", name: "Titan", rarity: "epic", duration: 10, weight: 15, color: "#eac5fb" },
+  { id: "shield", name: "Prism shield", rarity: "epic", duration: 6, weight: 12, color: "#9bf1bf" },
+  {
+    id: "flight",
+    name: "Jet flight",
+    rarity: "legendary",
+    duration: 12,
+    weight: 6,
+    color: "#ffe3a8",
+  },
 ] as const;
-function activate(state: GameState) {
-  if (
-    state.mode !== "playing" ||
-    state.hits >= state.health ||
-    state.activePowerup ||
-    (state.grounding && state.powerups[0] === "flight") ||
-    !state.powerups.length
-  )
-    return false;
-  const id = state.powerups.shift()!;
-  const item = catalog.find((p) => p.id === id)!;
-  if (id === "blast") {
-    for (const o of state.objects)
-      if (
-        o.kind === "enemy" &&
-        o.x + o.w > 0 &&
-        o.x < Config.width &&
-        o.y + o.h > 0 &&
-        o.y < Config.height
-      )
-        Combat.damage(state, o, 10000, "blast");
-  } else state.activePowerup = { id, remaining: item.duration };
-  state.events.push({
-    type: "powerup",
-    x: state.player.x,
-    y: state.player.y,
-    label: item.name.toUpperCase(),
-  });
-  return true;
+
+function definition(id: string) {
+  return catalog.find((item) => item.id === id);
+}
+function drop(state: GameState) {
+  return Random.weighted(state.rng, catalog);
 }
 function collect(state: GameState, object: WorldObject) {
+  if (object.dead || state.mode !== "playing" || state.hits >= state.health) return false;
   if (object.kind === "heart") {
     object.dead = true;
     state.hits = Math.max(0, state.hits - (object.rarity === "rare" ? 2 : 1));
@@ -48,36 +38,60 @@ function collect(state: GameState, object: WorldObject) {
     });
     return true;
   }
-  if (object.kind === "powerup") {
-    if (state.powerups.length >= 3) return true;
-    object.dead = true;
-    state.powerups.push(object.variant as PowerupId);
-    state.events.push({ type: "powerup", x: object.x, y: object.y, label: "POWER STORED" });
-    return true;
+  const item = object.kind === "powerup" && definition(object.variant);
+  if (!item) return false;
+  object.dead = true;
+  if (item.id === "blast") {
+    for (const target of state.objects) {
+      const visible =
+        target.x + target.w > 0 &&
+        target.x < state.stats.blastReach &&
+        target.y + target.h > 0 &&
+        target.y < Config.height;
+      if (visible && (target.kind === "enemy" || target.kind === "hazard"))
+        Combat.damage(state, target, 10000, "blast");
+    }
+  } else {
+    state.activePowerups[item.id] = item.duration * state.stats.powerDuration;
+    if (item.id === "flight") state.grounding = false;
   }
-  return false;
+  state.events.push({ type: "powerup", x: object.x, y: object.y, label: item.name.toUpperCase() });
+  return true;
 }
+
+function attracts(state: GameState, object: WorldObject) {
+  return (
+    state.activePowerups.magnet &&
+    object.kind === "ember" &&
+    Math.hypot(object.x + object.w / 2 - state.player.x - 6, object.y - state.player.y - 9) <=
+      state.stats.magnetRadius
+  );
+}
+
 function update(state: GameState, dt: number) {
-  if (!state.activePowerup) return;
-  state.activePowerup.remaining -= dt;
-  if (state.activePowerup.id === "flight") {
-    state.player.vy -= Config.gravity * dt * 0.82;
-    state.player.vy = Math.min(28, state.player.vy);
-    if (state.player.y > Config.floor - 45) {
-      state.player.y = Config.floor - 45;
-      state.player.vy = 0;
-    }
-    if (state.player.y < 25) {
-      state.player.y = 25;
-      state.player.vy = Math.max(0, state.player.vy);
-    }
-    state.player.jumps = 0;
+  for (const { id } of catalog) {
+    const remaining = state.activePowerups[id];
+    if (remaining === undefined) continue;
+    if (remaining <= dt) delete state.activePowerups[id];
+    else state.activePowerups[id] = remaining - dt;
   }
-  if (state.activePowerup.remaining <= 0) state.activePowerup = null;
+  if (state.activePowerups.flight && !state.ship) {
+    const player = state.player;
+    player.vy = Math.min(28, player.vy - Config.gravity * dt * 0.82);
+    if (player.y > Config.floor - 45) {
+      player.y = Config.floor - 45;
+      player.vy = 0;
+    }
+    if (player.y < 25) {
+      player.y = 25;
+      player.vy = Math.max(0, player.vy);
+    }
+    player.jumps = 0;
+  }
 }
 function land(state: GameState, previousY: number, dt: number) {
   const p = state.player;
-  if (p.vy < 0 || state.grounding || state.activePowerup?.id === "flight") return;
+  if (p.vy < 0 || state.grounding || state.activePowerups.flight) return;
   for (const o of state.objects) {
     if (o.kind !== "platform" || o.dead) continue;
     if (
@@ -92,4 +106,4 @@ function land(state: GameState, previousY: number, dt: number) {
     }
   }
 }
-export = { catalog, activate, collect, update, land };
+export = { catalog, definition, drop, collect, update, attracts, land };

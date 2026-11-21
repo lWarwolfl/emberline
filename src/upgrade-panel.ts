@@ -8,6 +8,7 @@ const names = {
   jump: "Jump height",
   damage: "Attack damage",
   triple: "Triple jump",
+  power: "Power core",
 };
 function benefit(id: UpgradeId, levels: UpgradeLevels) {
   const stats = Upgrades.stats(levels);
@@ -18,6 +19,8 @@ function benefit(id: UpgradeId, levels: UpgradeLevels) {
       return "~" + Math.round(stats.jumpVelocity ** 2 / (2 * Config.gravity)) + "px";
     case "damage":
       return "+" + Math.round((stats.damageMultiplier - 1) * 100) + "%";
+    case "power":
+      return "+" + Math.round((stats.powerDuration - 1) * 100) + "% duration";
     case "triple":
       return stats.maxJumps + " jumps";
   }

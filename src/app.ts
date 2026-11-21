@@ -95,14 +95,18 @@ function create(doc: Document) {
   let sawCountdown = false;
   let sentStrafe = 99;
   let sentCrouch = false;
+  let sentClimb = false;
   function syncPose(playing: boolean) {
     if (doc.querySelector("dialog[open]")) Input.release();
     const pose = Input.pose();
     if (!session.active) {
       sentStrafe = 99;
+      sentCrouch = false;
+      sentClimb = false;
       if (playing) {
         state.strafe = pose.strafe;
         state.crouching = pose.crouch;
+        state.climb = pose.climb;
       }
       return;
     }
@@ -112,6 +116,10 @@ function create(doc: Document) {
       session.action(
         pose.strafe < 0 ? "strafe-left" : pose.strafe > 0 ? "strafe-right" : "strafe-stop",
       );
+    }
+    if (pose.climb !== sentClimb) {
+      sentClimb = pose.climb;
+      session.action(pose.climb ? "climb" : "level");
     }
     if (pose.crouch !== sentCrouch) {
       sentCrouch = pose.crouch;
@@ -240,12 +248,12 @@ function create(doc: Document) {
     down: [35, "#ec9865", 65],
     pad: [45, "#9de9c2", 85],
     deflect: [16, "#fff0b4", 60],
+    "ship-crash": [50, "#ffae62", 105],
     "enemy-shot": [5, "#ff8a93", 25],
     jump: [10, "#d3c294", 25],
     dash: [25, "#b6dbc3", 90],
     pickup: [12, "#ffcb7c", 50],
     heal: [18, "#f06d78", 40],
-    "powerup-pickup": [22, "#e9cd91", 50],
     powerup: [35, "#ffae62", 75],
     explosion: [40, "#ffae62", 90],
     smash: [32, "#b6dbc3", 90],
@@ -281,8 +289,11 @@ function create(doc: Document) {
           particles.burst(event.x, event.y, reducedMotion ? 8 : 22, "#ffae62", 80);
           if (!reducedMotion) particles.burst(event.x, event.y, 14, "#fff2c9", 48, 0, 0.7);
           break;
+        case "ship-crash":
+          feedback.shake = 5;
+          ui.announce(event.label ?? "ON FOOT", 2);
+          break;
         case "heal":
-        case "powerup-pickup":
         case "powerup":
           ui.announce(event.label ?? "POWER-UP", 2);
           break;
@@ -375,11 +386,6 @@ function create(doc: Document) {
         if (session.active) session.action("attack");
         else Engine.attack(state);
       },
-      powerup() {
-        audio.unlock();
-        if (session.active) session.action("powerup");
-        else Engine.powerup(state);
-      },
       effects(enabled) {
         particles.setEnabled(enabled);
         saves.write("effects", enabled);
@@ -441,7 +447,7 @@ function create(doc: Document) {
       syncPose(true);
       Engine.update(state, dt);
       handleEvents();
-      if (Math.random() < dt * 24)
+      if (!state.ship && Math.random() < dt * 24)
         particles.burst(
           state.player.x - 3,
           state.player.y + 12,

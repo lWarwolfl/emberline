@@ -1,10 +1,12 @@
 import type { Cape, Jetpack, Traversal } from "./types";
-import type { GameState, WorldObject } from "./types";
+import type { GameState, ShipFlight, WorldObject } from "./types";
 import Config from "./config";
 import Pixel from "./pixel";
 import Loadout from "./loadout";
 import Cloth from "./cloth";
 import Combat from "./combat";
+import Ships from "./ships";
+import Powerups from "./powerups";
 
 function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   const { rect, line, triangle } = Pixel.create(ctx);
@@ -109,7 +111,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
 
   function courier(x: number, y: number, time: number, dashing: boolean, state: GameState) {
     ctx.save();
-    if (state.activePowerup?.id === "titan") {
+    if (state.activePowerups.titan) {
       ctx.translate(x, y + Config.playerHeight);
       ctx.scale(1.6, 1.6);
       x = 0;
@@ -124,9 +126,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     const capeType = Loadout.find(Loadout.capes, equipment.cape);
     const pack = Loadout.find(
       Loadout.jetpacks,
-      state.activePowerup?.id === "flight" && equipment.jetpack === "none"
-        ? "ember"
-        : equipment.jetpack,
+      state.activePowerups.flight && equipment.jetpack === "none" ? "ember" : equipment.jetpack,
     );
     const weapon = Loadout.find(Loadout.weapons, equipment.weapon);
     const step = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
@@ -137,7 +137,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       y + 7 + chestDrop,
       time,
       pack,
-      dashing || state.player.jumps > 0 || state.activePowerup?.id === "flight",
+      dashing || state.player.jumps > 0 || Boolean(state.activePowerups.flight),
     );
     if (dashing) {
       line(x - 34, y + 2 + chestDrop, 18, "#b9e4d0");
@@ -406,7 +406,8 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         line(x + 2, y + h - 1, w - 4, "#52685c");
       }
     } else if (o.kind === "heart" || o.kind === "powerup") {
-      const color =
+      const power = o.kind === "powerup" ? Powerups.definition(o.variant) : undefined;
+      const rarityColor =
         o.rarity === "legendary"
           ? "#ffe0a3"
           : o.rarity === "epic"
@@ -415,7 +416,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
               ? "#9bd7e5"
               : "#b6dbc3";
       rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-      line(o.x - 3, o.y - 3, o.w + 6, color);
+      line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
       if (o.kind === "heart") {
         const heartColor = "#f06d78";
         rect(o.x, o.y, 3, 3, heartColor);
@@ -424,16 +425,13 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(o.x + 2, o.y + 5, 4, 2, heartColor);
         rect(o.x + 3, o.y + 7, 2, 1, heartColor);
         rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
-      } else {
-        rect(o.x + 2, o.y, 5, 9, color);
-        line(o.x, o.y + 4, 9, color);
+      } else if (power) {
+        rect(o.x + 2, o.y, 5, 9, power.color);
+        line(o.x, o.y + 4, 9, power.color);
+        rect(o.x + 3, o.y + 2, 2, 5, "#233d35");
         ctx.font = "5px monospace";
-        ctx.fillStyle = color;
-        ctx.fillText(
-          o.variant === "blast" ? "BLAST" : o.variant === "titan" ? "TITAN" : "FLIGHT",
-          o.x - 7,
-          o.y - 7,
-        );
+        ctx.fillStyle = power.color;
+        ctx.fillText(power.name.toUpperCase(), o.x - 7, o.y - 7);
       }
     } else if (o.kind === "ember") {
       const thin = Math.sin(time * 5 + o.x * 0.025) > 0.7;
@@ -523,6 +521,69 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       y - (device.kind === "portal" ? 5 : 24),
     );
   }
+  function ship(x: number, y: number, flight: ShipFlight, firing: boolean, time: number) {
+    const { color } = Ships.catalog[flight.id];
+    const crashing = flight.phase === "crash";
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y + 7));
+    if (crashing && !reducedMotion) ctx.rotate(Math.min(0.47, flight.age * 0.6));
+    const thrust = reducedMotion ? 5 : 5 + (Math.floor(time * 26) % 7);
+    if (flight.id === "sparrow") {
+      rect(-14, -4, 28, 11, color);
+      rect(11, -2, 15, 7, color);
+      rect(-11, -10, 8, 8, "#8c8177");
+      rect(-8, 4, 21, 6, "#685d59");
+      rect(16, 3, 12, 2, "#d5c9af");
+    } else if (flight.id === "lancer") {
+      rect(-17, -4, 23, 10, "#758b9b");
+      rect(-2, -6, 20, 14, color);
+      rect(14, -1, 16, 4, color);
+      rect(-11, 5, 12, 6, "#536879");
+      rect(-19, -10, 11, 4, color);
+    } else {
+      rect(-15, -7, 29, 16, color);
+      rect(13, -5, 11, 12, "#86938a");
+      rect(-19, -9, 6, 6, "#62756b");
+      rect(-17, 6, 18, 6, "#65776f");
+      rect(21, -4, 9, 3, color);
+      rect(21, 5, 9, 3, color);
+    }
+    // All hulls expose the same wiring seam where the side plate is missing.
+    rect(-12, -2, 11, 7, "#252d30");
+    rect(-10, -1, 5, 1, "#dc805d");
+    rect(-6, 0, 2, 4, "#dc805d");
+    rect(-3, -1, 2, 3, "#ffd590");
+    rect(2, -4, 10, 7, "#203d4e");
+    line(3, -3, 7, "#b5f5eb");
+    rect(4, -1, 3, 3, "#6bafb2");
+    rect(17, 0, 13, 3, "#5b6a74");
+    rect(28, 0, 2, 2, color);
+    if (firing && !crashing) {
+      rect(30, -2, 5, 6, color);
+      rect(32, 0, 6, 2, "#fff1c7");
+    }
+    if (!crashing) {
+      rect(-17 - thrust, 0, thrust, 3, "#de835a");
+      rect(-20, 0, 4, 2, "#ffdf9a");
+    }
+    if (!reducedMotion) {
+      for (let i = 0; i < (crashing ? 7 : 3); i++) {
+        const age = (time * 24 + i * 5) % (crashing ? 28 : 16);
+        rect(-12 - age, -3 - age * 0.52, 2 + Math.floor(age / 8), 2, i % 2 ? "#767e83" : "#626972");
+      }
+    }
+    if (crashing) {
+      rect(-9, -4, 4, 7, "#d47751");
+      rect(-7, -6, 2, 4, "#ffe0a2");
+      if (flight.age > 0.82) {
+        const spread = Math.floor((flight.age - 0.82) * 38);
+        line(-14 - spread, 9, 40 + spread * 2, "#ffb27b");
+        rect(-5, 5, 16, 5, "#fff0ba");
+      }
+    }
+    ctx.restore();
+  }
+
   function travelEffect(state: GameState) {
     const effect = state.traversalEffect;
     if (effect?.kind !== "pad") return;
@@ -538,6 +599,6 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
     ctx.restore();
   }
-  return { courier, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
+  return { courier, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
 }
 export = { create };

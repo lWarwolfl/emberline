@@ -1,6 +1,7 @@
 import type { Particle, Feedback, Popup } from "./types";
 import type { GameState } from "./types";
 import Config from "./config";
+import Ships from "./ships";
 import * as Party from "./party";
 import Pixel from "./pixel";
 import Backgrounds from "./backgrounds";
@@ -34,6 +35,36 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
     return { x: player.x - (reducedMotion ? 0 : 5 * (1 - alpha)), y: player.y, alpha };
   }
 
+  function shield(x: number, y: number, ship: boolean) {
+    const radius = ship ? 28 : 13;
+    for (let i = 0; i < 14; i++) {
+      const angle = (i * Math.PI * 2) / 14;
+      rect(x + 6 + Math.cos(angle) * radius, y + 8 + Math.sin(angle) * 13, 2, 2, "#9bf1bf");
+    }
+  }
+
+  function drawSky(state: GameState, amount: number) {
+    ctx.save();
+    ctx.globalAlpha = amount;
+    rect(0, 0, Config.width, Config.height, "#101e2c");
+    rect(0, 91, Config.width, 45, "#152b39");
+    rect(0, 136, Config.width, 47, "#213e4b");
+    rect(0, 183, Config.width, 57, "#345363");
+    const distance = state.distance - state.parallax;
+    for (let i = 0; i < 30; i++) {
+      const x = (((i * 173 - distance * 0.09) % 500) + 500) % 500;
+      rect(x, 13 + ((i * 47) % 103), i % 5 ? 1 : 2, 1, i % 5 ? "#69919d" : "#c3d8d3");
+    }
+    for (let i = 0; i < 8; i++) {
+      const x = ((((i * 139 - distance * 0.35) % 560) + 560) % 560) - 65;
+      const y = 146 + ((i * 27) % 85);
+      rect(x, y + 8, 70, 9, "#52717a");
+      rect(x + 9, y + 3, 43, 6, "#52717a");
+      rect(x + 22, y, 23, 4, "#6d888a");
+    }
+    ctx.restore();
+  }
+
   function draw(
     state: GameState,
     time: number,
@@ -62,6 +93,7 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
       time,
       state,
     );
+    if (world.ship) drawSky(state, Ships.skyAmount(world.ship));
     if (state.mode === "menu") {
       for (let i = 0; i < 5; i++)
         sprites.object(
@@ -91,7 +123,7 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
         if (object.kind !== "platform") sprites.object(object, time);
       if (party) {
         const beacon = party.checkpoint;
-        if (beacon) {
+        if (beacon && !world.ship) {
           const pulse = reducedMotion ? 0.8 : 0.65 + Math.sin(beacon.age * 4) * 0.25;
           const x = beacon.x + 11;
           ctx.save();
@@ -132,7 +164,9 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
           const { x, y, alpha } = portalPose(world, s);
           ctx.save();
           ctx.globalAlpha = alpha;
-          sprites.courier(x, y, time, s.dash > 0, s);
+          if (world.ship) sprites.ship(x, y, world.ship, s.attackTime > 0, time);
+          else sprites.courier(x, y, time, s.dash > 0, s);
+          if (s.activePowerups.shield) shield(x, y, Boolean(world.ship));
           ctx.font = "bold 5px monospace";
           ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
           ctx.textAlign = "center";
@@ -148,12 +182,15 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
         }
       } else if (
         state.mode !== "dead" &&
-        !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2)
+        (world.ship ||
+          !(state.invincible > 0 && !state.traversalEffect && Math.floor(time * 15) % 2))
       ) {
         const { x, y, alpha } = portalPose(state, state);
         ctx.save();
         ctx.globalAlpha = alpha;
-        sprites.courier(x, y, time, state.dash > 0, state);
+        if (world.ship) sprites.ship(x, y, world.ship, state.attackTime > 0, time);
+        else sprites.courier(x, y, time, state.dash > 0, state);
+        if (state.activePowerups.shield) shield(x, y, Boolean(world.ship));
         ctx.restore();
       }
     }

@@ -1,5 +1,6 @@
 import type { GameState, WorldObject } from "./types";
 import Config from "./config";
+import Ships from "./ships";
 import Loadout from "./loadout";
 
 const armor: Partial<Record<string, number>> = { crate: 1, barrier: 1, stack: 2.6 };
@@ -28,7 +29,7 @@ function breakable(object: WorldObject) {
 
 function damage(state: GameState, object: WorldObject, amount: number, method: string) {
   if (object.dead || !breakable(object)) return false;
-  if (method !== "shot" && state.activePowerup?.id === "titan") amount *= 2.5;
+  if (method !== "shot" && state.activePowerups.titan) amount *= state.stats.titanMultiplier;
   object.hp = Math.round(((object.hp ?? durability(object)) - amount) * 1000) / 1000;
   if (object.hp > 0) {
     state.events.push({ type: "armor", x: object.x, y: object.y, label: "HIT" });
@@ -62,8 +63,33 @@ function barrelLength(id: string) {
 
 function attack(state: GameState) {
   if (state.mode !== "playing" || state.attackCooldown > 0) return false;
+  const recharge = state.activePowerups.overclock ? state.stats.overclockRate : 1;
+  const titan = state.activePowerups.titan ? state.stats.titanMultiplier : 1;
+  const damageScale = state.stats.damageMultiplier * titan;
+  if (state.ship) {
+    if (state.ship.phase === "crash") return false;
+    const ship = Ships.catalog[state.ship.id];
+    const x = state.player.x + 30;
+    const y = state.player.y + 8;
+    state.attackCooldown = ship.cooldown / recharge;
+    state.attackTime = 0.13;
+    state.events.push({ type: "shoot", x, y });
+    for (const angle of ship.angles) {
+      state.projectiles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * 430,
+        vy: Math.sin(angle) * 430,
+        life: 1.2,
+        damage: ship.damage * damageScale,
+        color: ship.color,
+        pierce: ship.pierce,
+      });
+    }
+    return true;
+  }
   const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon);
-  state.attackCooldown = weapon.cooldown;
+  state.attackCooldown = weapon.cooldown / recharge;
   state.attackTime = weapon.duration || 0.12;
   state.attackId++;
   state.events.push({
@@ -75,8 +101,7 @@ function attack(state: GameState) {
   const x = state.player.x + 15,
     y = state.player.y + 9;
   const speed = weapon.speed!;
-  const damage =
-    weapon.damage * state.stats.damageMultiplier * (state.activePowerup?.id === "titan" ? 2.5 : 1);
+  const damage = weapon.damage * damageScale;
   if (weapon.id === "nova") {
     for (const angle of [-0.72, -0.36, 0, 0.36, 0.72])
       state.projectiles.push({
@@ -156,7 +181,7 @@ function guide(bolts: GameState["projectiles"], objects: WorldObject[], dt: numb
 
 function update(state: GameState, dt: number, moveProjectiles = true) {
   const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon);
-  if (state.attackTime > 0 && weapon.id === "punch") {
+  if (!state.ship && state.attackTime > 0 && weapon.id === "punch") {
     for (const object of state.objects) {
       if (object.dead || object.lastPunch === state.attackId) continue;
       if (

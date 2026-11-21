@@ -79,6 +79,7 @@ async function main() {
       jump: 0,
       damage: 0,
       triple: 0,
+      power: 0,
     });
     assert.equal(await page.locator("#best").innerText(), "000000");
     assert.equal(await page.locator("#sound").innerText(), "SOUND OFF");

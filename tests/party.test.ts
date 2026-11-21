@@ -260,6 +260,13 @@ test("beacons start at 5000m and preserve the route across biome transitions", (
   const beacon = r.checkpoint;
   Party.update(r, 1 / 60);
   assert.equal(r.checkpoint, beacon);
+  const beaconX = beacon.x;
+  Party.update(r, 0.1);
+  assert.equal(beacon.x, beaconX);
+  r.world.time = Config.sectorSeconds * 3 - 0.001;
+  for (let i = 0; i < 13; i++) Party.update(r, 0.1);
+  assert.equal(r.world.ship, null);
+  assert.equal(r.checkpoint, beacon);
   r.world.distance = 5300;
   r.checkpoint.x = -81;
   Party.update(r, 1 / 120);

@@ -93,6 +93,7 @@ function create(initialMuted = false) {
           tone(freq, 0.22, "sine", 0.04, freq * 1.5, i * 0.08),
         );
         break;
+      case "ship-launch":
       case "pad":
         tone(180, 0.3, "triangle", 0.06, 900);
         noise(0.12, 0.025);
@@ -122,6 +123,7 @@ function create(initialMuted = false) {
       case "powerup":
         tone(330, 0.3, "triangle", 0.04, 1320);
         break;
+      case "ship-crash":
       case "explosion":
         noise(0.22, 0.1);
         tone(120, 0.22, "square", 0.04, 35);

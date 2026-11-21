@@ -21,7 +21,6 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   let open = false;
   let focused: string;
   let jumps = 0;
-  let powers = 0;
   let grounds = 0;
   let controls = 0;
   const canvas = Object.assign(new Node(), {
@@ -37,7 +36,6 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   const actions = new Proxy(
     {
       jump: () => jumps++,
-      powerup: () => powers++,
       ground: () => grounds++,
       controls: () => controls++,
     },
@@ -59,21 +57,13 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     assert(event.defaultPrevented);
   }
   assert.equal(jumps, 3);
-  doc.dispatchEvent(
-    Object.assign(new Event("keydown", { cancelable: true }), {
-      code: "KeyC",
-      key: "c",
-      repeat: false,
-    }),
-  );
-  assert.equal(powers, 1);
   for (const code of ["KeyS", "ArrowDown", "KeyH"])
     doc.dispatchEvent(
       Object.assign(new Event("keydown", { cancelable: true }), { code, key: code, repeat: false }),
     );
   assert.equal(grounds, 2);
   assert.equal(controls, 1);
-  assert.deepEqual(Input.pose(), { strafe: 0, crouch: true });
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: true, climb: false });
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
       code: "KeyA",
@@ -81,7 +71,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
       repeat: false,
     }),
   );
-  assert.deepEqual(Input.pose(), { strafe: -1, crouch: true });
+  assert.deepEqual(Input.pose(), { strafe: -1, crouch: true, climb: false });
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyA" }));
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
@@ -90,10 +80,20 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
       repeat: false,
     }),
   );
-  assert.deepEqual(Input.pose(), { strafe: 1, crouch: true });
+  assert.deepEqual(Input.pose(), { strafe: 1, crouch: true, climb: false });
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyD" }));
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyS" }));
-  assert.deepEqual(Input.pose(), { strafe: 0, crouch: false });
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: false, climb: false });
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "ArrowUp",
+      key: "ArrowUp",
+      repeat: false,
+    }),
+  );
+  assert(Input.pose().climb);
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "ArrowUp" }));
+  assert(!Input.pose().climb);
   summaryFocused = true;
   const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
     code: "Space",
@@ -102,7 +102,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   });
   doc.dispatchEvent(summarySpace);
   assert.equal(summarySpace.defaultPrevented, false);
-  assert.equal(jumps, 3);
+  assert.equal(jumps, 4);
   summaryFocused = false;
   open = true;
   focused = "nested-menu";
@@ -114,16 +114,8 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     repeat: false,
   });
   doc.dispatchEvent(space);
-  assert.equal(jumps, 3);
+  assert.equal(jumps, 4);
   assert.equal(space.defaultPrevented, false);
-  doc.dispatchEvent(
-    Object.assign(new Event("keydown", { cancelable: true }), {
-      code: "KeyC",
-      key: "c",
-      repeat: false,
-    }),
-  );
-  assert.equal(powers, 1);
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
       code: "KeyS",

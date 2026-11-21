@@ -3,6 +3,8 @@ import type { Mode } from "./types";
 import type { GameState } from "./types";
 import Content from "./content";
 import Loadout from "./loadout";
+import Powerups from "./powerups";
+import Ships from "./ships";
 
 const format = (value: bigint | number) => value.toString().padStart(6, "0");
 
@@ -44,12 +46,10 @@ function create(doc: Document) {
     attack: element(doc, "attack", "button"),
   };
   const dashBar = el["dash-state"].querySelector("i")!;
-  const powerupButton = element(doc, "powerup", "button");
-  const touchPowerup = element(doc, "touch-powerup", "button");
-  const queue = element(doc, "powerup-queue");
-  const powerupNames = { blast: "BLAST", titan: "TITAN", flight: "FLIGHT" };
-  const powerupRarities = { blast: "rare", titan: "epic", flight: "legendary" };
-  let queueSignature = "";
+  const powerStatus = byId("powerup-active");
+  const flightControls = byId("ship-controls");
+  const shipName = byId("ship-name");
+  const shipBrief = byId("ship-brief");
   let announcementTime = 0;
   let countdownDigit = "";
   let countdownGoTime = 0;
@@ -59,48 +59,31 @@ function create(doc: Document) {
   const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild as HTMLElement;
 
   function render(state: GameState, best: bigint, coins = 0n) {
-    const signature = state.powerups.join(",");
-    if (signature !== queueSignature || !queue.children[0]?.hasAttribute("data-slot")) {
-      queueSignature = signature;
-      queue.replaceChildren(
-        ...Array.from({ length: 3 }, (_, i) => {
-          const slot = doc.createElement("li");
-          const id = state.powerups[i];
-          slot.dataset.slot = String(i + 1);
-          slot.textContent = id ? powerupNames[id] : "—";
-          slot.setAttribute("aria-label", `Slot ${i + 1}: ${id ? powerupNames[id] : "empty"}`);
-          if (id) {
-            slot.dataset.rarity = powerupRarities[id];
-            slot.title = `${powerupRarities[id]} · ${i === 0 ? "Next to activate" : "Queued"}`;
-          }
-          return slot;
-        }),
-      );
+    const powers = Powerups.catalog
+      .flatMap(({ id, name }) => {
+        const remaining = state.activePowerups[id];
+        return remaining ? [name.toUpperCase() + " " + Math.ceil(remaining) + "s"] : [];
+      })
+      .join(" · ");
+    if (powerStatus.textContent !== powers) powerStatus.textContent = powers;
+    const ship = state.ship;
+    const inFlight = Boolean(
+      ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,
+    );
+    flightControls.hidden = !inFlight;
+    el.shell.classList.toggle("in-flight", Boolean(ship));
+    if (ship && inFlight) {
+      shipName.textContent = Ships.catalog[ship.id].name.toUpperCase();
+      shipBrief.hidden = ship.phase !== "launch" && ship.wave > 0;
     }
-    byId("powerup-count").textContent = `${state.powerups.length} / 3`;
-    const active = state.activePowerup;
-    const powerReady =
-      state.mode === "playing" &&
-      state.hits < state.health &&
-      state.powerups.length > 0 &&
-      !active &&
-      !(state.grounding && state.powerups[0] === "flight");
-    powerupButton.disabled = !powerReady;
-    touchPowerup.disabled = !powerReady;
-    powerupButton.textContent = "C / USE";
-    touchPowerup.textContent = state.powerups[0] ? powerupNames[state.powerups[0]] : "POWER-UP";
-    byId("powerup-active").textContent = active
-      ? `${powerupNames[active.id]} · ${Math.ceil(active.remaining)}s`
-      : state.powerups.length
-        ? "Activate in order · C"
-        : "Collect rare drops along the route.";
     el["coin-total"].textContent = coins.toString().padStart(4, "0");
-    const weapon = Loadout.find(Loadout.weapons, state.loadout.weapon).short;
+    const weapon = ship ? "CANNON" : Loadout.find(Loadout.weapons, state.loadout.weapon).short;
     const ready = state.attackCooldown <= 0;
     el.attack.textContent = "X / " + weapon;
     el.attack.disabled = state.mode !== "playing" || !ready;
     el["touch-attack"].textContent = weapon;
-    el["combat-state"].textContent = weapon + (ready ? " READY" : " CHARGING");
+    el["combat-state"].textContent =
+      ship?.phase === "crash" ? "HULL FAILING" : weapon + (ready ? " READY" : " CHARGING");
     byId("jump-count").textContent = "×" + state.stats.maxJumps;
     byId("touch-jump").textContent = "JUMP ×" + state.stats.maxJumps;
     el.score.textContent = format(state.score);
