@@ -809,7 +809,8 @@
       var deck = import_config4.default.floor - import_config4.default.playerHeight;
       var ids = Object.keys(catalog);
       function clearLane(state) {
-        state.objects = state.objects.filter((object) => object.variant === "boss" && !object.dead);
+        for (const object of state.objects) if (object.variant !== "boss") object.dead = true;
+        state.objects = state.objects.filter((object) => !object.dead);
         state.projectiles = [];
         state.hostileProjectiles = [];
         state.traversals = [];
@@ -845,19 +846,59 @@
         flight.wave++;
         flight.nextWave += 3.2;
       }
+      function opportunity(seed, sector) {
+        const rng = import_random2.default.create(`${seed}:ship:${sector}`);
+        return {
+          available: import_random2.default.next(rng) < 0.75,
+          delay: import_random2.default.range(rng, 2, 6),
+          id: import_random2.default.pick(rng, ids),
+          height: import_random2.default.pick(rng, [0, 32, 52]),
+        };
+      }
+      function collect(state, object) {
+        if (
+          object.kind !== "ship" ||
+          object.dead ||
+          state.ship ||
+          state.bossActive ||
+          state.mode !== "playing" ||
+          state.hits >= state.health
+        )
+          return false;
+        const id = object.variant;
+        if (!catalog[id]) return false;
+        state.ship = { id, phase: "launch", age: 0, nextWave: 1.45, wave: 0 };
+        clearLane(state);
+        state.events.push({
+          type: "ship-launch",
+          x: object.x,
+          y: object.y,
+          label: catalog[id].name.toUpperCase() + " / TAKEOFF",
+        });
+        return true;
+      }
       function update2(state, previousSector, dt) {
         const flight = state.ship;
         const changed = previousSector !== state.sector;
         if (!flight) {
-          if (!changed || state.bossActive || state.biomeIndex !== 2) return;
-          const id = ids[(import_random2.default.hash(state.seed) + state.sector) % ids.length];
-          state.ship = { id, phase: "launch", age: 0, nextWave: 1.45, wave: 0 };
-          clearLane(state);
-          state.events.push({
-            type: "ship-launch",
-            x: state.player.x,
-            y: state.player.y,
-            label: catalog[id].name.toUpperCase() + " / TAKEOFF",
+          const offer = opportunity(state.seed, state.sector);
+          if (state.bossActive || state.sector < 2 || !offer.available) return;
+          const due = (state.sector - 1) * import_config4.default.sectorSeconds + offer.delay;
+          if (state.time - dt >= due || state.time < due) return;
+          const x = import_config4.default.width + 36;
+          state.objects = state.objects.filter(
+            (o) =>
+              (o.kind !== "hazard" && o.kind !== "enemy" && o.kind !== "platform") ||
+              o.x + o.w < x - 90 ||
+              o.x > x + 90,
+          );
+          state.objects.push({
+            kind: "ship",
+            variant: offer.id,
+            x,
+            y: deck - offer.height,
+            w: 36,
+            h: 18,
           });
           return;
         }
@@ -915,7 +956,7 @@
         if (flight.phase === "crash") return Math.max(0, 1 - flight.age / (crashTime * 0.8));
         return 1;
       }
-      module.exports = { catalog, update: update2, steer: steer2, skyAmount };
+      module.exports = { catalog, opportunity, collect, update: update2, steer: steer2, skyAmount };
     },
   });
 
@@ -2927,7 +2968,11 @@
         import_powerups3.default.update(state, dt);
         if (!state.ship) {
           import_powerups3.default.land(state, previousY, dt);
-          if (state.distance >= state.next) import_generator3.default.spawn(state);
+          if (
+            state.distance >= state.next &&
+            !state.objects.some((o) => o.kind === "ship" && !o.dead)
+          )
+            import_generator3.default.spawn(state);
         }
         const previousPositions = /* @__PURE__ */ new Map();
         for (const object of state.objects) {
@@ -2972,7 +3017,12 @@
                 state.crouching && !state.ship,
               ))
           ) {
-            if (import_powerups3.default.collect(state, object)) continue;
+            if (
+              import_ships2.default.collect(state, object) ||
+              import_powerups3.default.collect(state, object)
+            )
+              continue;
+            if (object.kind === "ship") continue;
             if (object.kind === "ember") collect(state, object);
             else hit(state, object);
           }
@@ -3298,7 +3348,7 @@
       }
       import_powerups.default.update(s, dt);
     }
-    if (!w.ship && w.distance >= w.next) {
+    if (!w.ship && w.distance >= w.next && !w.objects.some((o) => o.kind === "ship" && !o.dead)) {
       const before = w.objects.length;
       import_generator.default.spawn(w);
       const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -3387,6 +3437,15 @@
       if (target) {
         const s = target.state,
           score = s.score;
+        if (import_ships.default.collect(w, object)) {
+          for (const member of live) {
+            member.state.ship = w.ship;
+            member.state.objects = w.objects;
+            member.state.projectiles = w.projectiles;
+          }
+          continue;
+        }
+        if (object.kind === "ship") continue;
         if (import_powerups.default.collect(s, object)) {
           w.score += s.score - score;
           continue;
@@ -4767,6 +4826,32 @@
     },
   });
 
+  // src/powerup-icons.ts
+  var require_powerup_icons = __commonJS({
+    "src/powerup-icons.ts"(exports, module) {
+      "use strict";
+      var patterns = {
+        blast: ["0001000", "0101010", "0011100", "1111111", "0011100", "0101010", "0001000"],
+        magnet: ["1100011", "1100011", "1100011", "1100011", "1100011", "0111110", "0011100"],
+        overclock: ["0001100", "0011000", "0110000", "1111111", "0000110", "0001100", "0011000"],
+        titan: ["0101010", "1111111", "1111111", "0111110", "0011100", "0011100", "0111110"],
+        shield: ["0111110", "1111111", "1101011", "1101011", "0111110", "0011100", "0001000"],
+        flight: ["0011100", "0111110", "1101011", "1101011", "0111110", "0101010", "1001001"],
+      };
+      function pixels(id) {
+        return patterns[id].flatMap((row, y) =>
+          [...row].flatMap((cell, x) => (cell === "1" ? [{ x, y }] : [])),
+        );
+      }
+      function markup(id) {
+        return `<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges">${pixels(id)
+          .map(({ x, y }) => `<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>`)
+          .join("")}</svg>`;
+      }
+      module.exports = { pixels, markup };
+    },
+  });
+
   // src/sprites.ts
   var require_sprites = __commonJS({
     "src/sprites.ts"(exports, module) {
@@ -4778,6 +4863,7 @@
       var import_combat3 = __toESM(require_combat());
       var import_ships2 = __toESM(require_ships());
       var import_powerups3 = __toESM(require_powerups());
+      var import_powerup_icons = __toESM(require_powerup_icons());
       function create5(ctx, reducedMotion = false) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function cape(x, y, time, definition, state) {
@@ -5194,6 +5280,20 @@
               }
               line(x + 2, y + h - 1, w - 4, "#52685c");
             }
+          } else if (o.kind === "ship") {
+            const id = o.variant;
+            const color = import_ships2.default.catalog[id].color;
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = reducedMotion ? 0 : 12;
+            ctx.globalAlpha = reducedMotion ? 0.35 : 0.3 + Math.sin(time * 3) * 0.1;
+            rect(o.x - 8, o.y + o.h + 3, o.w + 16, 3, color);
+            ctx.restore();
+            ship(o.x + 10, o.y, { id, phase: "flight", age: 0, nextWave: 0, wave: 0 }, false, time);
+            line(o.x - 3, o.y + o.h + 3, o.w + 6, color);
+            ctx.font = "6px monospace";
+            ctx.fillStyle = color;
+            ctx.fillText("BOARD", o.x + 1, o.y - 9);
           } else if (o.kind === "heart" || o.kind === "powerup") {
             const power =
               o.kind === "powerup" ? import_powerups3.default.definition(o.variant) : void 0;
@@ -5205,8 +5305,10 @@
                   : o.rarity === "rare"
                     ? "#9bd7e5"
                     : "#b6dbc3";
-            rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-            line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
+            if (o.kind === "heart") {
+              rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
+              line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
+            }
             if (o.kind === "heart") {
               const heartColor = "#f06d78";
               rect(o.x, o.y, 3, 3, heartColor);
@@ -5216,9 +5318,12 @@
               rect(o.x + 3, o.y + 7, 2, 1, heartColor);
               rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
             } else if (power) {
-              rect(o.x + 2, o.y, 5, 9, power.color);
-              line(o.x, o.y + 4, 9, power.color);
-              rect(o.x + 3, o.y + 2, 2, 5, "#233d35");
+              ctx.save();
+              ctx.shadowColor = power.color;
+              ctx.shadowBlur = reducedMotion ? 0 : 7;
+              for (const { x, y } of import_powerup_icons.default.pixels(power.id))
+                rect(o.x - 2 + x * 2, o.y - 2 + y * 2, 2, 2, power.color);
+              ctx.restore();
               ctx.font = "5px monospace";
               ctx.fillStyle = power.color;
               ctx.fillText(power.name.toUpperCase(), o.x - 7, o.y - 7);
@@ -5689,6 +5794,52 @@
     },
   });
 
+  // src/powerup-hud.ts
+  var require_powerup_hud = __commonJS({
+    "src/powerup-hud.ts"(exports, module) {
+      "use strict";
+      var import_powerups3 = __toESM(require_powerups());
+      var import_powerup_icons = __toESM(require_powerup_icons());
+      function create5(doc, powerStatus) {
+        const powerRows = new Map(
+          import_powerups3.default.catalog
+            .filter((p) => p.duration > 0)
+            .map((p) => {
+              const root = doc.createElement("div");
+              root.className = "power-timer";
+              root.style.setProperty("--power-color", p.color);
+              root.hidden = true;
+              root.innerHTML = `${import_powerup_icons.default.markup(p.id)}<span>${p.name.toUpperCase()}</span><strong></strong><i><b></b></i>`;
+              powerStatus.append(root);
+              return [
+                p.id,
+                { root, time: root.querySelector("strong"), bar: root.querySelector("b") },
+              ];
+            }),
+        );
+        return function render(state) {
+          let active = 0;
+          for (const { id, name, duration } of import_powerups3.default.catalog) {
+            const row = powerRows.get(id);
+            if (!row) continue;
+            const remaining = state.activePowerups[id] ?? 0;
+            row.root.hidden = remaining <= 0;
+            if (remaining <= 0) continue;
+            active++;
+            row.time.textContent = `${Math.ceil(remaining)}s`;
+            row.bar.style.transform = `scaleX(${Math.min(1, remaining / (duration * state.stats.powerDuration))})`;
+            row.root.setAttribute(
+              "aria-label",
+              `${name}: ${Math.ceil(remaining)} seconds remaining`,
+            );
+          }
+          powerStatus.hidden = active === 0;
+        };
+      }
+      module.exports = { create: create5 };
+    },
+  });
+
   // src/ui.ts
   var require_ui = __commonJS({
     "src/ui.ts"(exports, module) {
@@ -5696,8 +5847,8 @@
       init_dom();
       var import_content2 = __toESM(require_content());
       var import_loadout3 = __toESM(require_loadout());
-      var import_powerups3 = __toESM(require_powerups());
       var import_ships2 = __toESM(require_ships());
+      var import_powerup_hud = __toESM(require_powerup_hud());
       var format = (value) => value.toString().padStart(6, "0");
       function create5(doc) {
         const byId = (id) => element(doc, id);
@@ -5735,6 +5886,7 @@
         };
         const dashBar = el["dash-state"].querySelector("i");
         const powerStatus = byId("powerup-active");
+        const renderPowers = import_powerup_hud.default.create(doc, powerStatus);
         const flightControls = byId("ship-controls");
         const shipName = byId("ship-name");
         const shipBrief = byId("ship-brief");
@@ -5746,13 +5898,7 @@
         const countdownFigure = element(doc, "countdown-digit");
         const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild;
         function render(state, best, coins = 0n) {
-          const powers = import_powerups3.default.catalog
-            .flatMap(({ id, name }) => {
-              const remaining = state.activePowerups[id];
-              return remaining ? [name.toUpperCase() + " " + Math.ceil(remaining) + "s"] : [];
-            })
-            .join(" \xB7 ");
-          if (powerStatus.textContent !== powers) powerStatus.textContent = powers;
+          renderPowers(state);
           const ship = state.ship;
           const inFlight = Boolean(
             ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,
@@ -6011,6 +6157,7 @@
           Enter: actions.enter,
           Space: actions.jump,
           ArrowUp: actions.jump,
+          KeyW: actions.jump,
           ShiftLeft: actions.dash,
           ShiftRight: actions.dash,
           KeyX: actions.attack,
@@ -6039,7 +6186,7 @@
             right = false;
             strafe = left ? -1 : 0;
           } else if (event.code === "KeyS" || event.code === "ArrowDown") crouch = false;
-          else if (event.code === "ArrowUp") climb = false;
+          else if (event.code === "ArrowUp" || event.code === "KeyW") climb = false;
         });
         doc.addEventListener("keydown", (event) => {
           if (doc.querySelector("dialog[open]")) {
@@ -6059,7 +6206,7 @@
             return;
           }
           if (!event.repeat && (event.code === "KeyS" || event.code === "ArrowDown")) crouch = true;
-          if (!event.repeat && event.code === "ArrowUp") climb = true;
+          if (!event.repeat && (event.code === "ArrowUp" || event.code === "KeyW")) climb = true;
           if (
             event.target instanceof Element &&
             event.target.matches("button,input,textarea,select,a,summary") &&

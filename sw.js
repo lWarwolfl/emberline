@@ -2,7 +2,7 @@
 "use strict";
 (() => {
   // src/service-worker.ts
-  var CACHE = "emberline-v7.1.16";
+  var CACHE = "emberline-v7.1.17";
   var ASSETS = [
     "./",
     "./index.html",
