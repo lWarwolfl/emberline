@@ -9,6 +9,7 @@ interface Options {
 interface User {
   id: string;
   username: string;
+  supporter?: boolean;
 }
 class RequestError extends Error {
   constructor(
@@ -337,6 +338,14 @@ export function create(doc: Document, options: Options) {
       if (!sessionChecked || (user && !initialized && !conflict)) void sync();
     },
     sync,
+    async refreshEntitlements() {
+      const result = await request<{ user: User | null }>("session");
+      if (result.user?.id !== user?.id)
+        throw new Error("Your account changed. Log in again before claiming.");
+      user = result.user;
+      report(status);
+      return user?.id ?? null;
+    },
     get status() {
       return status;
     },

@@ -170,6 +170,14 @@
       <footer class="control-dock">
         <nav class="toolbar" aria-label="Game menus and settings">
           <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP</button>
+          <button
+            id="donate"
+            type="button"
+            aria-haspopup="dialog"
+            title="Donate any amount to unlock fiery supporter skins"
+          >
+            DONATE
+          </button>
           <button id="party" title="Host or join up to four players">PARTY / LAN</button>
           <button id="sound" title="Toggle sound (M)" aria-pressed="true">SOUND ON</button>
           <button id="pause" title="Pause (P)">Ⅱ PAUSE</button>
@@ -195,6 +203,161 @@
           CROUCH</button
         ><button id="touch-dash">DASH</button><button id="touch-attack">PUNCH</button>
       </div>
+
+      <dialog id="donation-dialog" aria-labelledby="donation-heading">
+        <header class="setup-header">
+          <div>
+            <span class="label">SUPPORT THE NEXT RUN</span>
+            <h2 id="donation-heading">FUEL THE <em>EMBER.</em></h2>
+          </div>
+          <button
+            id="donation-close"
+            class="close-button"
+            type="button"
+            aria-label="Close donations"
+          >
+            &#10005;
+          </button>
+        </header>
+        <div class="donation-body">
+          <aside class="donation-reward">
+            <span id="donation-lock">LOCKED / FLAMEBOUND COLLECTION</span>
+            <canvas
+              id="donation-preview"
+              width="160"
+              height="110"
+              aria-label="Preview of fiery supporter skins"
+            ></canvas>
+            <h3 id="donation-skin-name">CINDER CROWN</h3>
+            <p id="donation-skin-copy"></p>
+            <div class="donation-skins">
+              <button id="donation-cinder" type="button" aria-pressed="true">CINDER CROWN</button
+              ><button id="donation-solar" type="button" aria-pressed="false">SOLAR WRAITH</button>
+            </div>
+            <p class="donation-promise">ANY AMOUNT.<br />BOTH SKINS. FOREVER.</p>
+            <p>Cosmetic only. The same runner abilities, with a brighter flame.</p>
+            <button id="donation-equip" type="button" class="primary" hidden>
+              EQUIP THIS SKIN
+            </button>
+          </aside>
+          <div class="donation-steps">
+            <section>
+              <h3><span>01</span> KEEP IT WITH YOUR ACCOUNT</h3>
+              <p>Log in to claim. Your verified skins follow your account across devices.</p>
+              <button id="donation-login" type="button">LOG IN / CREATE ACCOUNT</button>
+            </section>
+            <section>
+              <h3><span>02</span> SEND WHAT YOU CHOOSE</h3>
+              <label for="donation-network">COIN &amp; NETWORK</label
+              ><select id="donation-network"></select>
+              <strong id="donation-asset"></strong>
+              <p>
+                Direct native-coin transfers only. Tokens such as USDT and USDC are not accepted for
+                rewards.
+              </p>
+              <p class="donation-signing-note">
+                Before sending: use a wallet that can sign messages. Exchange withdrawals and
+                wallets without message signing cannot claim skins. Never enter a recovery phrase or
+                private key.
+              </p>
+              <div class="donation-address-row">
+                <canvas id="donation-qr" aria-label="Receiving address QR code"></canvas>
+                <div>
+                  <label for="donation-address">CREATOR'S RECEIVING ADDRESS</label
+                  ><input id="donation-address" readonly spellcheck="false" /><button
+                    id="donation-copy"
+                    type="button"
+                  >
+                    COPY ADDRESS
+                  </button>
+                </div>
+              </div>
+              <p>
+                Choose any positive amount in your wallet. Network fees are separate. Check the
+                coin, network and address before sending.
+              </p>
+              <p id="donation-confirmations"></p>
+            </section>
+            <form id="donation-form">
+              <h3><span>03</span> CLAIM YOUR FLAME</h3>
+              <label for="donation-tx">TRANSACTION ID</label
+              ><input
+                id="donation-tx"
+                required
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="100"
+                placeholder="Paste the transaction ID from your wallet"
+              />
+              <label for="donation-sender">SENDING WALLET ADDRESS</label
+              ><input
+                id="donation-sender"
+                required
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="100"
+                placeholder="The address that sent the donation"
+              /><button id="donation-connect" type="button">USE CONNECTED WALLET ADDRESS</button>
+              <div class="donation-personal">
+                <div>
+                  <label for="donation-name">SUPPORTER NAME (OPTIONAL)</label
+                  ><input
+                    id="donation-name"
+                    maxlength="80"
+                    placeholder="Defaults to your account username"
+                  />
+                </div>
+                <div>
+                  <label for="donation-email">EMAIL (OPTIONAL)</label
+                  ><input
+                    id="donation-email"
+                    type="email"
+                    maxlength="254"
+                    autocomplete="email"
+                    placeholder="Donation-related contact only"
+                  />
+                </div>
+              </div>
+              <button id="donation-prepare" type="button" class="primary">
+                PREPARE CLAIM MESSAGE
+              </button>
+              <section id="donation-proof" hidden>
+                <label for="donation-message">SIGN THIS EXACT MESSAGE</label
+                ><textarea id="donation-message" readonly rows="7" spellcheck="false"></textarea>
+                <p>
+                  Signing proves that you control the sending wallet. It costs no gas and does not
+                  authorize a transfer.
+                </p>
+                <button id="donation-sign" type="button">SIGN IN WALLET</button
+                ><label for="donation-signature">WALLET SIGNATURE</label
+                ><textarea
+                  id="donation-signature"
+                  rows="3"
+                  spellcheck="false"
+                  placeholder="Sign in your wallet, or paste a signature from its message-signing tool"
+                ></textarea>
+                <p id="donation-signature-help"></p>
+                <button id="donation-claim" type="button" class="primary">
+                  VERIFY &amp; UNLOCK BOTH SKINS
+                </button>
+              </section>
+            </form>
+            <section id="donation-history-section" hidden>
+              <h3>YOUR VERIFIED DONATIONS</h3>
+              <ul id="donation-history"></ul>
+            </section>
+          </div>
+        </div>
+        <footer class="donation-footer">
+          <p id="donation-status" role="status" aria-live="polite">
+            Any verified donation unlocks the full Flamebound collection.
+          </p>
+          <small
+            >Transactions are public on the blockchain. Your optional email stays private and is not
+            used for login.</small
+          >
+        </footer>
+      </dialog>
 
       <dialog id="controls-dialog" aria-labelledby="controls-heading">
         <header class="setup-header">

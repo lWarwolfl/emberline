@@ -17,6 +17,7 @@ import type { GameEvent } from "./types";
 import Celebrations from "./celebrations";
 import Records from "./records";
 import { element } from "./dom";
+import * as Donations from "./donations";
 
 function create(doc: Document) {
   const ui = UI.create(doc);
@@ -150,6 +151,11 @@ function create(doc: Document) {
       else pauseIfPlaying();
     },
     onStatus(message, user) {
+      if (economy.setSupporter(user?.supporter === true)) {
+        loadout = economy.enforce(saves.loadout());
+        state.loadout = loadout;
+        wardrobe.refresh(loadout);
+      }
       const summary = doc.getElementById("account-summary");
       if (summary) {
         summary.textContent = message;
@@ -160,6 +166,27 @@ function create(doc: Document) {
     },
   });
   doc.getElementById("account")?.addEventListener("click", () => accounts.open());
+
+  const donations = Donations.create(doc, {
+    beforeOpen() {
+      if (session.active && session.isHost && state.mode === "playing") session.pause();
+      else pauseIfPlaying();
+    },
+    login() {
+      accounts.open();
+    },
+    refresh() {
+      return accounts.refreshEntitlements();
+    },
+    equip(id) {
+      loadout = economy.enforce({ ...loadout, character: id });
+      state.loadout = loadout;
+      saves.write("loadout", JSON.stringify(loadout));
+      wardrobe.refresh(loadout);
+      void accounts.sync();
+    },
+  });
+  doc.getElementById("donate")?.addEventListener("click", () => donations.open());
 
   particles.setEnabled(saves.effects());
   ui.el.effects.checked = particles.enabled;
@@ -485,6 +512,7 @@ function create(doc: Document) {
     } else ui.el.pause.removeAttribute("disabled");
     draw();
     wardrobe.draw(now / 1000);
+    donations.draw(now / 1000);
     requestAnimationFrame(frame);
   }
 

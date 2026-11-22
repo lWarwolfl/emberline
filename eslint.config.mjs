@@ -12,6 +12,7 @@ export default tseslint.config(
       "public/**",
       "release/**",
       "sw.js",
+      "server/bitcoin-proof.cjs",
       "test-results/**",
     ],
   },

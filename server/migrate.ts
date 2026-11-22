@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { getMigrations } from "better-auth/db/migration";
 import { createAccountService } from "./accounts";
+import { donationSchema } from "./donation-schema";
 
 async function main() {
   const { DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL } = process.env;
@@ -28,7 +29,8 @@ async function main() {
       );
       CREATE INDEX IF NOT EXISTS emberline_rate_limit_expiry ON emberline_rate_limit(expires_at);
     `);
-    console.log("Emberline account tables are ready (additive migration).");
+    await service.pool.query(donationSchema);
+    console.log("Emberline account and donation tables are ready (additive migration).");
   } finally {
     await service.close();
   }

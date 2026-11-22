@@ -8,6 +8,7 @@ import Combat from "./combat";
 import Ships from "./ships";
 import Powerups from "./powerups";
 import PowerupIcons from "./powerup-icons";
+import { isSupporterCharacter } from "./donation-config";
 
 function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   const { rect, line, triangle } = Pixel.create(ctx);
@@ -124,6 +125,26 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     const chestDrop = Math.round(tuck * 5);
     const equipment = state.loadout || Loadout.defaults;
     const person = Loadout.find(Loadout.characters, equipment.character);
+    if (isSupporterCharacter(person.id)) {
+      ctx.save();
+      ctx.shadowColor = person.trim;
+      ctx.shadowBlur = reducedMotion ? 0 : 7;
+      for (let i = 0; i < 9; i++) {
+        const drift = reducedMotion ? i % 3 : Math.floor(time * 9 + i * 3) % 5;
+        rect(
+          x - 3 - i * 3,
+          y + 13 - drift - (i % 4),
+          2 + (i % 2),
+          4 + (i % 3),
+          i % 2 ? person.trim : person.light,
+        );
+      }
+      for (let i = 0; i < 5; i++) {
+        const rise = reducedMotion ? i : Math.floor(time * 12 + i * 7) % 18;
+        rect(x - 6 - i * 4, y + 10 - rise, 1, 2, person.trim);
+      }
+      ctx.restore();
+    }
     const capeType = Loadout.find(Loadout.capes, equipment.cape);
     const pack = Loadout.find(
       Loadout.jetpacks,
@@ -147,7 +168,21 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
     // All character shapes share the same small, fair collision body.
     ctx.save();
     if (lean || headDrop) ctx.translate(lean, headDrop);
-    if (person.id === "fox") {
+    if (person.id === "cinder-crown") {
+      rect(x + 1, y - 2, 14, 11, person.skin);
+      rect(x + 4, y + 1, 10, 6, "#30221f");
+      line(x + 7, y + 3, 7, person.light);
+      for (let i = 0; i < 5; i++) rect(x + 1 + i * 3, y - 7 + (i % 2) * 2, 2, 6, person.trim);
+      line(x + 1, y - 2, 14, person.light);
+    } else if (person.id === "solar-wraith") {
+      rect(x + 3, y - 5, 10, 3, person.light);
+      rect(x, y - 2, 16, 12, person.skin);
+      rect(x + 3, y, 12, 8, "#593c2d");
+      rect(x + 6, y + 2, 3, 2, person.light);
+      rect(x + 11, y + 2, 3, 2, person.light);
+      rect(x - 2, y + 6, 4, 7, person.trim);
+      rect(x + 14, y + 7, 3, 5, person.trim);
+    } else if (person.id === "fox") {
       rect(x + 3, y - 3, 3, 5, person.skin);
       rect(x + 10, y - 2, 3, 4, person.skin);
       rect(x + 2, y + 1, 12, 7, person.skin);

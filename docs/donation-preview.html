@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emberline donation design preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101514;
+        --panel: #19201e;
+        --ink: #ece6d6;
+        --muted: #a4afa4;
+        --line: #35403a;
+        --ember: #ffae62;
+        --mint: #b6dbc3;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          13px/1.6 Consolas,
+          monospace;
+      }
+      main {
+        max-width: 960px;
+        margin: auto;
+        padding: 24px;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        min-height: 44px;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        padding: 9px 14px;
+        background: var(--panel);
+        color: var(--ink);
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--mint);
+        outline-offset: 3px;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      .notice {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .entry {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--ember);
+        color: var(--bg);
+        border: 0;
+        font-weight: bold;
+        gap: 20px;
+      }
+      .entry small {
+        display: block;
+        font-weight: normal;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        margin-top: 22px;
+      }
+      header {
+        padding: 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .label {
+        color: var(--ember);
+        font-size: 10px;
+        letter-spacing: 2px;
+      }
+      h1 {
+        font:
+          clamp(32px, 5vw, 52px)/1 Impact,
+          Haettenschweiler,
+          "Arial Narrow Bold",
+          sans-serif;
+        margin: 10px 0;
+      }
+      h1 em {
+        color: var(--ember);
+        font-style: normal;
+      }
+      .body {
+        display: grid;
+        grid-template-columns: 40% 60%;
+      }
+      .reward {
+        border-right: 1px solid var(--line);
+        background: #141c19;
+        padding: 22px;
+      }
+      .reward canvas {
+        display: block;
+        width: 100%;
+        height: 200px;
+        image-rendering: pixelated;
+      }
+      .reward h2 {
+        font:
+          26px Impact,
+          sans-serif;
+        margin: 8px 0;
+      }
+      .reward p {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .lock {
+        color: var(--ember);
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+      .swatches {
+        display: flex;
+        gap: 6px;
+      }
+      .swatches button {
+        padding: 8px;
+        font-size: 10px;
+        flex: 1;
+      }
+      .swatches [aria-pressed="true"] {
+        border-color: var(--ember);
+        color: var(--ember);
+      }
+      .steps {
+        padding: 24px;
+      }
+      h3 {
+        font:
+          17px Impact,
+          sans-serif;
+        letter-spacing: 1px;
+        margin: 0 0 6px;
+      }
+      .step {
+        margin-bottom: 24px;
+      }
+      .step p {
+        margin: 6px 0;
+        color: var(--muted);
+      }
+      .number {
+        color: var(--ember);
+        margin-right: 10px;
+      }
+      label {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 1px;
+        margin: 12px 0 5px;
+      }
+      input {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        color: var(--ink);
+        padding: 10px;
+      }
+      .network {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .network strong {
+        color: var(--ink);
+      }
+      .primary {
+        background: var(--ember);
+        color: var(--bg);
+        font-weight: bold;
+        border-color: var(--ember);
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 16px 24px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      footer p {
+        color: var(--muted);
+        font-size: 11px;
+        margin: 0;
+      }
+      .status {
+        color: var(--mint);
+        margin: 12px 0 0;
+        font-size: 11px;
+      }
+      .panel[hidden] {
+        display: none;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding: 12px;
+        }
+        .body {
+          grid-template-columns: 1fr;
+        }
+        .reward {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .reward canvas {
+          height: 160px;
+        }
+        header,
+        .steps {
+          padding: 18px;
+        }
+        footer {
+          padding: 18px;
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .entry {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="notice">
+        DESIGN PREVIEW / No wallet is configured. This page cannot accept donations or unlock game
+        items.
+      </p>
+      <button class="entry" id="open" aria-expanded="true" aria-controls="donation">
+        <span>FUEL THE EMBER<small>Support the game. Discover the supporter skins.</small></span
+        ><span aria-hidden="true">&#8599;</span>
+      </button>
+      <section class="panel" id="donation" aria-labelledby="title">
+        <header>
+          <span class="label">SUPPORT THE NEXT RUN</span>
+          <h1 id="title">FUEL THE <em>EMBER.</em></h1>
+          <p>Choose your amount. Send it straight to the creator's wallet.</p>
+        </header>
+        <div class="body">
+          <aside class="reward">
+            <span class="lock">LOCKED / SUPPORTER COLLECTION CONCEPT</span
+            ><canvas
+              id="skin"
+              width="160"
+              height="100"
+              aria-label="Fiery pixel courier skin concept"
+            ></canvas>
+            <h2 id="skin-name">CINDER CROWN</h2>
+            <p id="skin-copy">A molten mantle, burning crown and floating ember trail.</p>
+            <div class="swatches">
+              <button id="cinder" aria-pressed="true">CINDER CROWN</button
+              ><button id="solar" aria-pressed="false">SOLAR WRAITH</button>
+            </div>
+            <p>Cosmetic rewards. Your runner keeps the same abilities.</p>
+            <span class="lock">Unlock amount and collection rules pending your decision.</span>
+          </aside>
+          <div class="steps">
+            <section class="step">
+              <h3><span class="number">01</span>KEEP IT WITH YOUR ACCOUNT</h3>
+              <p>Log in before claiming so your verified rewards follow you across devices.</p>
+              <button disabled>LOG IN / CREATE ACCOUNT</button>
+            </section>
+            <section class="step">
+              <h3><span class="number">02</span>SEND WHAT YOU CHOOSE</h3>
+              <div class="network">
+                <span>COIN / NETWORK</span><strong>Awaiting configuration</strong>
+              </div>
+              <label for="address">CREATOR'S RECEIVING ADDRESS</label
+              ><input id="address" readonly value="Wallet address not configured" />
+              <p>
+                The exact network and coin will appear here. Network fees are paid separately in
+                your wallet.
+              </p>
+              <button disabled>COPY ADDRESS</button>
+            </section>
+            <section class="step">
+              <h3><span class="number">03</span>CLAIM YOUR FLAME</h3>
+              <label for="tx">TRANSACTION ID</label
+              ><input
+                id="tx"
+                placeholder="Paste the transaction ID from your wallet"
+                autocomplete="off"
+                spellcheck="false"
+              /><label for="name">SUPPORTER NAME (OPTIONAL)</label
+              ><input
+                id="name"
+                placeholder="Defaults to your account username"
+                maxlength="80"
+              /><label for="email">EMAIL (OPTIONAL)</label
+              ><input
+                id="email"
+                type="email"
+                placeholder="For donation-related contact only"
+                autocomplete="email"
+                maxlength="254"
+              />
+              <p>
+                We check the actual payment on the blockchain. A free wallet ownership signature can
+                protect your claim from being copied.
+              </p>
+            </section>
+          </div>
+        </div>
+        <footer>
+          <p>
+            Your transaction is public on the blockchain. Your optional email stays private. Payment
+            verification must finish before rewards unlock.
+          </p>
+          <button class="primary" disabled>VERIFY &amp; CLAIM</button>
+        </footer>
+        <p class="status" style="padding: 0 24px 14px">
+          PREVIEW / Claim verification is not connected.
+        </p>
+      </section>
+    </main>
+    <script>
+      const canvas = document.getElementById("skin"),
+        ctx = canvas.getContext("2d");
+      let variant = "cinder";
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function draw(ms) {
+        const t = reduced ? 0 : ms / 1000;
+        ctx.clearRect(0, 0, 160, 100);
+        const hot = variant === "cinder" ? "#ffae62" : "#ffe3a8",
+          mid = variant === "cinder" ? "#e76d3f" : "#f3954c";
+        ctx.fillStyle = "#35403a";
+        ctx.fillRect(24, 84, 112, 1);
+        ctx.save();
+        ctx.shadowColor = hot;
+        ctx.shadowBlur = 10;
+        for (let i = 0; i < 12; i++) {
+          const x = 49 + Math.sin(i * 7) * 26,
+            y = 79 - ((t * 14 + i * 7) % 58);
+          ctx.globalAlpha = 0.35 + (i % 4) * 0.12;
+          ctx.fillStyle = i % 2 ? hot : mid;
+          ctx.fillRect(x, y, 2, 3);
+        }
+        ctx.globalAlpha = 1;
+        for (let i = 0; i < 9; i++) {
+          ctx.fillStyle = i % 2 ? hot : mid;
+          ctx.fillRect(69 - i * 3, 48 + Math.sin(t * 6 - i) * 2, 3, 18 - i);
+        }
+        ctx.fillStyle = mid;
+        ctx.fillRect(72, 40, 16, 26);
+        ctx.fillStyle = "#713c30";
+        ctx.fillRect(72, 62, 6, 16);
+        ctx.fillRect(83, 62, 6, 16);
+        ctx.fillStyle = "#ece6d6";
+        ctx.fillRect(73, 28, 16, 14);
+        ctx.fillStyle = "#263d39";
+        ctx.fillRect(79, 31, 12, 5);
+        ctx.fillStyle = hot;
+        ctx.fillRect(77, 32, 13, 2);
+        for (let i = 0; i < 5; i++) {
+          ctx.fillRect(73 + i * 3, 25 - (i % 2 ? 5 : 8), 2, 8);
+        }
+        ctx.fillRect(86, 44, 6, 15);
+        ctx.restore();
+        if (!reduced) requestAnimationFrame(draw);
+      }
+      draw(0);
+      for (const id of ["cinder", "solar"])
+        document.getElementById(id).onclick = () => {
+          variant = id;
+          document.getElementById("skin-name").textContent =
+            id === "cinder" ? "CINDER CROWN" : "SOLAR WRAITH";
+          document.getElementById("skin-copy").textContent =
+            id === "cinder"
+              ? "A molten mantle, burning crown and floating ember trail."
+              : "A pale furnace mask, solar cloth and gold flame trail.";
+          for (const key of ["cinder", "solar"])
+            document.getElementById(key).setAttribute("aria-pressed", String(key === id));
+          if (reduced) draw(0);
+        };
+      document.getElementById("open").onclick = () => {
+        const panel = document.getElementById("donation");
+        panel.hidden = !panel.hidden;
+        document.getElementById("open").setAttribute("aria-expanded", String(!panel.hidden));
+      };
+    </script>
+  </body>
+</html>

@@ -265,3 +265,21 @@ meters for simultaneous timed effects. The strip disappears when empty. Reduced
 motion removes glow animation while retaining silhouettes, labels and meters.
 Source audit: no new generic cards, gradients, blur, fonts or dependencies.
 Runtime browser verification remains unrun under the standing restriction.
+
+## Flamebound donation procedure
+
+Primary surface: Configure, reached from a high-contrast ember DONATE button in
+existing chrome, keeping the playfield height intact. A native dialog pairs a
+sticky charcoal skin preview with one three-step column: account, send, claim.
+The full Cinder Crown / Solar Wraith collection is shown together; any verified
+positive donation unlocks both. The claim uses exact network labels, a matching
+address QR, visible ownership message, status feedback and optional contact fields.
+The footer stays visible while the procedure scrolls. Mobile becomes one column.
+The skins use the current collision body with distinct furnace masks/crowns and
+pixel fire trails. Reduced motion freezes decorative fire and drops glow while
+retaining the silhouette. No paid power, timer, fake donor totals or minimum tier.
+
+Source design audit: 0/10 generic-design tells. Existing Impact/Consolas and
+charcoal/parchment/ember vocabulary; no gradient, blur, generic feature tiles or
+new fonts. The native Configure dialog is the procedure, not a marketing hero.
+Rendered fit and wallet popup testing remain unrun under the standing restriction.

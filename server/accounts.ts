@@ -3,6 +3,8 @@ import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Pool } from "pg";
 import { validSave } from "../src/cloud-save";
+import { donationService, hasSupporterReward } from "./donations";
+import { DonationError } from "./donation-chain";
 
 export async function readAccountBody(req: IncomingMessage & { body?: unknown }) {
   let parsed: unknown = req.body;
@@ -57,6 +59,7 @@ export async function createAccountService(
     verification: { modelName: "emberline_verification" },
     advanced: { database: { generateId: () => randomBytes(16).toString("hex") } },
   });
+  const donations = donationService(pool, new URL(baseURL).origin);
   const digest = (value: string) => createHash("sha256").update(value).digest("hex");
   const code = () =>
     randomBytes(24)
@@ -175,7 +178,13 @@ export async function createAccountService(
         const result = await forward(response);
         if (!response.ok) throw new AccountError(401, "Username or password is incorrect.");
         const user = result.user as { id: string };
-        send(200, { user: { id: user.id, username: userName } });
+        send(200, {
+          user: {
+            id: user.id,
+            username: userName,
+            supporter: await hasSupporterReward(pool, user.id),
+          },
+        });
         return true;
       }
       if (route === "/api/account/recover" && req.method === "POST") {
@@ -221,12 +230,34 @@ export async function createAccountService(
       const session = await auth.api.getSession({ headers });
       if (route === "/api/account/session" && req.method === "GET") {
         send(200, {
-          user: session ? { id: session.user.id, username: session.user.username } : null,
+          user: session
+            ? {
+                id: session.user.id,
+                username: session.user.username,
+                supporter: await hasSupporterReward(pool, session.user.id),
+              }
+            : null,
         });
         return true;
       }
       if (!session) throw new AccountError(401, "Log in to sync your save.");
       const userId = session.user.id;
+      if (
+        ["donations", "donation-challenge", "donation-claim"].some(
+          (action) => route === "/api/account/" + action,
+        )
+      ) {
+        await limit("donation-ip:" + ip, 30, 900);
+        await limit("donation-user:" + userId, 20, 900);
+        send(
+          200,
+          await donations(route.slice("/api/account/".length), req.method!, body, {
+            id: userId,
+            username: session.user.username ?? session.user.name,
+          }),
+        );
+        return true;
+      }
       if (route === "/api/account/logout" && req.method === "POST") {
         await forward(await auth.api.signOut({ headers, asResponse: true }));
         send(200, { ok: true });
@@ -296,7 +327,8 @@ export async function createAccountService(
       }
       throw new AccountError(404, "Account action not found.");
     } catch (error) {
-      if (error instanceof AccountError) send(error.status, { message: error.message });
+      if (error instanceof AccountError || error instanceof DonationError)
+        send(error.status, { message: error.message });
       else {
         console.error("Account request failed:", error instanceof Error ? error.name : "unknown");
         send(503, {

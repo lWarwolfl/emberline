@@ -1,6 +1,7 @@
 import type { GearGroup, SaveStore } from "./types";
 import Loadout from "./loadout";
 import Upgrades from "./upgrades";
+import { isSupporterCharacter } from "./donation-config";
 
 // Prices are whole earned coins. Starter items and unequipping are always free.
 const prices: Record<GearGroup, Record<string, number>> = {
@@ -64,7 +65,9 @@ function create(saves: SaveStore) {
     // Ownership and debit share one localStorage write: no half-purchase state.
     saves.write("economy", JSON.stringify(snapshot()));
   }
+  let supporter = false;
   function owns(group: string, id: string) {
+    if (group === "character" && isSupporterCharacter(id)) return supporter;
     if (group === "difficulty") return Loadout.difficulties.some((item) => item.id === id);
     return owned.has(keyOf(group, id));
   }
@@ -75,6 +78,8 @@ function create(saves: SaveStore) {
     return result;
   }
   function buy(group: string, id: string) {
+    if (group === "character" && isSupporterCharacter(id))
+      return { ok: owns(group, id), reason: "supporter" };
     const cost = price(group, id);
     if (cost === null) return { ok: false, reason: "unknown" };
     if (owns(group, id)) return { ok: true, reason: "owned" };
@@ -106,6 +111,11 @@ function create(saves: SaveStore) {
   if (!saved || saved.version !== 2) save();
   return {
     snapshot,
+    setSupporter(value: boolean) {
+      const changed = supporter !== value;
+      supporter = value;
+      return changed;
+    },
     buy,
     upgrade,
     get levels() {

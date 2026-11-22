@@ -121,7 +121,7 @@
         }
         return result >>> 0 || 1;
       }
-      function create5(seed) {
+      function create6(seed) {
         return { seed: hash(seed) };
       }
       function next(rng) {
@@ -165,7 +165,7 @@
         }
         return pool[pool.length - 1];
       }
-      module.exports = { hash, create: create5, next, range, pick, shuffled, drawBag, weighted };
+      module.exports = { hash, create: create6, next, range, pick, shuffled, drawBag, weighted };
     },
   });
 
@@ -1045,6 +1045,26 @@
           trim: "#8ae5dc",
           boots: "#314b58",
         },
+        {
+          id: "cinder-crown",
+          name: "Cinder Crown",
+          description: "Supporter exclusive. A molten crown, coal armor and living ember trail.",
+          skin: "#b75a36",
+          light: "#ffe7af",
+          jacket: "#6f3429",
+          trim: "#ffae62",
+          boots: "#8a4130",
+        },
+        {
+          id: "solar-wraith",
+          name: "Solar Wraith",
+          description: "Supporter exclusive. A furnace mask and pale gold spectral fire.",
+          skin: "#ffdc99",
+          light: "#fff0c8",
+          jacket: "#8d5230",
+          trim: "#ffc56b",
+          boots: "#bc763a",
+        },
       ];
       var capes = [
         {
@@ -1364,7 +1384,7 @@
       "use strict";
       var import_config4 = __toESM(require_config());
       var import_ships2 = __toESM(require_ships());
-      var import_loadout3 = __toESM(require_loadout());
+      var import_loadout4 = __toESM(require_loadout());
       var armor = { crate: 1, barrier: 1, stack: 2.6 };
       function durability(object) {
         if (object.kind === "enemy")
@@ -1445,8 +1465,8 @@
           }
           return true;
         }
-        const weapon = import_loadout3.default.find(
-          import_loadout3.default.weapons,
+        const weapon = import_loadout4.default.find(
+          import_loadout4.default.weapons,
           state.loadout.weapon,
         );
         state.attackCooldown = weapon.cooldown / recharge;
@@ -1536,8 +1556,8 @@
         }
       }
       function update2(state, dt, moveProjectiles = true) {
-        const weapon = import_loadout3.default.find(
-          import_loadout3.default.weapons,
+        const weapon = import_loadout4.default.find(
+          import_loadout4.default.weapons,
           state.loadout.weapon,
         );
         if (!state.ship && state.attackTime > 0 && weapon.id === "punch") {
@@ -2210,6 +2230,17 @@
         if (platformRoll < 0.28) {
           const route =
             platformRoutes[Math.min(platformRoutes.length - 1, Math.floor(platformRoll / 0.07))];
+          const trapRng = import_random2.default.create(
+            `${state.seed}:platform-trap:${state.encounterCount}`,
+          );
+          const trapCandidates = route
+            .map(([, width], i) => (width >= 100 ? i : -1))
+            .filter((i) => i >= 0);
+          const trapIndex =
+            state.sector >= 2 && trapCandidates.length && import_random2.default.next(trapRng) < 0.4
+              ? import_random2.default.pick(trapRng, trapCandidates)
+              : -1;
+          let platformIndex = 0;
           let px = Math.max(x, ...dangers.map((o) => o.x + o.w)) + Math.max(180, safetySpeed);
           for (const [variant, width, height, gap2] of route) {
             const y = import_config4.default.floor - height;
@@ -2230,14 +2261,27 @@
                 w: 5,
                 h: 6,
               });
+            if (platformIndex === trapIndex) {
+              const spikes = import_content2.default.obstacles.find((item) => item.id === "spikes");
+              dangers.push({
+                kind: "hazard",
+                variant: spikes.id,
+                x: px + (width - spikes.w) / 2,
+                y: y - spikes.h,
+                w: spikes.w,
+                h: spikes.h,
+                passed: false,
+              });
+            }
             if (width >= 130 && state.sector >= 2) {
               const foe = enemy(state, px + width * 0.57, "crawler");
               foe.y = foe.baseY = y - foe.h;
               foe.amplitude = 0;
               foe.extraSpeed = 0;
-              dangers.push(foe);
+              if (trapIndex < 0) dangers.push(foe);
             }
             px += width + gap2;
+            platformIndex++;
           }
         }
         const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);
@@ -2692,14 +2736,14 @@
       var import_random2 = __toESM(require_random());
       var import_difficulty3 = __toESM(require_difficulty());
       var import_generator3 = __toESM(require_generator());
-      var import_loadout3 = __toESM(require_loadout());
+      var import_loadout4 = __toESM(require_loadout());
       var import_combat3 = __toESM(require_combat());
       var import_upgrades3 = __toESM(require_upgrades());
       var import_enemy_fire3 = __toESM(require_enemy_fire());
       var import_traversal3 = __toESM(require_traversal());
-      function create5(seed = Math.floor(Math.random() * 4294967295), equipment, upgradeLevels) {
-        const loadout = import_loadout3.default.sanitize(equipment);
-        const rules = import_loadout3.default.rules(loadout);
+      function create6(seed = Math.floor(Math.random() * 4294967295), equipment, upgradeLevels) {
+        const loadout = import_loadout4.default.sanitize(equipment);
+        const rules = import_loadout4.default.rules(loadout);
         return {
           grounding: false,
           crouching: false,
@@ -3058,7 +3102,7 @@
         seekX,
         ground,
         groundStep,
-        create: create5,
+        create: create6,
         update: update2,
         jump,
         dash,
@@ -3995,12 +4039,81 @@
     },
   });
 
+  // src/donation-config.ts
+  function isSupporterCharacter(id) {
+    return supporterCharacters.includes(id);
+  }
+  function donationNetwork(id) {
+    return donationNetworks.find((n) => n.id === id);
+  }
+  function formatDonation(units, decimals) {
+    const value = BigInt(units),
+      scale = 10n ** BigInt(decimals);
+    const fraction = (value % scale).toString().padStart(decimals, "0").replace(/0+$/, "");
+    return (value / scale).toString() + (fraction ? "." + fraction : "");
+  }
+  var donationNetworks, supporterCharacters;
+  var init_donation_config = __esm({
+    "src/donation-config.ts"() {
+      "use strict";
+      donationNetworks = [
+        {
+          id: "bnb",
+          name: "BNB Smart Chain",
+          symbol: "BNB",
+          decimals: 18,
+          address: "0x947fF43ca7A9db60608Adf40cddcD6Af99e21104",
+          confirmations: 15,
+          explorer: "https://bscscan.com/tx/",
+        },
+        {
+          id: "bitcoin",
+          name: "Bitcoin",
+          symbol: "BTC",
+          decimals: 8,
+          address: "bc1qnjnqfyd8l82yshxsc8w502v0wuz3pan63hdqhn",
+          confirmations: 3,
+          explorer: "https://mempool.space/tx/",
+        },
+        {
+          id: "ethereum",
+          name: "Ethereum",
+          symbol: "ETH",
+          decimals: 18,
+          address: "0x947fF43ca7A9db60608Adf40cddcD6Af99e21104",
+          confirmations: 12,
+          explorer: "https://etherscan.io/tx/",
+        },
+        {
+          id: "solana",
+          name: "Solana",
+          symbol: "SOL",
+          decimals: 9,
+          address: "2uVTELbVrQMUpiBXZpR6prUqgTkFbpcf38vubjh242Y9",
+          confirmations: 1,
+          explorer: "https://solscan.io/tx/",
+        },
+        {
+          id: "tron",
+          name: "TRON",
+          symbol: "TRX",
+          decimals: 6,
+          address: "TYoTiv3eNpzfEgZg1f3o326DwJLJdiZFQC",
+          confirmations: 1,
+          explorer: "https://tronscan.org/#/transaction/",
+        },
+      ];
+      supporterCharacters = ["cinder-crown", "solar-wraith"];
+    },
+  });
+
   // src/economy.ts
   var require_economy = __commonJS({
     "src/economy.ts"(exports, module) {
       "use strict";
-      var import_loadout3 = __toESM(require_loadout());
+      var import_loadout4 = __toESM(require_loadout());
       var import_upgrades3 = __toESM(require_upgrades());
+      init_donation_config();
       var prices = {
         character: {
           fox: 0,
@@ -4046,7 +4159,7 @@
           return 0n;
         }
       }
-      function create5(saves) {
+      function create6(saves) {
         const raw = saves.economy();
         const saved = raw?.version === 1 || raw?.version === 2 ? raw : null;
         let balance = saved ? amount(saved.balance) : saves.coins();
@@ -4072,19 +4185,23 @@
         function save() {
           saves.write("economy", JSON.stringify(snapshot()));
         }
+        let supporter = false;
         function owns(group, id) {
+          if (group === "character" && isSupporterCharacter(id)) return supporter;
           if (group === "difficulty")
-            return import_loadout3.default.difficulties.some((item) => item.id === id);
+            return import_loadout4.default.difficulties.some((item) => item.id === id);
           return owned.has(keyOf(group, id));
         }
         function enforce(value) {
-          const result = import_loadout3.default.sanitize(value);
+          const result = import_loadout4.default.sanitize(value);
           for (const group of Object.keys(prices))
             if (!owns(group, result[group]))
-              result[group] = import_loadout3.default.defaults[group];
+              result[group] = import_loadout4.default.defaults[group];
           return result;
         }
         function buy(group, id) {
+          if (group === "character" && isSupporterCharacter(id))
+            return { ok: owns(group, id), reason: "supporter" };
           const cost = price(group, id);
           if (cost === null) return { ok: false, reason: "unknown" };
           if (owns(group, id)) return { ok: true, reason: "owned" };
@@ -4115,6 +4232,11 @@
         if (!saved || saved.version !== 2) save();
         return {
           snapshot,
+          setSupporter(value) {
+            const changed = supporter !== value;
+            supporter = value;
+            return changed;
+          },
           buy,
           upgrade,
           get levels() {
@@ -4129,7 +4251,7 @@
           },
         };
       }
-      module.exports = { prices, price, create: create5 };
+      module.exports = { prices, price, create: create6 };
     },
   });
 
@@ -4138,7 +4260,7 @@
     "src/storage.ts"(exports, module) {
       "use strict";
       var progressKeys = ["economy", "coins", "loadout", "best", "muted", "effects"];
-      function create5(storage) {
+      function create6(storage) {
         function read(key, fallback) {
           try {
             return storage.getItem("emberline." + key) ?? fallback;
@@ -4241,7 +4363,7 @@
           write,
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -4353,7 +4475,7 @@
     "src/audio.ts"(exports, module) {
       "use strict";
       var import_feedback_audio = __toESM(require_feedback_audio());
-      function create5(initialMuted = false) {
+      function create6(initialMuted = false) {
         let muted = initialMuted;
         let audio;
         let master;
@@ -4517,7 +4639,7 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -4526,7 +4648,7 @@
     "src/particles.ts"(exports, module) {
       "use strict";
       var import_config4 = __toESM(require_config());
-      function create5() {
+      function create6() {
         let particles = [];
         let enabled = true;
         function burst(x, y, count, color, power = 50, forward = 0, lifetime = 1) {
@@ -4572,7 +4694,7 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -4580,7 +4702,7 @@
   var require_pixel = __commonJS({
     "src/pixel.ts"(exports, module) {
       "use strict";
-      function create5(ctx) {
+      function create6(ctx) {
         function rect(x, y, w, h, color) {
           ctx.fillStyle = color;
           ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
@@ -4604,7 +4726,7 @@
         );
         return "#" + channels.map((value) => value.toString(16).padStart(2, "0")).join("");
       }
-      module.exports = { create: create5, mix: mix2 };
+      module.exports = { create: create6, mix: mix2 };
     },
   });
 
@@ -4616,7 +4738,7 @@
       var import_content2 = __toESM(require_content());
       var import_pixel2 = __toESM(require_pixel());
       var import_random2 = __toESM(require_random());
-      function create5(ctx) {
+      function create6(ctx) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function structure(type, x, base, width, height, palette, layer, world) {
           const color = [palette.far, palette.mid, palette.near][layer];
@@ -4792,7 +4914,7 @@
         }
         return { draw };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -4858,13 +4980,14 @@
       "use strict";
       var import_config4 = __toESM(require_config());
       var import_pixel2 = __toESM(require_pixel());
-      var import_loadout3 = __toESM(require_loadout());
+      var import_loadout4 = __toESM(require_loadout());
       var import_cloth2 = __toESM(require_cloth());
       var import_combat3 = __toESM(require_combat());
       var import_ships2 = __toESM(require_ships());
       var import_powerups3 = __toESM(require_powerups());
       var import_powerup_icons = __toESM(require_powerup_icons());
-      function create5(ctx, reducedMotion = false) {
+      init_donation_config();
+      function create6(ctx, reducedMotion = false) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
         function cape(x, y, time, definition, state) {
           const columns = import_cloth2.default.sample(definition, time, {
@@ -4975,23 +5098,43 @@
           const lean = Math.round(tuck * 3);
           const headDrop = Math.round(tuck * 10);
           const chestDrop = Math.round(tuck * 5);
-          const equipment = state.loadout || import_loadout3.default.defaults;
-          const person = import_loadout3.default.find(
-            import_loadout3.default.characters,
+          const equipment = state.loadout || import_loadout4.default.defaults;
+          const person = import_loadout4.default.find(
+            import_loadout4.default.characters,
             equipment.character,
           );
-          const capeType = import_loadout3.default.find(
-            import_loadout3.default.capes,
+          if (isSupporterCharacter(person.id)) {
+            ctx.save();
+            ctx.shadowColor = person.trim;
+            ctx.shadowBlur = reducedMotion ? 0 : 7;
+            for (let i = 0; i < 9; i++) {
+              const drift = reducedMotion ? i % 3 : Math.floor(time * 9 + i * 3) % 5;
+              rect(
+                x - 3 - i * 3,
+                y + 13 - drift - (i % 4),
+                2 + (i % 2),
+                4 + (i % 3),
+                i % 2 ? person.trim : person.light,
+              );
+            }
+            for (let i = 0; i < 5; i++) {
+              const rise = reducedMotion ? i : Math.floor(time * 12 + i * 7) % 18;
+              rect(x - 6 - i * 4, y + 10 - rise, 1, 2, person.trim);
+            }
+            ctx.restore();
+          }
+          const capeType = import_loadout4.default.find(
+            import_loadout4.default.capes,
             equipment.cape,
           );
-          const pack2 = import_loadout3.default.find(
-            import_loadout3.default.jetpacks,
+          const pack2 = import_loadout4.default.find(
+            import_loadout4.default.jetpacks,
             state.activePowerups.flight && equipment.jetpack === "none"
               ? "ember"
               : equipment.jetpack,
           );
-          const weapon = import_loadout3.default.find(
-            import_loadout3.default.weapons,
+          const weapon = import_loadout4.default.find(
+            import_loadout4.default.weapons,
             equipment.weapon,
           );
           const step2 = state.player.jumps || state.crouching ? 0 : Math.floor(time * 13) % 4;
@@ -5010,7 +5153,21 @@
           }
           ctx.save();
           if (lean || headDrop) ctx.translate(lean, headDrop);
-          if (person.id === "fox") {
+          if (person.id === "cinder-crown") {
+            rect(x + 1, y - 2, 14, 11, person.skin);
+            rect(x + 4, y + 1, 10, 6, "#30221f");
+            line(x + 7, y + 3, 7, person.light);
+            for (let i = 0; i < 5; i++) rect(x + 1 + i * 3, y - 7 + (i % 2) * 2, 2, 6, person.trim);
+            line(x + 1, y - 2, 14, person.light);
+          } else if (person.id === "solar-wraith") {
+            rect(x + 3, y - 5, 10, 3, person.light);
+            rect(x, y - 2, 16, 12, person.skin);
+            rect(x + 3, y, 12, 8, "#593c2d");
+            rect(x + 6, y + 2, 3, 2, person.light);
+            rect(x + 11, y + 2, 3, 2, person.light);
+            rect(x - 2, y + 6, 4, 7, person.trim);
+            rect(x + 14, y + 7, 3, 5, person.trim);
+          } else if (person.id === "fox") {
             rect(x + 3, y - 3, 3, 5, person.skin);
             rect(x + 10, y - 2, 3, 4, person.skin);
             rect(x + 2, y + 1, 12, 7, person.skin);
@@ -5513,7 +5670,7 @@
         }
         return { courier, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -5526,12 +5683,12 @@
       init_party();
       var import_pixel2 = __toESM(require_pixel());
       var import_backgrounds2 = __toESM(require_backgrounds());
-      var import_sprites2 = __toESM(require_sprites());
-      function create5(canvas, reducedMotion) {
+      var import_sprites3 = __toESM(require_sprites());
+      function create6(canvas, reducedMotion) {
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
         const background = import_backgrounds2.default.create(ctx);
-        const sprites = import_sprites2.default.create(ctx, reducedMotion);
+        const sprites = import_sprites3.default.create(ctx, reducedMotion);
         const { rect } = import_pixel2.default.create(ctx);
         function portalPose(world, courier) {
           const { player } = courier;
@@ -5777,7 +5934,7 @@
         }
         return { draw };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -5800,7 +5957,7 @@
       "use strict";
       var import_powerups3 = __toESM(require_powerups());
       var import_powerup_icons = __toESM(require_powerup_icons());
-      function create5(doc, powerStatus) {
+      function create6(doc, powerStatus) {
         const powerRows = new Map(
           import_powerups3.default.catalog
             .filter((p) => p.duration > 0)
@@ -5836,7 +5993,7 @@
           powerStatus.hidden = active === 0;
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -5846,11 +6003,11 @@
       "use strict";
       init_dom();
       var import_content2 = __toESM(require_content());
-      var import_loadout3 = __toESM(require_loadout());
+      var import_loadout4 = __toESM(require_loadout());
       var import_ships2 = __toESM(require_ships());
       var import_powerup_hud = __toESM(require_powerup_hud());
       var format = (value) => value.toString().padStart(6, "0");
-      function create5(doc) {
+      function create6(doc) {
         const byId = (id) => element(doc, id);
         const ids = [
           "score",
@@ -5912,7 +6069,7 @@
           el["coin-total"].textContent = coins.toString().padStart(4, "0");
           const weapon = ship
             ? "CANNON"
-            : import_loadout3.default.find(import_loadout3.default.weapons, state.loadout.weapon)
+            : import_loadout4.default.find(import_loadout4.default.weapons, state.loadout.weapon)
                 .short;
           const ready = state.attackCooldown <= 0;
           el.attack.textContent = "X / " + weapon;
@@ -6026,7 +6183,7 @@
           sound,
         };
       }
-      module.exports = { create: create5, format };
+      module.exports = { create: create6, format };
     },
   });
 
@@ -6238,7 +6395,7 @@
   var require_popups = __commonJS({
     "src/popups.ts"(exports, module) {
       "use strict";
-      function create5(reducedMotion = false) {
+      function create6(reducedMotion = false) {
         let items = [];
         function add2(event) {
           if (!event.points && !event.label) return;
@@ -6280,7 +6437,7 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -6317,7 +6474,7 @@
             return stats.maxJumps + " jumps";
         }
       }
-      function create5(doc, shop, onPurchase, onUpgraded) {
+      function create6(doc, shop, onPurchase, onUpgraded) {
         let message2 = "";
         function element2(tag, className, text) {
           const node = doc.createElement(tag);
@@ -6460,7 +6617,7 @@
         }
         return { render };
       }
-      module.exports = { create: create5, benefit };
+      module.exports = { create: create6, benefit };
     },
   });
 
@@ -6469,19 +6626,20 @@
     "src/wardrobe.ts"(exports, module) {
       "use strict";
       init_dom();
-      var import_loadout3 = __toESM(require_loadout());
-      var import_engine4 = __toESM(require_engine());
-      var import_sprites2 = __toESM(require_sprites());
+      var import_loadout4 = __toESM(require_loadout());
+      var import_engine5 = __toESM(require_engine());
+      var import_sprites3 = __toESM(require_sprites());
       var import_pixel2 = __toESM(require_pixel());
       var import_upgrades3 = __toESM(require_upgrades());
       var import_upgrade_panel2 = __toESM(require_upgrade_panel());
+      init_donation_config();
       var groups = {
         upgrades: import_upgrades3.default.tracks,
-        character: import_loadout3.default.characters,
-        cape: import_loadout3.default.capes,
-        jetpack: import_loadout3.default.jetpacks,
-        weapon: import_loadout3.default.weapons,
-        difficulty: import_loadout3.default.difficulties,
+        character: import_loadout4.default.characters,
+        cape: import_loadout4.default.capes,
+        jetpack: import_loadout4.default.jetpacks,
+        weapon: import_loadout4.default.weapons,
+        difficulty: import_loadout4.default.difficulties,
         settings: [],
       };
       var labels = {
@@ -6493,7 +6651,7 @@
         difficulty: "Difficulty",
         settings: "Settings",
       };
-      function create5(doc, initial, onChange, shop, onReset, onFeedback) {
+      function create6(doc, initial, onChange, shop, onReset, onFeedback) {
         const byId = (id) => element(doc, id);
         const dialog = element(doc, "setup-dialog", "dialog");
         const tabs = byId("loadout-tabs");
@@ -6501,20 +6659,20 @@
         const preview = element(doc, "loadout-preview", "canvas");
         const ctx = preview.getContext("2d");
         ctx.imageSmoothingEnabled = false;
-        const sprites = import_sprites2.default.create(
+        const sprites = import_sprites3.default.create(
           ctx,
           matchMedia("(prefers-reduced-motion: reduce)").matches,
         );
         const { rect, line } = import_pixel2.default.create(ctx);
-        let selection = import_loadout3.default.sanitize(initial);
+        let selection = import_loadout4.default.sanitize(initial);
         let active = "upgrades";
         let controls = [];
         let previewChoice = null;
         const buyButton = element(doc, "shop-buy", "button");
-        const previewState = import_engine4.default.create("wardrobe", selection);
+        const previewState = import_engine5.default.create("wardrobe", selection);
         function changed() {
           previewChoice = null;
-          selection = import_loadout3.default.sanitize(selection);
+          selection = import_loadout4.default.sanitize(selection);
           previewState.loadout = selection;
           sync();
           onChange(selection);
@@ -6534,7 +6692,9 @@
                 ? selection[active] === id
                   ? "EQUIPPED"
                   : "OWNED"
-                : shop.price(active, id) + " COINS";
+                : active === "character" && isSupporterCharacter(id)
+                  ? "SUPPORTER EXCLUSIVE"
+                  : shop.price(active, id) + " COINS";
               row.classList.toggle("locked", !shop.owns(active, id));
             }
           }
@@ -6546,16 +6706,21 @@
             buyButton.hidden = !previewChoice;
             if (previewChoice) {
               const cost = shop.price(previewChoice.group, previewChoice.id);
-              const missing = BigInt(cost) - shop.balance;
-              buyButton.disabled = missing > 0n;
-              buyButton.textContent =
-                missing > 0n
-                  ? "NEED " + missing + " MORE COINS"
-                  : "BUY & EQUIP / " + cost + " COINS";
+              if (previewChoice.group === "character" && isSupporterCharacter(previewChoice.id)) {
+                buyButton.disabled = false;
+                buyButton.textContent = "DONATE ANY AMOUNT / UNLOCK COLLECTION";
+              } else {
+                const missing = BigInt(cost) - shop.balance;
+                buyButton.disabled = missing > 0n;
+                buyButton.textContent =
+                  missing > 0n
+                    ? "NEED " + missing + " MORE COINS"
+                    : "BUY & EQUIP / " + cost + " COINS";
+              }
             }
           }
-          const preset = import_loadout3.default.find(
-            import_loadout3.default.difficulties,
+          const preset = import_loadout4.default.find(
+            import_loadout4.default.difficulties,
             selection.difficulty,
           );
           const settings = selection.difficulty === "custom" ? selection.custom : preset;
@@ -6566,16 +6731,16 @@
                 ? settings[field] + " HP"
                 : Number(settings[field]).toFixed(2) + "\xD7";
           }
-          byId("profile-name").textContent = import_loadout3.default.find(
-            import_loadout3.default.characters,
+          byId("profile-name").textContent = import_loadout4.default.find(
+            import_loadout4.default.characters,
             shown.character,
           ).name;
           byId("profile-gear").textContent =
-            import_loadout3.default.find(import_loadout3.default.capes, shown.cape).name +
+            import_loadout4.default.find(import_loadout4.default.capes, shown.cape).name +
             " / " +
-            import_loadout3.default.find(import_loadout3.default.jetpacks, shown.jetpack).name;
-          byId("profile-weapon").textContent = import_loadout3.default.find(
-            import_loadout3.default.weapons,
+            import_loadout4.default.find(import_loadout4.default.jetpacks, shown.jetpack).name;
+          byId("profile-weapon").textContent = import_loadout4.default.find(
+            import_loadout4.default.weapons,
             shown.weapon,
           ).name;
           byId("profile-difficulty").textContent =
@@ -6749,8 +6914,8 @@
                 const current =
                   selection.difficulty === "custom"
                     ? selection.custom
-                    : import_loadout3.default.find(
-                        import_loadout3.default.difficulties,
+                    : import_loadout4.default.find(
+                        import_loadout4.default.difficulties,
                         selection.difficulty,
                       );
                 selection.custom = {
@@ -6806,14 +6971,19 @@
         buyButton.addEventListener("click", () => {
           if (!previewChoice) return;
           const { group, id } = previewChoice;
+          if (group === "character" && isSupporterCharacter(id)) {
+            dialog.close();
+            doc.getElementById("donate")?.click();
+            return;
+          }
           const result = shop.buy(group, id);
           if (result.ok) {
             selection[group] = id;
             changed();
             byId("shop-message").textContent =
-              import_loadout3.default.find(groups[group], id).name + " purchased and equipped.";
+              import_loadout4.default.find(groups[group], id).name + " purchased and equipped.";
             if (result.reason === "purchased")
-              onFeedback?.("purchase", import_loadout3.default.find(groups[group], id).name);
+              onFeedback?.("purchase", import_loadout4.default.find(groups[group], id).name);
             panel.querySelector(`input[value="${id}"]`).focus({ preventScroll: true });
           } else {
             sync();
@@ -6842,6 +7012,11 @@
           ctx.restore();
         }
         return {
+          refresh(value) {
+            selection = shop.enforce(value);
+            previewChoice = null;
+            sync();
+          },
           open() {
             if (active === "upgrades") showUpgrades();
             else sync();
@@ -6853,7 +7028,7 @@
           draw,
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -16914,6 +17089,14 @@
         if (!sessionChecked || (user && !initialized && !conflict)) void sync();
       },
       sync,
+      async refreshEntitlements() {
+        const result = await request("session");
+        if (result.user?.id !== user?.id)
+          throw new Error("Your account changed. Log in again before claiming.");
+        user = result.user;
+        report(status);
+        return user?.id ?? null;
+      },
       get status() {
         return status;
       },
@@ -16943,7 +17126,7 @@
     "src/celebrations.ts"(exports, module) {
       "use strict";
       init_dom();
-      function create5(doc, reducedMotion, effects) {
+      function create6(doc, reducedMotion, effects) {
         const purchase = element(doc, "purchase-feedback");
         const record = element(doc, "record-feedback");
         const timers = /* @__PURE__ */ new Map();
@@ -17011,7 +17194,7 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -17019,7 +17202,7 @@
   var require_records = __commonJS({
     "src/records.ts"(exports, module) {
       "use strict";
-      function create5(baseline) {
+      function create6(baseline) {
         let target = baseline;
         let celebrated = false;
         return {
@@ -17034,7 +17217,379 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
+    },
+  });
+
+  // src/donation-wallet.ts
+  async function connectDonationWallet(network) {
+    const win = window;
+    if (network === "ethereum" || network === "bnb") {
+      const provider = win.trustwallet?.ethereum ?? win.ethereum;
+      if (!provider)
+        throw new Error(
+          "Open this game in your wallet browser or install its extension. You can also paste a signed message below.",
+        );
+      const accounts = await provider.request({ method: "eth_requestAccounts" });
+      if (!Array.isArray(accounts) || typeof accounts[0] !== "string")
+        throw new Error("No sending wallet account was selected.");
+      return accounts[0];
+    }
+    if (network === "solana") {
+      const provider = win.trustwallet?.solana ?? win.solana;
+      if (!provider)
+        throw new Error(
+          "Open this game in a Solana wallet browser, or paste its signed message below.",
+        );
+      await provider.connect();
+      if (!provider.publicKey) throw new Error("No Solana wallet account was selected.");
+      return provider.publicKey.toString();
+    }
+    if (network === "tron") {
+      if (win.tronLink) await win.tronLink.request({ method: "tron_requestAccounts" });
+      const sender = win.tronWeb?.defaultAddress?.base58;
+      if (!sender)
+        throw new Error(
+          "Use a TRON wallet with message signing, or paste a TRON V2 signature below.",
+        );
+      return sender;
+    }
+    throw new Error(
+      "For Bitcoin, enter the sending address and paste its BIP-322 or legacy message signature below. Check that your wallet supports message signing before donating.",
+    );
+  }
+  async function signDonationMessage(network, sender, message2) {
+    const win = window;
+    const current = await connectDonationWallet(network);
+    if (
+      network === "ethereum" || network === "bnb"
+        ? current.toLowerCase() !== sender.toLowerCase()
+        : current !== sender
+    )
+      throw new Error("Select the wallet address that sent this donation.");
+    if (network === "ethereum" || network === "bnb") {
+      const hex = [...new TextEncoder().encode(message2)]
+        .map((v) => v.toString(16).padStart(2, "0"))
+        .join("");
+      return String(
+        await (win.trustwallet?.ethereum ?? win.ethereum).request({
+          method: "personal_sign",
+          params: ["0x" + hex, sender],
+        }),
+      );
+    }
+    if (network === "solana") {
+      const result = await (win.trustwallet?.solana ?? win.solana).signMessage(
+        new TextEncoder().encode(message2),
+        "utf8",
+      );
+      return btoa(String.fromCharCode(...result.signature));
+    }
+    if (network === "tron") return win.tronWeb.trx.signMessageV2(message2);
+    throw new Error("Paste your Bitcoin message signature below.");
+  }
+  var init_donation_wallet = __esm({
+    "src/donation-wallet.ts"() {
+      "use strict";
+    },
+  });
+
+  // src/donations.ts
+  function create5(doc, options) {
+    const dialog = element(doc, "donation-dialog", "dialog");
+    const get = (id) => element(doc, id);
+    const select = get("donation-network"),
+      address = get("donation-address"),
+      tx = get("donation-tx"),
+      sender = get("donation-sender"),
+      signature = get("donation-signature"),
+      message2 = get("donation-message"),
+      status = get("donation-status");
+    const form = get("donation-form"),
+      claim = get("donation-claim"),
+      sign = get("donation-sign"),
+      prepare = get("donation-prepare");
+    let nonce = "",
+      busy = false,
+      supporter = false,
+      selected = 0,
+      accountId = null,
+      revision = 0;
+    for (const n of donationNetworks) {
+      const option = doc.createElement("option");
+      option.value = n.id;
+      option.textContent = n.symbol + " / " + n.name;
+      select.append(option);
+    }
+    const preview = import_engine3.default.create("supporter-preview");
+    preview.loadout.character = supporterCharacters[0];
+    const canvas = get("donation-preview"),
+      ctx = canvas.getContext("2d");
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sprites = import_sprites.default.create(ctx, reduced);
+    ctx.imageSmoothingEnabled = false;
+    function report(text) {
+      status.textContent = text;
+    }
+    async function request(action2, body) {
+      if (location.protocol === "file:")
+        throw new Error("Donate and claim on the hosted game. Offline play keeps working.");
+      const response = await fetch("/api/account/" + action2, {
+        method: body ? "POST" : "GET",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Emberline-Request": "1" },
+        body: body ? JSON.stringify(body) : void 0,
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          data.message || "Donation verification is unavailable. Please retry later.",
+        );
+      return data;
+    }
+    function resetClaim() {
+      nonce = "";
+      message2.value = "";
+      signature.value = "";
+      get("donation-proof").hidden = true;
+    }
+    function renderReward() {
+      get("donation-lock").textContent = supporter
+        ? "UNLOCKED / FLAMEBOUND COLLECTION"
+        : "LOCKED / FLAMEBOUND COLLECTION";
+      get("donation-equip").hidden = !supporter;
+      const p = import_loadout2.default.find(
+        import_loadout2.default.characters,
+        supporterCharacters[selected],
+      );
+      get("donation-skin-name").textContent = p.name.toUpperCase();
+      get("donation-skin-copy").textContent = p.description;
+      preview.loadout.character = p.id;
+      for (const [i, id] of ["donation-cinder", "donation-solar"].entries())
+        get(id).setAttribute("aria-pressed", String(i === selected));
+    }
+    function networkChange() {
+      revision++;
+      resetClaim();
+      const n = donationNetwork(select.value);
+      address.value = n.address;
+      get("donation-asset").textContent = `${n.symbol} ONLY / ${n.name.toUpperCase()} MAINNET`;
+      get("donation-confirmations").textContent =
+        n.id === "tron"
+          ? "Wait for a solidified TRON transaction."
+          : n.id === "solana"
+            ? "Wait for Solana finalization."
+            : `Wait for ${n.confirmations} confirmations before claiming.`;
+      get("donation-signature-help").textContent =
+        n.id === "bitcoin"
+          ? "Bitcoin: Base64 BIP-322 simple or legacy signature from the sending address. Mixed-sender and exchange withdrawals cannot claim."
+          : n.id === "solana"
+            ? "Solana: sign the exact UTF-8 message. Paste the 64-byte Ed25519 signature as Base64."
+            : n.id === "tron"
+              ? "TRON: sign the exact message with signMessageV2 (TIP-191). Paste the hex signature."
+              : "Ethereum / BNB: sign the exact message with personal_sign. Paste the hex signature.";
+      sender.value = "";
+      tx.value = "";
+      try {
+        drawQr(get("donation-qr"), n.address);
+      } catch {
+        get("donation-qr").hidden = true;
+      }
+    }
+    function setBusy(value) {
+      busy = value;
+      for (const button of dialog.querySelectorAll("button"))
+        button.disabled = value && !button.classList.contains("close-button");
+      select.disabled = value;
+      tx.disabled = value;
+      sender.disabled = value;
+    }
+    async function perform(work) {
+      if (busy) return;
+      setBusy(true);
+      try {
+        await work();
+      } catch (e) {
+        report(e instanceof Error ? e.message : "Unable to verify. Please retry later.");
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function load() {
+      supporter = false;
+      renderReward();
+      get("donation-history").replaceChildren();
+      get("donation-history-section").hidden = true;
+      get("donation-login").hidden = false;
+      accountId = await options.refresh();
+      if (!accountId) {
+        renderReward();
+        report("Log in or create an account before claiming your skins.");
+        get("donation-login").hidden = false;
+        return;
+      }
+      get("donation-login").hidden = true;
+      const data = await request("donations");
+      supporter = data.supporter;
+      renderReward();
+      const history = get("donation-history");
+      history.replaceChildren();
+      for (const row of data.donations) {
+        const item = doc.createElement("li"),
+          link = doc.createElement("a");
+        const n = donationNetwork(row.network);
+        item.append(
+          formatDonation(row.amountUnits, row.decimals) +
+            " " +
+            row.asset +
+            " / " +
+            new Date(row.verifiedAt).toLocaleDateString() +
+            " ",
+        );
+        if (n) {
+          link.textContent = "VIEW TRANSACTION";
+          link.href = n.explorer + encodeURIComponent(row.txId);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          item.append(link);
+        }
+        history.append(item);
+      }
+      get("donation-history-section").hidden = !data.donations.length;
+      report(
+        supporter
+          ? "Your full Flamebound collection is unlocked. Thank you for keeping the signal alive."
+          : "Any confirmed positive donation unlocks both skins. Network fees are separate.",
+      );
+    }
+    dialog.addEventListener("close", () => {
+      resetClaim();
+      get("donation-name").value = "";
+      get("donation-email").value = "";
+    });
+    get("donation-close").addEventListener("click", () => dialog.close());
+    get("donation-login").addEventListener("click", () => {
+      dialog.close();
+      options.login();
+    });
+    get("donation-copy").addEventListener("click", () => {
+      void perform(async () => {
+        try {
+          await navigator.clipboard.writeText(address.value);
+          report("Address copied. Check the selected network in your wallet before sending.");
+        } catch {
+          address.focus();
+          address.select();
+          report("Select and copy the address manually.");
+        }
+      });
+    });
+    select.addEventListener("change", networkChange);
+    for (const input of [tx, sender])
+      input.addEventListener("input", () => {
+        revision++;
+        resetClaim();
+      });
+    get("donation-connect").addEventListener("click", () => {
+      void perform(async () => {
+        sender.value = await connectDonationWallet(select.value);
+        resetClaim();
+        report(
+          "Sending wallet selected. Paste your transaction ID, then prepare the claim message.",
+        );
+      });
+    });
+    prepare.addEventListener("click", () => {
+      void perform(async () => {
+        if (!form.reportValidity()) return;
+        const current = revision;
+        if (!(await options.refresh())) throw new Error("Log in before claiming.");
+        const data = await request("donation-challenge", {
+          network: select.value,
+          txId: tx.value,
+          sender: sender.value,
+        });
+        if (current !== revision) return;
+        nonce = data.nonce;
+        message2.value = data.message;
+        get("donation-proof").hidden = false;
+        report(
+          "Review the message and sign it with the wallet that sent the donation. Signing this message costs no gas.",
+        );
+      });
+    });
+    sign.addEventListener("click", () => {
+      void perform(async () => {
+        if (!nonce) throw new Error("Prepare your claim message first.");
+        signature.value = await signDonationMessage(select.value, sender.value, message2.value);
+        report("Message signed. Select VERIFY & UNLOCK to check the on-chain payment.");
+      });
+    });
+    claim.addEventListener("click", () => {
+      void perform(async () => {
+        if (!nonce || !signature.value.trim())
+          throw new Error("Prepare the claim message and sign it first.");
+        await request("donation-claim", {
+          nonce,
+          signature: signature.value,
+          name: get("donation-name").value,
+          email: get("donation-email").value,
+        });
+        resetClaim();
+        await load();
+      });
+    });
+    for (const [i, id] of ["donation-cinder", "donation-solar"].entries())
+      get(id).addEventListener("click", () => {
+        selected = i;
+        renderReward();
+      });
+    get("donation-equip").addEventListener("click", () => {
+      void perform(async () => {
+        await load();
+        if (!supporter) throw new Error("Log in with the account that owns these skins.");
+        options.equip(supporterCharacters[selected]);
+        report("Supporter skin equipped. It will sync with your account save.");
+      });
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      prepare.click();
+    });
+    networkChange();
+    renderReward();
+    return {
+      open() {
+        options.beforeOpen();
+        resetClaim();
+        if (!dialog.open) dialog.showModal();
+        void perform(load);
+      },
+      draw(time) {
+        if (!dialog.open) return;
+        ctx.fillStyle = "#141c19";
+        ctx.fillRect(0, 0, 160, 110);
+        ctx.fillStyle = "#59694d";
+        ctx.fillRect(14, 94, 132, 2);
+        ctx.save();
+        ctx.translate(87, 46);
+        ctx.scale(2.4, 2.4);
+        sprites.courier(0, 0, reduced ? 0 : time, false, preview);
+        ctx.restore();
+      },
+    };
+  }
+  var import_engine3, import_sprites, import_loadout2;
+  var init_donations = __esm({
+    "src/donations.ts"() {
+      "use strict";
+      init_dom();
+      init_donation_config();
+      init_donation_wallet();
+      init_qr();
+      import_engine3 = __toESM(require_engine());
+      import_sprites = __toESM(require_sprites());
+      import_loadout2 = __toESM(require_loadout());
     },
   });
 
@@ -17044,7 +17599,7 @@
       "use strict";
       var import_config4 = __toESM(require_config());
       var import_content2 = __toESM(require_content());
-      var import_engine4 = __toESM(require_engine());
+      var import_engine5 = __toESM(require_engine());
       var import_storage2 = __toESM(require_storage());
       var import_audio2 = __toESM(require_audio());
       var import_particles2 = __toESM(require_particles());
@@ -17060,7 +17615,8 @@
       var import_celebrations = __toESM(require_celebrations());
       var import_records = __toESM(require_records());
       init_dom();
-      function create5(doc) {
+      init_donations();
+      function create6(doc) {
         const ui = import_ui2.default.create(doc);
         let storage;
         try {
@@ -17082,7 +17638,7 @@
         const fixedSeed = parameters.get("seed");
         let economy = import_economy2.default.create(saves);
         let loadout = economy.enforce(saves.loadout());
-        let state = import_engine4.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+        let state = import_engine5.default.create(fixedSeed ?? void 0, loadout, economy.levels);
         const popups = import_popups2.default.create(reducedMotion);
         const wardrobe = import_wardrobe2.default.create(
           doc,
@@ -17096,7 +17652,7 @@
           () => {
             if (!saves.resetProgress()) return false;
             best = 0n;
-            state = import_engine4.default.create(fixedSeed ?? void 0);
+            state = import_engine5.default.create(fixedSeed ?? void 0);
             economy = import_economy2.default.create(saves);
             loadout = economy.enforce({});
             doc
@@ -17125,7 +17681,7 @@
           doc,
           () => ({ name: "Courier", loadout, levels: economy.levels }),
           () => {
-            state = import_engine4.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+            state = import_engine5.default.create(fixedSeed ?? void 0, loadout, economy.levels);
             partyMode = "menu";
             ui.el.start.removeAttribute("disabled");
             ui.el.heading.innerHTML = "KEEP THE<br><em>SIGNAL ALIVE.</em>";
@@ -17194,6 +17750,11 @@
             else pauseIfPlaying();
           },
           onStatus(message2, user) {
+            if (economy.setSupporter(user?.supporter === true)) {
+              loadout = economy.enforce(saves.loadout());
+              state.loadout = loadout;
+              wardrobe.refresh(loadout);
+            }
             const summary = doc.getElementById("account-summary");
             if (summary) {
               summary.textContent = message2;
@@ -17205,6 +17766,26 @@
           },
         });
         doc.getElementById("account")?.addEventListener("click", () => accounts.open());
+        const donations = create5(doc, {
+          beforeOpen() {
+            if (session.active && session.isHost && state.mode === "playing") session.pause();
+            else pauseIfPlaying();
+          },
+          login() {
+            accounts.open();
+          },
+          refresh() {
+            return accounts.refreshEntitlements();
+          },
+          equip(id) {
+            loadout = economy.enforce({ ...loadout, character: id });
+            state.loadout = loadout;
+            saves.write("loadout", JSON.stringify(loadout));
+            wardrobe.refresh(loadout);
+            void accounts.sync();
+          },
+        });
+        doc.getElementById("donate")?.addEventListener("click", () => donations.open());
         particles.setEnabled(saves.effects());
         ui.el.effects.checked = particles.enabled;
         ui.sound(audio.muted);
@@ -17228,7 +17809,7 @@
             records.reset(best);
             recordTime = 0;
             celebrations.clear();
-            state = import_engine4.default.create(fixedSeed ?? void 0, loadout, economy.levels);
+            state = import_engine5.default.create(fixedSeed ?? void 0, loadout, economy.levels);
             state.mode = "playing";
             particles.clear();
             popups.clear();
@@ -17399,17 +17980,17 @@
               audio.unlock();
               if (state.mode === "menu" || state.mode === "dead") start2();
               else if (session.active) session.action("jump");
-              else import_engine4.default.jump(state);
+              else import_engine5.default.jump(state);
             },
             dash() {
               audio.unlock();
               if (session.active) session.action("dash");
-              else import_engine4.default.dash(state);
+              else import_engine5.default.dash(state);
             },
             ground() {
               audio.unlock();
               if (session.active) session.action("ground");
-              else import_engine4.default.ground(state);
+              else import_engine5.default.ground(state);
             },
             setup() {
               if (session.active) {
@@ -17424,7 +18005,7 @@
             attack() {
               audio.unlock();
               if (session.active) session.action("attack");
-              else import_engine4.default.attack(state);
+              else import_engine5.default.attack(state);
             },
             effects(enabled) {
               particles.setEnabled(enabled);
@@ -17487,7 +18068,7 @@
             syncPose(state.mode === "playing");
           } else if (state.mode === "playing") {
             syncPose(true);
-            import_engine4.default.update(state, dt);
+            import_engine5.default.update(state, dt);
             handleEvents();
             if (!state.ship && Math.random() < dt * 24)
               particles.burst(
@@ -17529,6 +18110,7 @@
           } else ui.el.pause.removeAttribute("disabled");
           draw();
           wardrobe.draw(now / 1e3);
+          donations.draw(now / 1e3);
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
@@ -17551,7 +18133,7 @@
           },
         };
       }
-      module.exports = { create: create5 };
+      module.exports = { create: create6 };
     },
   });
 
@@ -17559,11 +18141,11 @@
   init_party();
   var import_economy = __toESM(require_economy());
   var import_content = __toESM(require_content());
-  var import_engine3 = __toESM(require_engine());
+  var import_engine4 = __toESM(require_engine());
   var import_upgrades2 = __toESM(require_upgrades());
   var import_app = __toESM(require_app());
   var import_ui = __toESM(require_ui());
-  var import_sprites = __toESM(require_sprites());
+  var import_sprites2 = __toESM(require_sprites());
   var import_audio = __toESM(require_audio());
   var import_wardrobe = __toESM(require_wardrobe());
   var import_upgrade_panel = __toESM(require_upgrade_panel());
@@ -17575,7 +18157,7 @@
   var import_input = __toESM(require_input());
   var import_particles = __toESM(require_particles());
   var import_difficulty2 = __toESM(require_difficulty());
-  var import_loadout2 = __toESM(require_loadout());
+  var import_loadout3 = __toESM(require_loadout());
   var import_popups = __toESM(require_popups());
   var import_backgrounds = __toESM(require_backgrounds());
   var import_cloth = __toESM(require_cloth());
@@ -17603,11 +18185,11 @@
     EnemyFire: import_enemy_fire2.default,
     Economy: import_economy.default,
     Content: import_content.default,
-    Engine: import_engine3.default,
+    Engine: import_engine4.default,
     Upgrades: import_upgrades2.default,
     App: import_app.default,
     UI: import_ui.default,
-    Sprites: import_sprites.default,
+    Sprites: import_sprites2.default,
     Audio: import_audio.default,
     Wardrobe: import_wardrobe.default,
     UpgradePanel: import_upgrade_panel.default,
@@ -17619,7 +18201,7 @@
     Input: import_input.default,
     Particles: import_particles.default,
     Difficulty: import_difficulty2.default,
-    Loadout: import_loadout2.default,
+    Loadout: import_loadout3.default,
     Popups: import_popups.default,
     Backgrounds: import_backgrounds.default,
     Cloth: import_cloth.default,

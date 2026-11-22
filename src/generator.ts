@@ -280,6 +280,17 @@ function spawn(state: GameState) {
   if (platformRoll < 0.28) {
     const route =
       platformRoutes[Math.min(platformRoutes.length - 1, Math.floor(platformRoll / 0.07))];
+    // Keep traps on roomy bridges, with clear landing and takeoff ends.
+    // This stream leaves the encounter, reward and pace rolls unchanged.
+    const trapRng = Random.create(`${state.seed}:platform-trap:${state.encounterCount}`);
+    const trapCandidates = route
+      .map(([, width], i) => (width >= 100 ? i : -1))
+      .filter((i) => i >= 0);
+    const trapIndex =
+      state.sector >= 2 && trapCandidates.length && Random.next(trapRng) < 0.4
+        ? Random.pick(trapRng, trapCandidates)
+        : -1;
+    let platformIndex = 0;
     let px = Math.max(x, ...dangers.map((o) => o.x + o.w)) + Math.max(180, safetySpeed);
     for (const [variant, width, height, gap] of route) {
       const y = Config.floor - height;
@@ -293,14 +304,28 @@ function spawn(state: GameState) {
       });
       for (let coinX = 10; coinX < width - 8; coinX += 22)
         dangers.push({ kind: "ember", variant: "platform", x: px + coinX, y: y - 12, w: 5, h: 6 });
+      if (platformIndex === trapIndex) {
+        const spikes = Content.obstacles.find((item) => item.id === "spikes")!;
+        dangers.push({
+          kind: "hazard",
+          variant: spikes.id,
+          x: px + (width - spikes.w) / 2,
+          y: y - spikes.h,
+          w: spikes.w,
+          h: spikes.h,
+          passed: false,
+        });
+      }
+      // A trap route never stacks an enemy on the platform approach.
       if (width >= 130 && state.sector >= 2) {
         const foe = enemy(state, px + width * 0.57, "crawler");
         foe.y = foe.baseY = y - foe.h;
         foe.amplitude = 0;
         foe.extraSpeed = 0;
-        dangers.push(foe);
+        if (trapIndex < 0) dangers.push(foe);
       }
       px += width + gap;
+      platformIndex++;
     }
   }
   const end = dangers.reduce((right, item) => Math.max(right, item.x + item.w), x);

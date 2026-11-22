@@ -81,6 +81,26 @@ const characters = [
     trim: "#8ae5dc",
     boots: "#314b58",
   },
+  {
+    id: "cinder-crown",
+    name: "Cinder Crown",
+    description: "Supporter exclusive. A molten crown, coal armor and living ember trail.",
+    skin: "#b75a36",
+    light: "#ffe7af",
+    jacket: "#6f3429",
+    trim: "#ffae62",
+    boots: "#8a4130",
+  },
+  {
+    id: "solar-wraith",
+    name: "Solar Wraith",
+    description: "Supporter exclusive. A furnace mask and pale gold spectral fire.",
+    skin: "#ffdc99",
+    light: "#fff0c8",
+    jacket: "#8d5230",
+    trim: "#ffc56b",
+    boots: "#bc763a",
+  },
 ];
 const capes = [
   {

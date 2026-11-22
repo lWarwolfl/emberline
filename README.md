@@ -417,3 +417,11 @@ Each additional connected courier increases base pace by **6%**, speed growth by
 The host simulates at the existing fixed physics step and sends snapshots at 30 Hz. Guests draw the world between those snapshots and play their own jump, dash and attack immediately, then correct from the host's acknowledgement. Guest actions cannot specify positions, health, order or rewards. The host validates actions, cooldowns, membership and message rates. Browser saves are scoped to their address, so a LAN address has its own progress separate from the public site. Local progress remains on each browser; this is cooperative peer hosting, not a server-verified competitive economy.
 
 Tests include party combat, formation/cooldowns, scaling, safe biome entrances, dash-only revival, team wipes, shared rewards, serialization, disconnects, LAN capacity/routing/origin checks, and four isolated browser clients over both real LAN WebSockets and real WebRTC data channels. Browser QA also covers mobile party controls/HUD, reduced motion, spectators, host pause and host departure.
+
+## Support the game
+
+DONATE opens five native-coin choices (BNB, BTC, ETH, SOL and TRX). Any verified
+positive direct donation unlocks both fiery Flamebound skins for your account.
+Claims require the transaction ID and a free signature from the sending wallet;
+check wallet message-signing support before sending. Tokens and exchange
+withdrawals do not qualify. See [donation setup and free-service limits](docs/DONATIONS.md).

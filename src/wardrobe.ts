@@ -12,6 +12,7 @@ import Sprites from "./sprites";
 import Pixel from "./pixel";
 import Upgrades from "./upgrades";
 import UpgradePanel from "./upgrade-panel";
+import { isSupporterCharacter } from "./donation-config";
 
 const groups = {
   upgrades: Upgrades.tracks,
@@ -80,7 +81,9 @@ function create(
           ? selection[active as LoadoutGroup] === id
             ? "EQUIPPED"
             : "OWNED"
-          : shop.price(active, id) + " COINS";
+          : active === "character" && isSupporterCharacter(id)
+            ? "SUPPORTER EXCLUSIVE"
+            : shop.price(active, id) + " COINS";
         row.classList.toggle("locked", !shop.owns(active, id));
       }
     }
@@ -92,10 +95,15 @@ function create(
       buyButton.hidden = !previewChoice;
       if (previewChoice) {
         const cost = shop.price(previewChoice.group, previewChoice.id);
-        const missing = BigInt(cost!) - shop.balance;
-        buyButton.disabled = missing > 0n;
-        buyButton.textContent =
-          missing > 0n ? "NEED " + missing + " MORE COINS" : "BUY & EQUIP / " + cost + " COINS";
+        if (previewChoice.group === "character" && isSupporterCharacter(previewChoice.id)) {
+          buyButton.disabled = false;
+          buyButton.textContent = "DONATE ANY AMOUNT / UNLOCK COLLECTION";
+        } else {
+          const missing = BigInt(cost!) - shop.balance;
+          buyButton.disabled = missing > 0n;
+          buyButton.textContent =
+            missing > 0n ? "NEED " + missing + " MORE COINS" : "BUY & EQUIP / " + cost + " COINS";
+        }
       }
     }
     const preset = Loadout.find(Loadout.difficulties, selection.difficulty);
@@ -340,6 +348,11 @@ function create(
   buyButton.addEventListener("click", () => {
     if (!previewChoice) return;
     const { group, id } = previewChoice;
+    if (group === "character" && isSupporterCharacter(id)) {
+      dialog.close();
+      doc.getElementById("donate")?.click();
+      return;
+    }
     const result = shop.buy(group, id);
     if (result.ok) {
       selection[group] = id;
@@ -381,6 +394,11 @@ function create(
     ctx.restore();
   }
   return {
+    refresh(value: unknown) {
+      selection = shop.enforce(value);
+      previewChoice = null;
+      sync();
+    },
     open() {
       if (active === "upgrades") showUpgrades();
       else sync();
