@@ -110,6 +110,7 @@
           <p id="account-summary" role="status">Guest · progress stays on this device</p>
         </div>
       </header>
+      <div id="powerup-active" class="power-status" aria-label="Active power-ups" hidden></div>
       <section id="party-hud" aria-label="Party health and formation order" hidden></section>
       <div class="beacon-trail" id="beacon-trail" hidden>
         <label for="beacon-progress">NEXT REVIVE BEACON</label>
@@ -154,7 +155,7 @@
           <section id="ship-controls" class="ship-controls" aria-label="Flight controls" hidden>
             <div class="ship-instructions">
               <strong id="ship-name"></strong>
-              <span id="ship-brief">HOLD ↑ / ↓ · X TO FIRE</span>
+              <span id="ship-brief">HOLD W / &#8593; &middot; S / &#8595; &middot; X TO FIRE</span>
             </div>
             <button id="ship-up" type="button" aria-label="Climb">↑ UP</button>
             <button id="ship-down" type="button" aria-label="Descend">↓ DOWN</button>
@@ -167,9 +168,6 @@
         </section>
       </div>
       <footer class="control-dock">
-        <div class="power-status" aria-label="Active power-ups">
-          <span id="powerup-active"></span>
-        </div>
         <nav class="toolbar" aria-label="Game menus and settings">
           <button id="setup" title="Shop, upgrades, gear and difficulty (L)">SHOP</button>
           <button id="party" title="Host or join up to four players">PARTY / LAN</button>
@@ -227,7 +225,8 @@
           </p>
           <p>
             Power-ups activate on contact. Upgrade the Power Core in the shop to strengthen them. In
-            a ship, hold ↑ or ↓ to steer and use X to fire. The flight controls also work by touch.
+            a ship, hold W / ↑ or S / ↓ to steer and use X to fire. The flight controls also work by
+            touch.
           </p>
           <label class="effects-option"
             ><input id="effects" type="checkbox" checked /> PARTICLE EFFECTS</label

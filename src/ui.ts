@@ -3,8 +3,8 @@ import type { Mode } from "./types";
 import type { GameState } from "./types";
 import Content from "./content";
 import Loadout from "./loadout";
-import Powerups from "./powerups";
 import Ships from "./ships";
+import PowerupHud from "./powerup-hud";
 
 const format = (value: bigint | number) => value.toString().padStart(6, "0");
 
@@ -47,6 +47,7 @@ function create(doc: Document) {
   };
   const dashBar = el["dash-state"].querySelector("i")!;
   const powerStatus = byId("powerup-active");
+  const renderPowers = PowerupHud.create(doc, powerStatus);
   const flightControls = byId("ship-controls");
   const shipName = byId("ship-name");
   const shipBrief = byId("ship-brief");
@@ -59,13 +60,7 @@ function create(doc: Document) {
   const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild as HTMLElement;
 
   function render(state: GameState, best: bigint, coins = 0n) {
-    const powers = Powerups.catalog
-      .flatMap(({ id, name }) => {
-        const remaining = state.activePowerups[id];
-        return remaining ? [name.toUpperCase() + " " + Math.ceil(remaining) + "s"] : [];
-      })
-      .join(" · ");
-    if (powerStatus.textContent !== powers) powerStatus.textContent = powers;
+    renderPowers(state);
     const ship = state.ship;
     const inFlight = Boolean(
       ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,

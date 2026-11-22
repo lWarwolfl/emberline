@@ -7,6 +7,7 @@ import Cloth from "./cloth";
 import Combat from "./combat";
 import Ships from "./ships";
 import Powerups from "./powerups";
+import PowerupIcons from "./powerup-icons";
 
 function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   const { rect, line, triangle } = Pixel.create(ctx);
@@ -405,6 +406,20 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         }
         line(x + 2, y + h - 1, w - 4, "#52685c");
       }
+    } else if (o.kind === "ship") {
+      const id = o.variant as ShipFlight["id"];
+      const color = Ships.catalog[id].color;
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = reducedMotion ? 0 : 12;
+      ctx.globalAlpha = reducedMotion ? 0.35 : 0.3 + Math.sin(time * 3) * 0.1;
+      rect(o.x - 8, o.y + o.h + 3, o.w + 16, 3, color);
+      ctx.restore();
+      ship(o.x + 10, o.y, { id, phase: "flight", age: 0, nextWave: 0, wave: 0 }, false, time);
+      line(o.x - 3, o.y + o.h + 3, o.w + 6, color);
+      ctx.font = "6px monospace";
+      ctx.fillStyle = color;
+      ctx.fillText("BOARD", o.x + 1, o.y - 9);
     } else if (o.kind === "heart" || o.kind === "powerup") {
       const power = o.kind === "powerup" ? Powerups.definition(o.variant) : undefined;
       const rarityColor =
@@ -415,8 +430,10 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
             : o.rarity === "rare"
               ? "#9bd7e5"
               : "#b6dbc3";
-      rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-      line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
+      if (o.kind === "heart") {
+        rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
+        line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
+      }
       if (o.kind === "heart") {
         const heartColor = "#f06d78";
         rect(o.x, o.y, 3, 3, heartColor);
@@ -426,9 +443,12 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(o.x + 3, o.y + 7, 2, 1, heartColor);
         rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
       } else if (power) {
-        rect(o.x + 2, o.y, 5, 9, power.color);
-        line(o.x, o.y + 4, 9, power.color);
-        rect(o.x + 3, o.y + 2, 2, 5, "#233d35");
+        ctx.save();
+        ctx.shadowColor = power.color;
+        ctx.shadowBlur = reducedMotion ? 0 : 7;
+        for (const { x, y } of PowerupIcons.pixels(power.id))
+          rect(o.x - 2 + x * 2, o.y - 2 + y * 2, 2, 2, power.color);
+        ctx.restore();
         ctx.font = "5px monospace";
         ctx.fillStyle = power.color;
         ctx.fillText(power.name.toUpperCase(), o.x - 7, o.y - 7);

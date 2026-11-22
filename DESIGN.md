@@ -251,3 +251,17 @@ ground.
 
 Slop audit: 0/10. The scrim is the menu's existing charcoal wash, not a new
 gradient. The numeral is the action, not a monument stat.
+
+## Boarding and active-effect instruments
+
+Primary surface: Command / Inspect. A salvaged hull is a glowing map object,
+with a persistent BOARD label and ground marker. Contact boards it; passing
+above or below leaves the courier on foot. Seeded offers vary timing, hull and
+height without consuming the encounter RNG. W / Up climbs; S / Down descends.
+
+Powerups have six distinct pixel silhouettes and colors, without common boxes.
+The same silhouettes appear in a compact top strip with seconds and draining
+meters for simultaneous timed effects. The strip disappears when empty. Reduced
+motion removes glow animation while retaining silhouettes, labels and meters.
+Source audit: no new generic cards, gradients, blur, fonts or dependencies.
+Runtime browser verification remains unrun under the standing restriction.

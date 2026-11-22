@@ -54,21 +54,21 @@ modern browser. No build, package installation, server, or network is needed.
 Keep the whole folder together: the HTML loads the committed `dist/game.js` bundle.
 The TypeScript source is in `src/`; only editing requires Node and a build.
 
-| Key        | Action                                            |
-| ---------- | ------------------------------------------------- |
-| Space / Up | Jump again in air; 2 normally, 3 with Triple Jump |
-| A          | Move left. Release leaves you there               |
-| D          | Move right at the same speed. Release eases home  |
-| Shift      | Dash through enemies; jump over ground hazards    |
-| S / Down   | Crouch. In the air, magnet back to the ground     |
-| X / J      | Punch or shoot with the selected weapon           |
-| Up / Down  | Hold to steer during ship sections                |
-| L          | Open character, gear and difficulty setup         |
-| P          | Pause / resume                                    |
-| F          | Fullscreen / windowed                             |
-| M          | Sound on / off                                    |
-| H          | Show controls and particle settings               |
-| Enter      | Start / retry / resume                            |
+| Key              | Action                                            |
+| ---------------- | ------------------------------------------------- |
+| Space / Up       | Jump again in air; 2 normally, 3 with Triple Jump |
+| A                | Move left. Release leaves you there               |
+| D                | Move right at the same speed. Release eases home  |
+| Shift            | Dash through enemies; jump over ground hazards    |
+| S / Down         | Crouch. In the air, magnet back to the ground     |
+| X / J            | Punch or shoot with the selected weapon           |
+| W / Up, S / Down | Hold to steer during ship sections                |
+| L                | Open character, gear and difficulty setup         |
+| P                | Pause / resume                                    |
+| F                | Fullscreen / windowed                             |
+| M                | Sound on / off                                    |
+| H                | Show controls and particle settings               |
+| Enter            | Start / retry / resume                            |
 
 CONTROLS opens the complete field guide. Touch players also have a GROUND button.
 The magnetic pull passes through ledges and resets jumps after reaching the floor;
@@ -109,11 +109,12 @@ blocks damage, Ember Magnet collects nearby coins, and Overclock recharges weapo
 faster. Different timed powers can overlap. Upgrade the Power Core in the shop to
 strengthen pickups on future runs.
 
-Selected biomes start with a damaged Sparrow, Lancer, or Mule. Use the flight
-buttons or hold Up and Down, and press X to fire. The Sparrow fires fast, the
-Lancer pierces multiple targets, and the Mule fires a spread. The controls appear
-during takeoff, before enemy waves begin. The ship crash-lands when the biome
-ends, and you continue on foot.
+Glowing damaged Sparrow, Lancer, and Mule hulls appear along the route at seeded
+random times and heights. Touch one to board; jump over it or stay below it to
+miss it. Hold W / Up to climb and S / Down to descend, and X to fire. Touch flight
+controls are available too. The hull crash-lands at the next sector boundary.
+Each active timed powerup has its own icon, seconds remaining, and shrinking
+meter above the playfield; these freeze with the simulation when paused.
 
 Most gunfire travels straight ahead. Jump or use platforms to align with enemies;
 enemy projectile hitboxes include a small vertical allowance. Scatter fires a

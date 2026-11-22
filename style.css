@@ -3341,3 +3341,55 @@ body {
     margin-right: 0;
   }
 }
+
+/* Active effects stay above the playfield, with their pickup silhouettes. */
+#shell > .power-status {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px 12px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+}
+#shell > .power-status[hidden],
+.power-timer[hidden] {
+  display: none;
+}
+.power-timer {
+  display: grid;
+  grid-template-columns: 14px auto 24px;
+  align-items: center;
+  column-gap: 5px;
+  color: var(--power-color);
+  font:
+    9px Consolas,
+    monospace;
+  min-width: 0;
+}
+.power-timer svg {
+  width: 14px;
+  height: 14px;
+  grid-row: 1 / 3;
+}
+.power-timer strong {
+  text-align: right;
+  font-size: 10px;
+}
+.power-timer i {
+  grid-column: 2 / 4;
+  height: 3px;
+  background: #34403a;
+}
+.power-timer b {
+  display: block;
+  height: 100%;
+  background: var(--power-color);
+  transform-origin: left;
+}
+@media (max-width: 700px) {
+  #shell > .power-status {
+    gap: 4px 8px;
+  }
+  .power-timer {
+    flex: 1 1 140px;
+  }
+}
