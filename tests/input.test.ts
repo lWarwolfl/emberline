@@ -94,6 +94,16 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   assert(Input.pose().climb);
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "ArrowUp" }));
   assert(!Input.pose().climb);
+  const wPress = Object.assign(new Event("keydown", { cancelable: true }), {
+    code: "KeyW",
+    key: "w",
+    repeat: false,
+  });
+  doc.dispatchEvent(wPress);
+  assert(wPress.defaultPrevented);
+  assert(Input.pose().climb);
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyW" }));
+  assert(!Input.pose().climb);
   summaryFocused = true;
   const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
     code: "Space",
@@ -102,7 +112,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   });
   doc.dispatchEvent(summarySpace);
   assert.equal(summarySpace.defaultPrevented, false);
-  assert.equal(jumps, 4);
+  assert.equal(jumps, 5);
   summaryFocused = false;
   open = true;
   focused = "nested-menu";
@@ -114,7 +124,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     repeat: false,
   });
   doc.dispatchEvent(space);
-  assert.equal(jumps, 4);
+  assert.equal(jumps, 5);
   assert.equal(space.defaultPrevented, false);
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {

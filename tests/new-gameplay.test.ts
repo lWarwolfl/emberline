@@ -273,10 +273,13 @@ test("shield, magnet, and overclock apply their effects on contact", () => {
   assert(s.attackCooldown < standard);
 });
 
-test("the aerial biome launches safely, spawns waves, and crash-lands into ground play", () => {
+test("boarding launches safely, spawns waves, and crash-lands into ground play", () => {
   const s = run();
   Object.assign(s, { sector: 2, biomeIndex: 1, time: Config.sectorSeconds * 2 - 0.01 });
   Engine.update(s, 0.02);
+  assert.equal(Boolean(s.ship), false, "biome transitions do not auto-board");
+  s.objects = [{ kind: "ship", variant: "sparrow", x: s.player.x, y: s.player.y, w: 36, h: 18 }];
+  Engine.update(s, 0.01);
   assert.equal(s.ship?.phase, "launch");
   assert.equal(s.objects.length, 0);
   assert(Engine.attack(s));
@@ -299,7 +302,7 @@ test("the aerial biome launches safely, spawns waves, and crash-lands into groun
   assert.equal(s.ship?.phase, "crash");
   assert(!Engine.attack(s));
   for (let i = 0; i < 13; i++) Engine.update(s, 0.1);
-  assert.equal(s.ship, null);
+  assert.equal(Boolean(s.ship), false);
   assert.equal(s.player.y, Config.floor - Config.playerHeight);
   assert(s.events.some((event) => event.type === "ship-crash"));
 });
@@ -323,7 +326,17 @@ test("co-op couriers steer their own ships through the same flight", () => {
   const r = Party.create("leader", profile, "flight");
   Party.add(r, "wing", profile);
   Party.start(r);
-  Object.assign(r.world, { sector: 2, biomeIndex: 1, time: Config.sectorSeconds * 2 - 0.01 });
+  Object.assign(r.world, { sector: 3, biomeIndex: 2, time: Config.sectorSeconds * 2 + 0.1 });
+  r.world.objects = [
+    {
+      kind: "ship",
+      variant: "mule",
+      x: r.members[0].state.player.x,
+      y: Config.floor - Config.playerHeight,
+      w: 36,
+      h: 18,
+    },
+  ];
   for (let i = 0; i < 14; i++) Party.update(r, 0.1);
   assert.equal(r.world.ship?.phase, "flight");
   assert(Party.action(r, "leader", "climb"));

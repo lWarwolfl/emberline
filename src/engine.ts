@@ -277,7 +277,8 @@ function step(state: GameState, dt: number) {
   Powerups.update(state, dt);
   if (!state.ship) {
     Powerups.land(state, previousY, dt);
-    if (state.distance >= state.next) Generator.spawn(state);
+    if (state.distance >= state.next && !state.objects.some((o) => o.kind === "ship" && !o.dead))
+      Generator.spawn(state);
   }
   const previousPositions = new Map();
   for (const object of state.objects) {
@@ -316,7 +317,8 @@ function step(state: GameState, dt: number) {
           state.crouching && !state.ship,
         ))
     ) {
-      if (Powerups.collect(state, object)) continue;
+      if (Ships.collect(state, object) || Powerups.collect(state, object)) continue;
+      if (object.kind === "ship") continue;
       if (object.kind === "ember") collect(state, object);
       else hit(state, object);
     }

@@ -1,4 +1,4 @@
-import type { GameState, ShipId, ShipFlight } from "./types";
+import type { GameState, ShipId, ShipFlight, WorldObject } from "./types";
 import Config from "./config";
 import Random from "./random";
 import Content from "./content";
@@ -49,7 +49,8 @@ const deck = Config.floor - Config.playerHeight;
 const ids = Object.keys(catalog) as ShipId[];
 
 function clearLane(state: GameState) {
-  state.objects = state.objects.filter((object) => object.variant === "boss" && !object.dead);
+  for (const object of state.objects) if (object.variant !== "boss") object.dead = true;
+  state.objects = state.objects.filter((object) => !object.dead);
   state.projectiles = [];
   state.hostileProjectiles = [];
   state.traversals = [];
@@ -87,19 +88,63 @@ function wave(state: GameState, flight: ShipFlight) {
   flight.nextWave += 3.2;
 }
 
+function opportunity(seed: GameState["seed"], sector: number) {
+  const rng = Random.create(`${seed}:ship:${sector}`);
+  return {
+    available: Random.next(rng) < 0.75,
+    delay: Random.range(rng, 2, 6),
+    id: Random.pick(rng, ids),
+    height: Random.pick(rng, [0, 32, 52]),
+  };
+}
+
+function collect(state: GameState, object: WorldObject) {
+  if (
+    object.kind !== "ship" ||
+    object.dead ||
+    state.ship ||
+    state.bossActive ||
+    state.mode !== "playing" ||
+    state.hits >= state.health
+  )
+    return false;
+  const id = object.variant as ShipId;
+  if (!catalog[id]) return false;
+  state.ship = { id, phase: "launch", age: 0, nextWave: 1.45, wave: 0 };
+  clearLane(state);
+  state.events.push({
+    type: "ship-launch",
+    x: object.x,
+    y: object.y,
+    label: catalog[id].name.toUpperCase() + " / TAKEOFF",
+  });
+  return true;
+}
+
 function update(state: GameState, previousSector: number, dt: number) {
   const flight = state.ship;
   const changed = previousSector !== state.sector;
   if (!flight) {
-    if (!changed || state.bossActive || state.biomeIndex !== 2) return;
-    const id = ids[(Random.hash(state.seed) + state.sector) % ids.length];
-    state.ship = { id, phase: "launch", age: 0, nextWave: 1.45, wave: 0 };
-    clearLane(state);
-    state.events.push({
-      type: "ship-launch",
-      x: state.player.x,
-      y: state.player.y,
-      label: catalog[id].name.toUpperCase() + " / TAKEOFF",
+    // A separate hashed stream keeps encounter and pace randomness unchanged.
+    const offer = opportunity(state.seed, state.sector);
+    if (state.bossActive || state.sector < 2 || !offer.available) return;
+    const due = (state.sector - 1) * Config.sectorSeconds + offer.delay;
+    if (state.time - dt >= due || state.time < due) return;
+    const x = Config.width + 36;
+    // Leave a readable approach around the boarding point.
+    state.objects = state.objects.filter(
+      (o) =>
+        (o.kind !== "hazard" && o.kind !== "enemy" && o.kind !== "platform") ||
+        o.x + o.w < x - 90 ||
+        o.x > x + 90,
+    );
+    state.objects.push({
+      kind: "ship",
+      variant: offer.id,
+      x,
+      y: deck - offer.height,
+      w: 36,
+      h: 18,
     });
     return;
   }
@@ -155,4 +200,4 @@ function skyAmount(flight: ShipFlight) {
   if (flight.phase === "crash") return Math.max(0, 1 - flight.age / (crashTime * 0.8));
   return 1;
 }
-export = { catalog, update, steer, skyAmount };
+export = { catalog, opportunity, collect, update, steer, skyAmount };

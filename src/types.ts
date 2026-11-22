@@ -44,7 +44,7 @@ export interface ShipFlight {
   wave: number;
 }
 export interface WorldObject {
-  kind: "hazard" | "enemy" | "ember" | "heart" | "powerup" | "platform";
+  kind: "hazard" | "enemy" | "ember" | "heart" | "powerup" | "platform" | "ship";
   variant: string;
   x: number;
   y: number;

@@ -126,6 +126,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     Enter: actions.enter,
     Space: actions.jump,
     ArrowUp: actions.jump,
+    KeyW: actions.jump,
     ShiftLeft: actions.dash,
     ShiftRight: actions.dash,
     KeyX: actions.attack,
@@ -154,7 +155,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
       right = false;
       strafe = left ? -1 : 0;
     } else if (event.code === "KeyS" || event.code === "ArrowDown") crouch = false;
-    else if (event.code === "ArrowUp") climb = false;
+    else if (event.code === "ArrowUp" || event.code === "KeyW") climb = false;
   });
   doc.addEventListener("keydown", (event) => {
     if (doc.querySelector("dialog[open]")) {
@@ -174,7 +175,7 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
       return;
     }
     if (!event.repeat && (event.code === "KeyS" || event.code === "ArrowDown")) crouch = true;
-    if (!event.repeat && event.code === "ArrowUp") climb = true;
+    if (!event.repeat && (event.code === "ArrowUp" || event.code === "KeyW")) climb = true;
     // Keep standard keyboard activation when deliberately tabbing through UI.
     if (
       event.target instanceof Element &&

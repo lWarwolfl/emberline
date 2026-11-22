@@ -284,7 +284,7 @@ function step(run: PartyRun, dt: number) {
     }
     Powerups.update(s, dt);
   }
-  if (!w.ship && w.distance >= w.next) {
+  if (!w.ship && w.distance >= w.next && !w.objects.some((o) => o.kind === "ship" && !o.dead)) {
     const before = w.objects.length;
     Generator.spawn(w);
     const scale = scaling(run.members.filter((m) => m.connected).length);
@@ -374,6 +374,15 @@ function step(run: PartyRun, dt: number) {
     if (target) {
       const s = target.state,
         score = s.score;
+      if (Ships.collect(w, object)) {
+        for (const member of live) {
+          member.state.ship = w.ship;
+          member.state.objects = w.objects;
+          member.state.projectiles = w.projectiles;
+        }
+        continue;
+      }
+      if (object.kind === "ship") continue;
       if (Powerups.collect(s, object)) {
         w.score += s.score - score;
         continue;
