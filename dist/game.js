@@ -70,7 +70,7 @@
         playerRight: 438,
         strafeReach: 110,
         partySpacing: 32,
-        strafeSpeed: 220,
+        strafeSpeed: 95,
         damageGrace: 1.6,
         pickupRecharge: 0.06,
         sectorSeconds: 18,
@@ -269,6 +269,39 @@
           extraSpeed: 18,
           unlock: 6,
           weight: 2,
+        },
+        {
+          id: "scuttler",
+          w: 22,
+          h: 13,
+          altitude: 13,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 0,
+          unlock: 4,
+          weight: 1,
+        },
+        {
+          id: "prism",
+          w: 21,
+          h: 18,
+          altitude: 62,
+          amplitude: 5,
+          frequency: 1.6,
+          extraSpeed: 0,
+          unlock: 5,
+          weight: 1,
+        },
+        {
+          id: "bomber",
+          w: 18,
+          h: 16,
+          altitude: 16,
+          amplitude: 0,
+          frequency: 0,
+          extraSpeed: 0,
+          unlock: 6,
+          weight: 1,
         },
       ];
       var patterns = [
@@ -849,7 +882,7 @@
       function opportunity(seed, sector) {
         const rng = import_random2.default.create(`${seed}:ship:${sector}`);
         return {
-          available: import_random2.default.next(rng) < 0.75,
+          available: import_random2.default.next(rng) < 0.2,
           delay: import_random2.default.range(rng, 2, 6),
           id: import_random2.default.pick(rng, ids),
           height: import_random2.default.pick(rng, [0, 32, 52]),
@@ -1190,6 +1223,29 @@
           kind: "forge",
         },
       ];
+      var shields = [
+        {
+          id: "aegis",
+          name: "Aegis ring",
+          description: "A clean mint field. Hold K to raise; release to recharge.",
+          color: "#b6dbc3",
+          shape: "ring",
+        },
+        {
+          id: "prism",
+          name: "Prism guard",
+          description: "An angular blue barrier. Cosmetic shield style.",
+          color: "#91d9ed",
+          shape: "hex",
+        },
+        {
+          id: "furnace",
+          name: "Furnace guard",
+          description: "An ember plate with hot seams. Cosmetic shield style.",
+          color: "#ffae62",
+          shape: "plate",
+        },
+      ];
       var weapons = [
         {
           id: "punch",
@@ -1316,6 +1372,7 @@
         jetpack: "ember",
         weapon: "punch",
         difficulty: "standard",
+        shield: "aegis",
         custom: { speed: 1, growth: 1, density: 1, health: 3 },
       };
       function clamp(value, min, max, fallback) {
@@ -1335,6 +1392,7 @@
           cape: capes,
           jetpack: jetpacks,
           weapon: weapons,
+          shield: shields,
           difficulty: difficulties,
         })) {
           result[key] = group.some((item) => item.id === source[key])
@@ -1369,6 +1427,7 @@
         capes,
         jetpacks,
         weapons,
+        shields,
         difficulties,
         defaults,
         find,
@@ -1398,6 +1457,9 @@
               beetle: 3.2,
               wasp: 1.8,
               wisp: 1.4,
+              scuttler: 2.2,
+              prism: 2.4,
+              bomber: 1.2,
               boss: 18,
             }[object.variant] || 1
           );
@@ -1796,6 +1858,173 @@
     },
   });
 
+  // src/shield.ts
+  var require_shield = __commonJS({
+    "src/shield.ts"(exports, module) {
+      "use strict";
+      function create6() {
+        return { held: false, charge: 100, delay: 0, broken: false, hitGrace: 0 };
+      }
+      function active(state) {
+        return (
+          state.mode === "playing" &&
+          state.hits < state.health &&
+          state.shield.held &&
+          !state.shield.broken &&
+          state.shield.charge > 0
+        );
+      }
+      function update2(state, dt) {
+        const s = state.shield,
+          max = state.stats.shieldCapacity;
+        s.charge = Math.min(max, s.charge);
+        s.hitGrace = Math.max(0, s.hitGrace - dt);
+        s.delay = Math.max(0, s.delay - dt);
+        if (state.hits >= state.health) {
+          s.held = false;
+          return;
+        }
+        if (active(state)) {
+          s.charge = Math.max(0, s.charge - 22 * dt);
+          s.delay = 1.1;
+          if (s.charge === 0) s.broken = true;
+        } else if (!s.held && s.delay === 0) {
+          s.charge = Math.min(max, s.charge + state.stats.shieldRecharge * dt);
+          if (s.charge >= 20) s.broken = false;
+        }
+      }
+      function block(state) {
+        if (!active(state)) return false;
+        const s = state.shield;
+        if (s.hitGrace > 0) return true;
+        s.charge = Math.max(0, s.charge - 25);
+        s.delay = 1.1;
+        s.hitGrace = 0.22;
+        if (s.charge === 0) s.broken = true;
+        state.events.push({
+          type: s.broken ? "shield-break" : "shield-block",
+          x: state.player.x + 7,
+          y: state.player.y + 8,
+          label: s.broken ? "SHIELD EMPTY" : "BLOCK",
+        });
+        return true;
+      }
+      module.exports = { create: create6, active, update: update2, block };
+    },
+  });
+
+  // src/bosses.ts
+  var require_bosses = __commonJS({
+    "src/bosses.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var import_random2 = __toESM(require_random());
+      var catalog = {
+        warden: { name: "Iron Warden", color: "#ffae62", hp: 22, interval: 2.4, warning: 0.8 },
+        leviathan: {
+          name: "Storm Leviathan",
+          color: "#91dce9",
+          hp: 26,
+          interval: 2.8,
+          warning: 0.95,
+        },
+        herald: { name: "Solar Herald", color: "#ffe3a8", hp: 20, interval: 2.5, warning: 0.85 },
+        matron: { name: "Hive Matron", color: "#d8b3ed", hp: 24, interval: 3, warning: 1.05 },
+      };
+      function spawn(state) {
+        const rng = import_random2.default.create(`${state.seed}:boss:${state.sector}`);
+        const ids = Object.keys(catalog).filter((id2) => id2 !== state.lastBossId);
+        const id = import_random2.default.pick(rng, ids),
+          model = catalog[id];
+        state.lastBossId = id;
+        const maxHp =
+          model.hp * (1 + Math.min(3, state.groupIndex) * 0.15) * Math.max(1, state.rules.speed);
+        return {
+          kind: "enemy",
+          variant: "boss",
+          bossId: id,
+          hp: maxHp,
+          maxHp,
+          x: 330,
+          y: import_config4.default.floor - 58,
+          w: 46,
+          h: 58,
+          baseY: import_config4.default.floor - 58,
+          amplitude: 5,
+          frequency: 1.3,
+          extraSpeed: 0,
+          phase: 0,
+          age: 0,
+          shotCooldown: 1.5,
+          bossPhase: 0,
+        };
+      }
+      function update2(state, dt) {
+        if (state.mode !== "playing") return;
+        for (const boss of state.objects) {
+          if (boss.variant !== "boss" || boss.dead || boss.passed) continue;
+          const id = boss.bossId ?? "warden",
+            model = catalog[id];
+          if ((boss.charge ?? 0) > 0) {
+            boss.charge = Math.max(0, boss.charge - dt);
+            if (boss.charge > 0) continue;
+            const phase = boss.bossPhase ?? 0,
+              y = boss.y + boss.h / 2;
+            const shots = [];
+            const aim = Math.atan2(boss.aimY - y, boss.aimX - boss.x);
+            if (id === "warden")
+              for (const offset of [-0.22, 0, 0.22]) shots.push({ angle: aim + offset, y });
+            else if (id === "leviathan") {
+              for (const lane of phase % 2 ? [78, 146, 181] : [45, 112, 181])
+                shots.push({ angle: Math.PI, y: lane });
+            } else if (id === "herald") {
+              for (const lane of phase % 2 ? [66, 136] : [100, 180])
+                shots.push({ angle: Math.PI, y: lane });
+            } else {
+              for (const offset of [-0.45, -0.15, 0.15, 0.45])
+                shots.push({ angle: aim + offset, y });
+            }
+            const speed = 110 + Math.min(50, state.runSpeed * 0.14);
+            for (const shot of shots) {
+              if (
+                state.hostileProjectiles.length >= import_config4.default.enemyFire.maxProjectiles
+              )
+                break;
+              state.hostileProjectiles.push({
+                x: boss.x,
+                y: shot.y,
+                previousX: boss.x,
+                previousY: shot.y,
+                vx: Math.cos(shot.angle) * speed,
+                vy: Math.sin(shot.angle) * speed,
+                life: 4,
+                damage: 1,
+                color: model.color,
+              });
+            }
+            boss.bossPhase = phase + 1;
+            boss.shotCooldown = model.interval;
+            state.events.push({ type: "enemy-shot", x: boss.x, y });
+          } else {
+            boss.shotCooldown = Math.max(0, (boss.shotCooldown ?? 1.5) - dt);
+            if (boss.shotCooldown > 0 || boss.x - state.player.x < 90) continue;
+            if (state.objects.some((o) => o !== boss && !o.dead && (o.charge ?? 0) > 0)) continue;
+            boss.charge = model.warning;
+            boss.aimX = state.player.x + 7;
+            boss.aimY = state.player.y + 9;
+            state.events.push({
+              type: "charge",
+              x: boss.x,
+              y: boss.y,
+              label: model.name.toUpperCase(),
+            });
+          }
+        }
+      }
+      module.exports = { catalog, spawn, update: update2 };
+    },
+  });
+
   // src/difficulty.ts
   var require_difficulty = __commonJS({
     "src/difficulty.ts"(exports, module) {
@@ -1803,7 +2032,7 @@
       var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
       var import_content2 = __toESM(require_content());
-      var import_combat3 = __toESM(require_combat());
+      var import_bosses = __toESM(require_bosses());
       function baseSpeed(time, rules = { speed: 1, growth: 1 }) {
         const speed = import_config4.default.speed;
         return (
@@ -1818,24 +2047,17 @@
         state.biomeBlend = 0;
       }
       function beginBoss(state) {
-        const group = import_content2.default.groups[state.groupIndex];
         state.bossActive = true;
-        state.objects.push({
-          kind: "enemy",
-          variant: "boss",
-          x: 330,
-          y: import_config4.default.floor - 58,
-          w: 46,
-          h: 58,
-          hp: import_combat3.default.durability({ kind: "enemy", variant: "boss" }),
-          baseY: import_config4.default.floor - 58,
-          amplitude: 5,
-          frequency: 1.3,
-          extraSpeed: 0,
-          phase: 0,
-          age: 0,
+        state.objects = state.objects.filter((o) => o.kind !== "enemy" && o.kind !== "hazard");
+        state.hostileProjectiles = [];
+        const boss = import_bosses.default.spawn(state);
+        state.objects.push(boss);
+        state.events.push({
+          type: "boss",
+          x: 240,
+          y: 48,
+          label: import_bosses.default.catalog[boss.bossId].name,
         });
-        state.events.push({ type: "boss", x: 240, y: 48, label: group.boss });
       }
       function finishBoss(state) {
         state.bossActive = false;
@@ -2396,6 +2618,12 @@
       var import_config4 = __toESM(require_config());
       var tracks = [
         {
+          id: "shield",
+          name: "Shield capacitor",
+          maxLevel: 10,
+          description: "Hold K to block. Increase capacity and recharge; release to recover.",
+        },
+        {
           id: "dash",
           name: "Dash drive",
           maxLevel: 10,
@@ -2468,6 +2696,8 @@
         };
         return {
           levels,
+          shieldCapacity: 100 + levels.shield * 8,
+          shieldRecharge: 18 + levels.shield * 1.2,
           maxJumps: import_config4.default.maxJumps + levels.triple,
           jumpVelocity: import_config4.default.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
           doubleJumpVelocity:
@@ -2496,6 +2726,13 @@
       function describe(id, value) {
         const result = stats(value);
         switch (id) {
+          case "shield":
+            return (
+              result.shieldCapacity +
+              " capacity \xB7 " +
+              result.shieldRecharge.toFixed(1) +
+              " charge/s \xB7 hold K"
+            );
           case "dash":
             return (
               result.dashWorldMultiplier.toFixed(2) +
@@ -2534,18 +2771,128 @@
     },
   });
 
+  // src/enemy-behaviors.ts
+  var require_enemy_behaviors = __commonJS({
+    "src/enemy-behaviors.ts"(exports, module) {
+      "use strict";
+      var import_config4 = __toESM(require_config());
+      var variants = /* @__PURE__ */ new Set(["prism", "scuttler", "bomber"]);
+      var bomberRadius = 44;
+      function emitBolt(state, x, y, vx, vy, color, life = 3) {
+        if (state.hostileProjectiles.length >= import_config4.default.enemyFire.maxProjectiles)
+          return;
+        state.hostileProjectiles.push({
+          x,
+          y,
+          previousX: x,
+          previousY: y,
+          vx,
+          vy,
+          life,
+          damage: 1,
+          color,
+        });
+      }
+      function attack(state, enemy) {
+        const x = enemy.x,
+          y = enemy.y + enemy.h / 2;
+        if (enemy.variant === "bomber") {
+          for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI) / 4;
+            emitBolt(
+              state,
+              x + enemy.w / 2,
+              y,
+              Math.cos(angle) * 100,
+              Math.sin(angle) * 100,
+              "#ff805f",
+              bomberRadius / 100,
+            );
+          }
+          enemy.dead = true;
+          state.events.push({ type: "bomber-burst", x, y, label: "DETONATION" });
+        } else if (enemy.variant === "prism") {
+          const angle = Math.atan2(enemy.aimY - y, enemy.aimX - x);
+          const speed = 100 + Math.min(50, state.runSpeed * 0.2);
+          for (const offset of [-0.32, 0, 0.32])
+            emitBolt(
+              state,
+              x,
+              y,
+              Math.cos(angle + offset) * speed,
+              Math.sin(angle + offset) * speed,
+              "#efb5ed",
+            );
+          state.events.push({ type: "enemy-shot", x, y });
+        } else {
+          const lane = enemy.aimY;
+          const speed = 115 + Math.min(45, state.runSpeed * 0.2);
+          emitBolt(state, x, lane, -speed, 0, "#9ce5d6");
+          state.events.push({ type: "enemy-shot", x, y: lane });
+        }
+      }
+      function update2(state, dt) {
+        if (state.mode !== "playing") return;
+        for (const enemy of state.objects) {
+          if (enemy.kind !== "enemy" || !variants.has(enemy.variant)) continue;
+          if (
+            enemy.dead ||
+            enemy.passed ||
+            enemy.x + enemy.w < state.player.x - 12 ||
+            enemy.x > import_config4.default.width - 12
+          ) {
+            enemy.charge = 0;
+            continue;
+          }
+          if ((enemy.charge ?? 0) > 0) {
+            enemy.charge = Math.max(0, enemy.charge - dt);
+            if (enemy.charge === 0) {
+              attack(state, enemy);
+              enemy.shotCooldown = enemy.variant === "prism" ? 3.4 : 2.8;
+            }
+            continue;
+          }
+          enemy.shotCooldown = Math.max(0, (enemy.shotCooldown ?? 0.6) - dt);
+          const warning = enemy.variant === "bomber" ? 0.85 : 0.8;
+          const clearance =
+            enemy.variant === "bomber" ? Math.max(90, state.runSpeed * warning + 18) : 180;
+          const distance = enemy.x - state.player.x;
+          if (
+            enemy.shotCooldown > 0 ||
+            distance < clearance ||
+            (enemy.variant === "bomber" && distance > clearance + 16)
+          )
+            continue;
+          const charging = state.objects.filter((o) => !o.dead && (o.charge ?? 0) > 0).length;
+          if (charging >= import_config4.default.enemyFire.maxCharging) continue;
+          enemy.charge = warning;
+          enemy.aimX = state.player.x + 7;
+          enemy.aimY =
+            enemy.variant === "scuttler"
+              ? import_config4.default.floor - ((enemy.age ?? 0) % 6 < 3 ? 37 : 7)
+              : state.player.y + 9;
+          state.events.push({ type: "charge", x: enemy.x, y: enemy.y });
+        }
+      }
+      module.exports = { update: update2, variants, bomberRadius };
+    },
+  });
+
   // src/enemy-fire.ts
   var require_enemy_fire = __commonJS({
     "src/enemy-fire.ts"(exports, module) {
       "use strict";
       var import_config4 = __toESM(require_config());
+      var import_bosses = __toESM(require_bosses());
+      var import_enemy_behaviors = __toESM(require_enemy_behaviors());
       var shooters = {
         sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
         wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
-        boss: { interval: 1.7, speed: 90, color: "#ffb15a" },
       };
       function update2(state, dt) {
         if (state.mode !== "playing") return;
+        import_bosses.default.update(state, dt);
+        import_enemy_behaviors.default.update(state, dt);
         for (const object of state.objects) {
           const gun = shooters[object.variant];
           if (object.kind !== "enemy" || !gun) continue;
@@ -2731,6 +3078,7 @@
     "src/engine.ts"(exports, module) {
       "use strict";
       var import_powerups3 = __toESM(require_powerups());
+      var import_shield2 = __toESM(require_shield());
       var import_ships2 = __toESM(require_ships());
       var import_config4 = __toESM(require_config());
       var import_random2 = __toESM(require_random());
@@ -2745,6 +3093,10 @@
         const loadout = import_loadout4.default.sanitize(equipment);
         const rules = import_loadout4.default.rules(loadout);
         return {
+          shield: {
+            ...import_shield2.default.create(),
+            charge: import_upgrades3.default.stats(upgradeLevels).shieldCapacity,
+          },
           grounding: false,
           crouching: false,
           strafe: 0,
@@ -2931,6 +3283,12 @@
       }
       function hit(state, object) {
         if (state.ship && state.ship.phase !== "flight") return;
+        if (
+          state.invincible <= 0 &&
+          !state.activePowerups.shield &&
+          import_shield2.default.block(state)
+        )
+          return;
         if (state.activePowerups.titan && object.kind === "enemy") {
           import_combat3.default.damage(state, object, 10, "titan");
           return;
@@ -2948,11 +3306,13 @@
           emit2(state, "hit", state.player.x, state.player.y);
           if (state.hits >= state.health) {
             state.mode = "dead";
+            state.shield.held = false;
             emit2(state, "death", state.player.x, state.player.y);
           }
         }
       }
       function step2(state, dt) {
+        import_shield2.default.update(state, dt);
         state.time += dt;
         const previousSector = state.sector;
         import_difficulty3.default.update(state, dt);
@@ -3301,6 +3661,10 @@
     s.projectiles = run.world.projectiles;
     s.runSpeed = run.world.runSpeed;
     s.ship = run.world.ship;
+    if (action2 === "shield-on" || action2 === "shield-off") {
+      s.shield.held = action2 === "shield-on";
+      return true;
+    }
     if (action2 === "climb" || action2 === "level") {
       s.climb = action2 === "climb";
       return true;
@@ -3336,6 +3700,7 @@
         dash: 0,
         grounding: false,
       });
+      m.state.shield.held = false;
       Object.assign(m.state.player, {
         y: import_config.default.floor - import_config.default.playerHeight,
         vy: 0,
@@ -3391,6 +3756,7 @@
         import_engine.default.groundStep(s);
       }
       import_powerups.default.update(s, dt);
+      import_shield.default.update(s, dt);
     }
     if (!w.ship && w.distance >= w.next && !w.objects.some((o) => o.kind === "ship" && !o.dead)) {
       const before = w.objects.length;
@@ -3640,6 +4006,7 @@
           });
       }
       import_powerups.default.update(s, dt);
+      import_shield.default.update(s, dt);
     }
     for (const object of w.objects) import_generator.default.move(object, w.runSpeed, dt);
     for (const bolt of w.projectiles) {
@@ -3717,6 +4084,7 @@
     to.groupIndex = from.groupIndex;
     to.biomeIndex = from.biomeIndex;
     to.bossActive = from.bossActive;
+    to.lastBossId = from.lastBossId;
     to.ship = from.ship ? { ...from.ship } : null;
     to.score = from.score;
     to.scoreRemainder = from.scoreRemainder;
@@ -3757,6 +4125,9 @@
         w: target.w,
         h: target.h,
         hp: target.hp,
+        bossId: target.bossId,
+        maxHp: target.maxHp,
+        bossPhase: target.bossPhase,
         dead: target.dead,
         passed: target.passed,
         evolution: target.evolution,
@@ -3857,6 +4228,7 @@
         stats: remote.stats,
         rules: remote.rules,
         activePowerups: { ...remote.activePowerups },
+        shield: { ...remote.shield },
         ship: to.ship,
         climb: remote.climb,
       });
@@ -3930,6 +4302,7 @@
           });
       }
       import_powerups.default.update(s, dt);
+      import_shield.default.update(s, dt);
       remaining -= dt;
     }
   }
@@ -3996,6 +4369,7 @@
       ? {
           ...run.world,
           activePowerups: local.activePowerups,
+          shield: { ...local.shield },
           grounding: local.grounding,
           player: local.player,
           health: local.health,
@@ -4011,6 +4385,7 @@
   }
   var import_engine,
     import_powerups,
+    import_shield,
     import_ships,
     import_config,
     import_difficulty,
@@ -4026,6 +4401,7 @@
       "use strict";
       import_engine = __toESM(require_engine());
       import_powerups = __toESM(require_powerups());
+      import_shield = __toESM(require_shield());
       import_ships = __toESM(require_ships());
       import_config = __toESM(require_config());
       import_difficulty = __toESM(require_difficulty());
@@ -4135,6 +4511,7 @@
           none: 0,
         },
         jetpack: { ember: 0, twin: 400, coil: 800, comet: 1600, halo: 2200, forge: 2800, none: 0 },
+        shield: { aegis: 0, prism: 1800, furnace: 3200 },
         weapon: {
           punch: 0,
           pulse: 1200,
@@ -4986,6 +5363,7 @@
       var import_ships2 = __toESM(require_ships());
       var import_powerups3 = __toESM(require_powerups());
       var import_powerup_icons = __toESM(require_powerup_icons());
+      var import_shield2 = __toESM(require_shield());
       init_donation_config();
       function create6(ctx, reducedMotion = false) {
         const { rect, line, triangle } = import_pixel2.default.create(ctx);
@@ -5085,6 +5463,38 @@
               rect(x - 8, y + 6, 4, 2, "#fff0bd");
             }
           }
+        }
+        function guard(x, y, state) {
+          if (!import_shield2.default.active(state)) return;
+          const style = import_loadout4.default.find(
+            import_loadout4.default.shields,
+            state.loadout.shield,
+          );
+          ctx.save();
+          ctx.strokeStyle = style.color;
+          ctx.lineWidth = 1;
+          ctx.shadowColor = style.color;
+          ctx.shadowBlur = reducedMotion ? 0 : 5;
+          const rx = state.ship ? 29 : 15,
+            ry = state.ship ? 18 : 16;
+          if (style.shape === "plate") {
+            rect(x + rx, y - 4, 2, 25, style.color);
+            rect(x + rx - 3, y - 7, 5, 3, style.color);
+            rect(x + rx - 3, y + 21, 5, 3, style.color);
+            for (let i = 0; i < 4; i++) rect(x + rx - 3, y + i * 6, 3, 2, style.color);
+          } else {
+            const points = style.shape === "hex" ? 6 : 16;
+            ctx.beginPath();
+            for (let i = 0; i <= points; i++) {
+              const angle = (i / points) * Math.PI * 2;
+              const px = x + 6 + Math.cos(angle) * rx,
+                py = y + 7 + Math.sin(angle) * ry;
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+          }
+          ctx.restore();
         }
         function courier(x, y, time, dashing, state) {
           ctx.save();
@@ -5324,6 +5734,54 @@
           },
         };
         const enemies = {
+          scuttler(o, t) {
+            rect(o.x + 2, o.y + 2, 18, 8, "#699e8d");
+            rect(o.x + 7, o.y, 9, 3, "#b6dbc3");
+            rect(o.x, o.y + 4, 9, 4, (o.charge ?? 0) > 0 ? "#e8f7ca" : "#8de8ce");
+            for (let k = 0; k < 4; k++)
+              rect(
+                o.x + k * 5,
+                o.y + 10,
+                3,
+                reducedMotion ? 3 : Math.floor(t * 12 + k) % 2 ? 3 : 1,
+                "#496b61",
+              );
+          },
+          prism(o, t) {
+            const wing = reducedMotion ? 0 : Math.round(Math.sin(t * 15) * 2);
+            rect(o.x + 6, o.y, 9, 4, "#e9bddb");
+            rect(o.x + 2, o.y + 4, 17, 9, "#a36b9a");
+            rect(o.x + 7, o.y + 6, 7, 4, (o.charge ?? 0) > 0 ? "#fff0cd" : "#ff9bd4");
+            rect(o.x - 3, o.y + 4 + wing, 7, 2, "#cf9ebc");
+            rect(o.x + 17, o.y + 4 - wing, 7, 2, "#cf9ebc");
+            rect(o.x + 7, o.y + 13, 7, 4, "#704c7a");
+          },
+          bomber(o, t) {
+            const armed = (o.charge ?? 0) > 0;
+            rect(o.x + 4, o.y, 10, 3, "#db9672");
+            rect(o.x + 1, o.y + 3, 16, 10, "#914934");
+            rect(o.x + 4, o.y + 13, 10, 3, "#d47750");
+            rect(o.x + 7, o.y + 4, 5, 7, armed ? "#fff0bb" : "#ff8d66");
+            rect(o.x + 3, o.y + 15, 4, 2, "#b89f75");
+            rect(o.x + 12, o.y + 15, 4, 2, "#b89f75");
+            if (armed) {
+              ctx.save();
+              ctx.strokeStyle = "#ff9a78";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              for (let k = 0; k < 24; k++) {
+                const a = (k * Math.PI) / 12,
+                  b = a + 0.12;
+                ctx.moveTo(o.x + 9 + Math.cos(a) * 44, o.y + 8 + Math.sin(a) * 44);
+                ctx.lineTo(o.x + 9 + Math.cos(b) * 44, o.y + 8 + Math.sin(b) * 44);
+              }
+              ctx.stroke();
+              ctx.font = "6px monospace";
+              ctx.fillStyle = "#ffe0a3";
+              ctx.fillText("FUSE " + Math.max(0.1, o.charge).toFixed(1), o.x - 6, o.y - 8);
+              ctx.restore();
+            } else if (!reducedMotion && Math.sin(t * 8) > 0) line(o.x + 8, o.y - 3, 3, "#ffae62");
+          },
           sentry(o, t) {
             rect(o.x + 2, o.y + 13, 18, 6, "#5b665b");
             rect(o.x + 5, o.y + 3, 14, 11, "#a59077");
@@ -5360,6 +5818,39 @@
               rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
           },
           boss(o, t) {
+            if (o.bossId === "leviathan") {
+              rect(o.x + 3, o.y + 19, 40, 24, "#386d7a");
+              rect(o.x + 8, o.y + 10, 30, 12, "#659eaa");
+              for (let i = 0; i < 5; i++) {
+                rect(o.x + i * 9, o.y + 36 + (i % 2) * 7, 5, 14, "#81b9bf");
+                rect(o.x + 6 + i * 7, o.y + 5 - (i % 2) * 3, 4, 9, "#bfe8df");
+              }
+              rect(o.x + 6, o.y + 24, 7, 4, "#ffe3a8");
+              rect(o.x + 30, o.y + 24, 7, 4, "#ffe3a8");
+              return;
+            }
+            if (o.bossId === "herald") {
+              rect(o.x + 17, o.y + 5, 12, 43, "#9786ba");
+              rect(o.x + 13, o.y + 17, 20, 20, "#d5bee8");
+              for (let i = 0; i < 4; i++) {
+                rect(o.x + 2 + i * 3, o.y + 10 + i * 7, 7, 5, "#aa92cc");
+                rect(o.x + 37 - i * 3, o.y + 10 + i * 7, 7, 5, "#aa92cc");
+              }
+              rect(o.x + 17, o.y + 21, 13, 4, "#ffe0b0");
+              line(o.x + 18, o.y + 1, 10, "#eac5fb");
+              return;
+            }
+            if (o.bossId === "matron") {
+              rect(o.x + 5, o.y + 17, 36, 22, "#5f856c");
+              rect(o.x + 13, o.y + 6, 20, 16, "#9ac0a0");
+              for (let i = 0; i < 4; i++) {
+                rect(o.x + i * 11, o.y + 38, 4, 15 - (i % 2) * 4, "#c1d6a4");
+                rect(o.x + 8 + i * 8, o.y + 23, 4, 4, "#e7f4b6");
+              }
+              rect(o.x + 16, o.y + 8, 5, 5, "#314d40");
+              rect(o.x + 26, o.y + 8, 5, 5, "#314d40");
+              return;
+            }
             const pulse = reducedMotion ? 0 : Math.round(Math.sin(t * 6) * 2);
             rect(o.x + 10, o.y + 18, 26, 34, "#241c22");
             rect(o.x + 14, o.y + 8, 18, 16, "#c24b38");
@@ -5454,18 +5945,6 @@
           } else if (o.kind === "heart" || o.kind === "powerup") {
             const power =
               o.kind === "powerup" ? import_powerups3.default.definition(o.variant) : void 0;
-            const rarityColor =
-              o.rarity === "legendary"
-                ? "#ffe0a3"
-                : o.rarity === "epic"
-                  ? "#c6b3df"
-                  : o.rarity === "rare"
-                    ? "#9bd7e5"
-                    : "#b6dbc3";
-            if (o.kind === "heart") {
-              rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-              line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
-            }
             if (o.kind === "heart") {
               const heartColor = "#f06d78";
               rect(o.x, o.y, 3, 3, heartColor);
@@ -5473,7 +5952,7 @@
               rect(o.x, o.y + 2, 8, 3, heartColor);
               rect(o.x + 2, o.y + 5, 4, 2, heartColor);
               rect(o.x + 3, o.y + 7, 2, 1, heartColor);
-              rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
+              rect(o.x + 1, o.y + 1, 1, 1, o.rarity === "rare" ? "#fff1d6" : "#ffd5d8");
             } else if (power) {
               ctx.save();
               ctx.shadowColor = power.color;
@@ -5668,7 +6147,18 @@
             line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
           ctx.restore();
         }
-        return { courier, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
+        return {
+          courier,
+          guard,
+          ship,
+          object,
+          traversal,
+          travelEffect,
+          hazards,
+          enemies,
+          cape,
+          jetpack,
+        };
       }
       module.exports = { create: create6 };
     },
@@ -5838,6 +6328,7 @@
                 if (world.ship) sprites.ship(x, y, world.ship, s.attackTime > 0, time);
                 else sprites.courier(x, y, time, s.dash > 0, s);
                 if (s.activePowerups.shield) shield(x, y, Boolean(world.ship));
+                sprites.guard(x, y, s);
                 ctx.font = "bold 5px monospace";
                 ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
                 ctx.textAlign = "center";
@@ -5862,6 +6353,7 @@
               if (world.ship) sprites.ship(x, y, world.ship, state.attackTime > 0, time);
               else sprites.courier(x, y, time, state.dash > 0, state);
               if (state.activePowerups.shield) shield(x, y, Boolean(world.ship));
+              sprites.guard(x, y, state);
               ctx.restore();
             }
           }
@@ -6006,6 +6498,7 @@
       var import_loadout4 = __toESM(require_loadout());
       var import_ships2 = __toESM(require_ships());
       var import_powerup_hud = __toESM(require_powerup_hud());
+      var import_shield2 = __toESM(require_shield());
       var format = (value) => value.toString().padStart(6, "0");
       function create6(doc) {
         const byId = (id) => element(doc, id);
@@ -6047,6 +6540,10 @@
         const flightControls = byId("ship-controls");
         const shipName = byId("ship-name");
         const shipBrief = byId("ship-brief");
+        const deathDonate = byId("death-donate");
+        const bossHealth = byId("boss-health");
+        const bossCells = Array.from(byId("boss-meter").querySelectorAll("b"));
+        let isSupporter = false;
         let announcementTime = 0;
         let countdownDigit = "";
         let countdownGoTime = 0;
@@ -6056,6 +6553,42 @@
         const countdownMeter = element(doc, "countdown-meter", "span").firstElementChild;
         function render(state, best, coins = 0n) {
           renderPowers(state);
+          byId("round-results").hidden = state.mode !== "dead";
+          const shieldRatio = Math.max(
+            0,
+            Math.min(1, state.shield.charge / state.stats.shieldCapacity),
+          );
+          const shieldStatus = byId("shield-status");
+          shieldStatus.firstChild.textContent = state.shield.broken
+            ? "SHIELD EMPTY "
+            : import_shield2.default.active(state)
+              ? "K / SHIELD ACTIVE "
+              : shieldRatio < 1
+                ? "K / RECHARGING "
+                : "K / SHIELD READY ";
+          byId("shield-charge").querySelector("i").style.transform = `scaleX(${shieldRatio})`;
+          byId("shield-charge").setAttribute(
+            "aria-valuenow",
+            String(Math.round(shieldRatio * 100)),
+          );
+          const boss = state.objects.find(
+            (o) => o.variant === "boss" && !o.dead && (o.hp ?? 0) > 0,
+          );
+          bossHealth.hidden = !boss || state.mode === "menu" || state.mode === "dead";
+          if (boss) {
+            const id = boss.bossId ?? "warden";
+            bossHealth.className = "boss-health boss-" + id;
+            const current = Math.max(0, boss.hp ?? 0),
+              max = Math.max(1, boss.maxHp ?? current);
+            const ratio = Math.min(1, current / max);
+            byId("boss-name").textContent = id.toUpperCase();
+            byId("boss-hp").textContent = `${Math.ceil(current)} / ${Math.ceil(max)}`;
+            byId("boss-meter").setAttribute("aria-label", id + " health");
+            byId("boss-meter").setAttribute("aria-valuenow", String(Math.round(ratio * 100)));
+            for (const [i, cell] of bossCells.entries())
+              cell.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio * 12 - i))})`;
+          }
+          deathDonate.hidden = state.mode !== "dead";
           const ship = state.ship;
           const inFlight = Boolean(
             ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,
@@ -6099,10 +6632,21 @@
         }
         function showOverlay(mode, state) {
           el.overlay.classList.remove("hidden");
+          deathDonate.hidden = mode !== "dead";
+          byId("round-results").hidden = mode !== "dead";
+          el.overlay.classList.toggle("has-results", mode === "dead");
+          deathDonate.querySelector("strong").textContent = isSupporter
+            ? "YOUR FLAMEBOUND COLLECTION"
+            : "FUEL THE EMBER";
+          deathDonate.querySelector("span").textContent = isSupporter
+            ? "Equip your supporter skins / keep the signal alive"
+            : "Donate any amount / unlock both fiery skins";
           if (mode === "dead") {
             el.eyebrow.textContent = "TRANSMISSION LOST / SECTOR " + state.sector;
             el.heading.innerHTML = "ONE MORE<br><em>SPARK.</em>";
-            el.description.innerHTML = `${format(state.score)} points \xB7 ${state.embers} coins \xB7 ${Math.floor(state.distance)} m<br>A new route is waiting. Run it again.`;
+            byId("round-score").textContent = state.score.toString();
+            byId("round-coins").textContent = state.embers.toString();
+            el.description.textContent = `${Math.floor(state.distance)} m travelled. A new route is waiting.`;
             el.start.innerHTML = "RUN AGAIN <span>\u2197</span>";
             el.status.textContent = "COURIER OFFLINE";
           } else {
@@ -6166,12 +6710,17 @@
           el.sound.setAttribute("aria-pressed", String(!muted));
         }
         function hideOverlay() {
+          deathDonate.hidden = true;
+          byId("round-results").hidden = true;
           el.overlay.classList.add("hidden");
           el.pause.textContent = "\u2161 PAUSE";
           announce("", 0);
         }
         return {
           el,
+          supporter(value) {
+            isSupporter = value;
+          },
           render,
           showOverlay,
           hideOverlay,
@@ -6197,14 +6746,16 @@
       var right = false;
       var crouch = false;
       var climb = false;
+      var shield = false;
       function pose() {
-        return { strafe, crouch, climb };
+        return { strafe, crouch, climb, shield };
       }
       function release() {
         left = false;
         right = false;
         crouch = false;
         climb = false;
+        shield = false;
         strafe = 0;
       }
       function bind(doc, actions, canvas) {
@@ -6285,6 +6836,11 @@
             crouch = false;
           },
         );
+        for (const id of ["touch-shield", "ship-shield"])
+          if (doc.getElementById(id))
+            flightButton(id, (held) => {
+              shield = held;
+            });
         function flightButton(id, set) {
           hold(
             id,
@@ -6336,6 +6892,15 @@
           true,
         );
         doc.addEventListener("keyup", (event) => {
+          if (
+            event.code === "Space" &&
+            event.target instanceof Element &&
+            event.target.matches("#start")
+          ) {
+            event.preventDefault();
+            return;
+          }
+          if (event.code === "KeyK") shield = false;
           if (event.code === "KeyA") {
             left = false;
             strafe = right ? 1 : 0;
@@ -6348,6 +6913,19 @@
         doc.addEventListener("keydown", (event) => {
           if (doc.querySelector("dialog[open]")) {
             release();
+            return;
+          }
+          if (
+            event.code === "Space" &&
+            event.target instanceof Element &&
+            event.target.matches("#start")
+          ) {
+            event.preventDefault();
+            return;
+          }
+          if (event.code === "KeyK") {
+            event.preventDefault();
+            shield = true;
             return;
           }
           if (event.code === "KeyA" || event.code === "KeyD") {
@@ -6449,6 +7027,7 @@
       var import_upgrades3 = __toESM(require_upgrades());
       var import_config4 = __toESM(require_config());
       var names = {
+        shield: "Shield",
         dash: "Dash",
         jump: "Jump height",
         damage: "Attack damage",
@@ -6458,6 +7037,8 @@
       function benefit(id, levels) {
         const stats = import_upgrades3.default.stats(levels);
         switch (id) {
+          case "shield":
+            return stats.shieldCapacity + " capacity";
           case "dash":
             return Math.round((stats.dashWorldMultiplier - 1) * 100) + "% boost";
           case "jump":
@@ -6639,6 +7220,7 @@
         cape: import_loadout4.default.capes,
         jetpack: import_loadout4.default.jetpacks,
         weapon: import_loadout4.default.weapons,
+        shield: import_loadout4.default.shields,
         difficulty: import_loadout4.default.difficulties,
         settings: [],
       };
@@ -6647,6 +7229,7 @@
         cape: "Cape",
         jetpack: "Jetpack",
         weapon: "Weapon",
+        shield: "Shield",
         upgrades: "Upgrades",
         difficulty: "Difficulty",
         settings: "Settings",
@@ -7008,7 +7591,10 @@
           ctx.save();
           ctx.translate(84, 56);
           ctx.scale(2, 2);
+          previewState.mode = "playing";
+          previewState.shield.held = active === "shield";
           sprites.courier(0, 0, time, dashing, previewState);
+          sprites.guard(0, 0, previewState);
           ctx.restore();
         }
         return {
@@ -7086,6 +7672,8 @@
     else if (action2 === "dash") import_engine2.default.dash(state);
     else if (action2 === "attack") import_engine2.default.attack(state);
     else if (action2 === "ground") import_engine2.default.ground(state);
+    else if (action2 === "shield-on" || action2 === "shield-off")
+      state.shield.held = action2 === "shield-on";
     else if (action2 === "climb" || action2 === "level") state.climb = action2 === "climb";
     else if (action2 === "strafe-left") state.strafe = -1;
     else if (action2 === "strafe-right") state.strafe = 1;
@@ -7112,6 +7700,7 @@
     local.state.activePowerups = { ...source.state.activePowerups };
     local.state.ship = latest.world.ship;
     local.state.climb = source.state.climb;
+    local.state.shield = { ...source.state.shield };
     for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
     steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
     const front = sorted(shown).find(alive);
@@ -16303,6 +16892,8 @@
                 "climb",
                 "level",
                 "ground",
+                "shield-on",
+                "shield-off",
                 "strafe-left",
                 "strafe-right",
                 "strafe-stop",
@@ -17696,21 +18287,32 @@
         let sentStrafe = 99;
         let sentCrouch = false;
         let sentClimb = false;
+        let sentShield = false;
         function syncPose(playing) {
           if (doc.querySelector("dialog[open]")) import_input2.default.release();
+          if (!playing) {
+            import_input2.default.release();
+            state.shield.held = false;
+          }
           const pose = import_input2.default.pose();
           if (!session.active) {
             sentStrafe = 99;
             sentCrouch = false;
             sentClimb = false;
+            sentShield = false;
             if (playing) {
               state.strafe = pose.strafe;
               state.crouching = pose.crouch;
               state.climb = pose.climb;
+              state.shield.held = pose.shield;
             }
             return;
           }
           if (!playing) return;
+          if (pose.shield !== sentShield) {
+            sentShield = pose.shield;
+            session.action(pose.shield ? "shield-on" : "shield-off");
+          }
           if (pose.strafe !== sentStrafe) {
             sentStrafe = pose.strafe;
             session.action(
@@ -17750,6 +18352,7 @@
             else pauseIfPlaying();
           },
           onStatus(message2, user) {
+            ui.supporter(user?.supporter === true);
             if (economy.setSupporter(user?.supporter === true)) {
               loadout = economy.enforce(saves.loadout());
               state.loadout = loadout;
@@ -17786,6 +18389,7 @@
           },
         });
         doc.getElementById("donate")?.addEventListener("click", () => donations.open());
+        doc.getElementById("death-donate")?.addEventListener("click", () => donations.open());
         particles.setEnabled(saves.effects());
         ui.el.effects.checked = particles.enabled;
         ui.sound(audio.muted);
@@ -17977,9 +18581,9 @@
             },
             escape: pauseIfPlaying,
             jump() {
+              if (state.mode !== "playing") return;
               audio.unlock();
-              if (state.mode === "menu" || state.mode === "dead") start2();
-              else if (session.active) session.action("jump");
+              if (session.active) session.action("jump");
               else import_engine5.default.jump(state);
             },
             dash() {
@@ -18066,18 +18670,20 @@
               }
             }
             syncPose(state.mode === "playing");
-          } else if (state.mode === "playing") {
-            syncPose(true);
-            import_engine5.default.update(state, dt);
-            handleEvents();
-            if (!state.ship && Math.random() < dt * 24)
-              particles.burst(
-                state.player.x - 3,
-                state.player.y + 12,
-                1,
-                state.dash > 0 ? "#b6dbc3" : "#e5a161",
-                10,
-              );
+          } else {
+            syncPose(state.mode === "playing");
+            if (state.mode === "playing") {
+              import_engine5.default.update(state, dt);
+              handleEvents();
+              if (!state.ship && Math.random() < dt * 24)
+                particles.burst(
+                  state.player.x - 3,
+                  state.player.y + 12,
+                  1,
+                  state.dash > 0 ? "#b6dbc3" : "#e5a161",
+                  10,
+                );
+            }
           }
           if (session.active !== recordParty || state.time < recordTime) {
             records.reset(best);
