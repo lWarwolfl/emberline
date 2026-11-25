@@ -95,8 +95,16 @@ test("corrupt upgrade levels are clamped to the documented caps", () => {
     damage: 0,
     triple: 1,
     power: 0,
+    shield: 0,
   });
-  assert.deepEqual(Upgrades.sanitize(null), { dash: 0, jump: 0, damage: 0, triple: 0, power: 0 });
+  assert.deepEqual(Upgrades.sanitize(null), {
+    dash: 0,
+    jump: 0,
+    damage: 0,
+    triple: 0,
+    power: 0,
+    shield: 0,
+  });
 });
 
 test("level zero begins basic and capped stats remain below the old overpowered dash", () => {

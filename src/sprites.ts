@@ -8,6 +8,7 @@ import Combat from "./combat";
 import Ships from "./ships";
 import Powerups from "./powerups";
 import PowerupIcons from "./powerup-icons";
+import Shield from "./shield";
 import { isSupporterCharacter } from "./donation-config";
 
 function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
@@ -109,6 +110,36 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(x - 8, y + 6, 4, 2, "#fff0bd");
       }
     }
+  }
+
+  function guard(x: number, y: number, state: GameState) {
+    if (!Shield.active(state)) return;
+    const style = Loadout.find(Loadout.shields, state.loadout.shield);
+    ctx.save();
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = 1;
+    ctx.shadowColor = style.color;
+    ctx.shadowBlur = reducedMotion ? 0 : 5;
+    const rx = state.ship ? 29 : 15,
+      ry = state.ship ? 18 : 16;
+    if (style.shape === "plate") {
+      rect(x + rx, y - 4, 2, 25, style.color);
+      rect(x + rx - 3, y - 7, 5, 3, style.color);
+      rect(x + rx - 3, y + 21, 5, 3, style.color);
+      for (let i = 0; i < 4; i++) rect(x + rx - 3, y + i * 6, 3, 2, style.color);
+    } else {
+      const points = style.shape === "hex" ? 6 : 16;
+      ctx.beginPath();
+      for (let i = 0; i <= points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        const px = x + 6 + Math.cos(angle) * rx,
+          py = y + 7 + Math.sin(angle) * ry;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function courier(x: number, y: number, time: number, dashing: boolean, state: GameState) {
@@ -340,6 +371,54 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
   };
 
   const enemies: Record<string, (o: WorldObject, t: number) => void> = {
+    scuttler(o: WorldObject, t: number) {
+      rect(o.x + 2, o.y + 2, 18, 8, "#699e8d");
+      rect(o.x + 7, o.y, 9, 3, "#b6dbc3");
+      rect(o.x, o.y + 4, 9, 4, (o.charge ?? 0) > 0 ? "#e8f7ca" : "#8de8ce");
+      for (let k = 0; k < 4; k++)
+        rect(
+          o.x + k * 5,
+          o.y + 10,
+          3,
+          reducedMotion ? 3 : Math.floor(t * 12 + k) % 2 ? 3 : 1,
+          "#496b61",
+        );
+    },
+    prism(o: WorldObject, t: number) {
+      const wing = reducedMotion ? 0 : Math.round(Math.sin(t * 15) * 2);
+      rect(o.x + 6, o.y, 9, 4, "#e9bddb");
+      rect(o.x + 2, o.y + 4, 17, 9, "#a36b9a");
+      rect(o.x + 7, o.y + 6, 7, 4, (o.charge ?? 0) > 0 ? "#fff0cd" : "#ff9bd4");
+      rect(o.x - 3, o.y + 4 + wing, 7, 2, "#cf9ebc");
+      rect(o.x + 17, o.y + 4 - wing, 7, 2, "#cf9ebc");
+      rect(o.x + 7, o.y + 13, 7, 4, "#704c7a");
+    },
+    bomber(o: WorldObject, t: number) {
+      const armed = (o.charge ?? 0) > 0;
+      rect(o.x + 4, o.y, 10, 3, "#db9672");
+      rect(o.x + 1, o.y + 3, 16, 10, "#914934");
+      rect(o.x + 4, o.y + 13, 10, 3, "#d47750");
+      rect(o.x + 7, o.y + 4, 5, 7, armed ? "#fff0bb" : "#ff8d66");
+      rect(o.x + 3, o.y + 15, 4, 2, "#b89f75");
+      rect(o.x + 12, o.y + 15, 4, 2, "#b89f75");
+      if (armed) {
+        ctx.save();
+        ctx.strokeStyle = "#ff9a78";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let k = 0; k < 24; k++) {
+          const a = (k * Math.PI) / 12,
+            b = a + 0.12;
+          ctx.moveTo(o.x + 9 + Math.cos(a) * 44, o.y + 8 + Math.sin(a) * 44);
+          ctx.lineTo(o.x + 9 + Math.cos(b) * 44, o.y + 8 + Math.sin(b) * 44);
+        }
+        ctx.stroke();
+        ctx.font = "6px monospace";
+        ctx.fillStyle = "#ffe0a3";
+        ctx.fillText("FUSE " + Math.max(0.1, o.charge!).toFixed(1), o.x - 6, o.y - 8);
+        ctx.restore();
+      } else if (!reducedMotion && Math.sin(t * 8) > 0) line(o.x + 8, o.y - 3, 3, "#ffae62");
+    },
     sentry(o: WorldObject, t: number) {
       rect(o.x + 2, o.y + 13, 18, 6, "#5b665b");
       rect(o.x + 5, o.y + 3, 14, 11, "#a59077");
@@ -376,6 +455,39 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(o.x + 2 + i * 5, o.y + 11 + (i % 2 ? sway : -sway), 3, 5, "#717ead");
     },
     boss(o: WorldObject, t: number) {
+      if (o.bossId === "leviathan") {
+        rect(o.x + 3, o.y + 19, 40, 24, "#386d7a");
+        rect(o.x + 8, o.y + 10, 30, 12, "#659eaa");
+        for (let i = 0; i < 5; i++) {
+          rect(o.x + i * 9, o.y + 36 + (i % 2) * 7, 5, 14, "#81b9bf");
+          rect(o.x + 6 + i * 7, o.y + 5 - (i % 2) * 3, 4, 9, "#bfe8df");
+        }
+        rect(o.x + 6, o.y + 24, 7, 4, "#ffe3a8");
+        rect(o.x + 30, o.y + 24, 7, 4, "#ffe3a8");
+        return;
+      }
+      if (o.bossId === "herald") {
+        rect(o.x + 17, o.y + 5, 12, 43, "#9786ba");
+        rect(o.x + 13, o.y + 17, 20, 20, "#d5bee8");
+        for (let i = 0; i < 4; i++) {
+          rect(o.x + 2 + i * 3, o.y + 10 + i * 7, 7, 5, "#aa92cc");
+          rect(o.x + 37 - i * 3, o.y + 10 + i * 7, 7, 5, "#aa92cc");
+        }
+        rect(o.x + 17, o.y + 21, 13, 4, "#ffe0b0");
+        line(o.x + 18, o.y + 1, 10, "#eac5fb");
+        return;
+      }
+      if (o.bossId === "matron") {
+        rect(o.x + 5, o.y + 17, 36, 22, "#5f856c");
+        rect(o.x + 13, o.y + 6, 20, 16, "#9ac0a0");
+        for (let i = 0; i < 4; i++) {
+          rect(o.x + i * 11, o.y + 38, 4, 15 - (i % 2) * 4, "#c1d6a4");
+          rect(o.x + 8 + i * 8, o.y + 23, 4, 4, "#e7f4b6");
+        }
+        rect(o.x + 16, o.y + 8, 5, 5, "#314d40");
+        rect(o.x + 26, o.y + 8, 5, 5, "#314d40");
+        return;
+      }
       const pulse = reducedMotion ? 0 : Math.round(Math.sin(t * 6) * 2);
       rect(o.x + 10, o.y + 18, 26, 34, "#241c22");
       rect(o.x + 14, o.y + 8, 18, 16, "#c24b38");
@@ -457,18 +569,6 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       ctx.fillText("BOARD", o.x + 1, o.y - 9);
     } else if (o.kind === "heart" || o.kind === "powerup") {
       const power = o.kind === "powerup" ? Powerups.definition(o.variant) : undefined;
-      const rarityColor =
-        o.rarity === "legendary"
-          ? "#ffe0a3"
-          : o.rarity === "epic"
-            ? "#c6b3df"
-            : o.rarity === "rare"
-              ? "#9bd7e5"
-              : "#b6dbc3";
-      if (o.kind === "heart") {
-        rect(o.x - 3, o.y - 3, o.w + 6, o.h + 6, "#233d35");
-        line(o.x - 3, o.y - 3, o.w + 6, rarityColor);
-      }
       if (o.kind === "heart") {
         const heartColor = "#f06d78";
         rect(o.x, o.y, 3, 3, heartColor);
@@ -476,7 +576,7 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
         rect(o.x, o.y + 2, 8, 3, heartColor);
         rect(o.x + 2, o.y + 5, 4, 2, heartColor);
         rect(o.x + 3, o.y + 7, 2, 1, heartColor);
-        rect(o.x + 1, o.y + 1, 1, 1, "#ffd5d8");
+        rect(o.x + 1, o.y + 1, 1, 1, o.rarity === "rare" ? "#fff1d6" : "#ffd5d8");
       } else if (power) {
         ctx.save();
         ctx.shadowColor = power.color;
@@ -654,6 +754,6 @@ function create(ctx: CanvasRenderingContext2D, reducedMotion = false) {
       line(state.player.x - 30 - i * 17, state.player.y + i * 4, 12 + i * 2, color);
     ctx.restore();
   }
-  return { courier, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
+  return { courier, guard, ship, object, traversal, travelEffect, hazards, enemies, cape, jetpack };
 }
 export = { create };

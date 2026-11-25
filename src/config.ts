@@ -19,7 +19,7 @@ export = {
   playerRight: 438,
   strafeReach: 110,
   partySpacing: 32,
-  strafeSpeed: 220,
+  strafeSpeed: 95,
   damageGrace: 1.6,
   pickupRecharge: 0.06,
   sectorSeconds: 18,

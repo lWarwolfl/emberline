@@ -2,7 +2,7 @@ import type { GameState } from "./types";
 import Config from "./config";
 import Random from "./random";
 import Content from "./content";
-import Combat from "./combat";
+import Bosses from "./bosses";
 
 function baseSpeed(time: number, rules = { speed: 1, growth: 1 }) {
   const speed = Config.speed;
@@ -20,24 +20,12 @@ function applyBiome(state: GameState, id: string) {
 }
 
 function beginBoss(state: GameState) {
-  const group = Content.groups[state.groupIndex];
   state.bossActive = true;
-  state.objects.push({
-    kind: "enemy",
-    variant: "boss",
-    x: 330,
-    y: Config.floor - 58,
-    w: 46,
-    h: 58,
-    hp: Combat.durability({ kind: "enemy", variant: "boss" }),
-    baseY: Config.floor - 58,
-    amplitude: 5,
-    frequency: 1.3,
-    extraSpeed: 0,
-    phase: 0,
-    age: 0,
-  });
-  state.events.push({ type: "boss", x: 240, y: 48, label: group.boss });
+  state.objects = state.objects.filter((o) => o.kind !== "enemy" && o.kind !== "hazard");
+  state.hostileProjectiles = [];
+  const boss = Bosses.spawn(state);
+  state.objects.push(boss);
+  state.events.push({ type: "boss", x: 240, y: 48, label: Bosses.catalog[boss.bossId!].name });
 }
 
 function finishBoss(state: GameState) {

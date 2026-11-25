@@ -5,6 +5,7 @@ import Content from "./content";
 import Loadout from "./loadout";
 import Ships from "./ships";
 import PowerupHud from "./powerup-hud";
+import Shield from "./shield";
 
 const format = (value: bigint | number) => value.toString().padStart(6, "0");
 
@@ -51,6 +52,10 @@ function create(doc: Document) {
   const flightControls = byId("ship-controls");
   const shipName = byId("ship-name");
   const shipBrief = byId("ship-brief");
+  const deathDonate = byId("death-donate");
+  const bossHealth = byId("boss-health");
+  const bossCells = Array.from(byId("boss-meter").querySelectorAll<HTMLElement>("b"));
+  let isSupporter = false;
   let announcementTime = 0;
   let countdownDigit = "";
   let countdownGoTime = 0;
@@ -61,6 +66,35 @@ function create(doc: Document) {
 
   function render(state: GameState, best: bigint, coins = 0n) {
     renderPowers(state);
+    byId("round-results").hidden = state.mode !== "dead";
+    const shieldRatio = Math.max(0, Math.min(1, state.shield.charge / state.stats.shieldCapacity));
+    const shieldStatus = byId("shield-status");
+    shieldStatus.firstChild!.textContent = state.shield.broken
+      ? "SHIELD EMPTY "
+      : Shield.active(state)
+        ? "K / SHIELD ACTIVE "
+        : shieldRatio < 1
+          ? "K / RECHARGING "
+          : "K / SHIELD READY ";
+    byId("shield-charge").querySelector<HTMLElement>("i")!.style.transform =
+      `scaleX(${shieldRatio})`;
+    byId("shield-charge").setAttribute("aria-valuenow", String(Math.round(shieldRatio * 100)));
+    const boss = state.objects.find((o) => o.variant === "boss" && !o.dead && (o.hp ?? 0) > 0);
+    bossHealth.hidden = !boss || state.mode === "menu" || state.mode === "dead";
+    if (boss) {
+      const id = boss.bossId ?? "warden";
+      bossHealth.className = "boss-health boss-" + id;
+      const current = Math.max(0, boss.hp ?? 0),
+        max = Math.max(1, boss.maxHp ?? current);
+      const ratio = Math.min(1, current / max);
+      byId("boss-name").textContent = id.toUpperCase();
+      byId("boss-hp").textContent = `${Math.ceil(current)} / ${Math.ceil(max)}`;
+      byId("boss-meter").setAttribute("aria-label", id + " health");
+      byId("boss-meter").setAttribute("aria-valuenow", String(Math.round(ratio * 100)));
+      for (const [i, cell] of bossCells.entries())
+        cell.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio * 12 - i))})`;
+    }
+    deathDonate.hidden = state.mode !== "dead";
     const ship = state.ship;
     const inFlight = Boolean(
       ship && ship.phase !== "crash" && state.mode === "playing" && state.hits < state.health,
@@ -100,10 +134,21 @@ function create(doc: Document) {
 
   function showOverlay(mode: Mode, state: GameState) {
     el.overlay.classList.remove("hidden");
+    deathDonate.hidden = mode !== "dead";
+    byId("round-results").hidden = mode !== "dead";
+    el.overlay.classList.toggle("has-results", mode === "dead");
+    deathDonate.querySelector("strong")!.textContent = isSupporter
+      ? "YOUR FLAMEBOUND COLLECTION"
+      : "FUEL THE EMBER";
+    deathDonate.querySelector("span")!.textContent = isSupporter
+      ? "Equip your supporter skins / keep the signal alive"
+      : "Donate any amount / unlock both fiery skins";
     if (mode === "dead") {
       el.eyebrow.textContent = "TRANSMISSION LOST / SECTOR " + state.sector;
       el.heading.innerHTML = "ONE MORE<br><em>SPARK.</em>";
-      el.description.innerHTML = `${format(state.score)} points · ${state.embers} coins · ${Math.floor(state.distance)} m<br>A new route is waiting. Run it again.`;
+      byId("round-score").textContent = state.score.toString();
+      byId("round-coins").textContent = state.embers.toString();
+      el.description.textContent = `${Math.floor(state.distance)} m travelled. A new route is waiting.`;
       el.start.innerHTML = "RUN AGAIN <span>↗</span>";
       el.status.textContent = "COURIER OFFLINE";
     } else {
@@ -174,6 +219,8 @@ function create(doc: Document) {
   }
 
   function hideOverlay() {
+    deathDonate.hidden = true;
+    byId("round-results").hidden = true;
     el.overlay.classList.add("hidden");
     el.pause.textContent = "Ⅱ PAUSE";
     announce("", 0);
@@ -181,6 +228,9 @@ function create(doc: Document) {
 
   return {
     el,
+    supporter(value: boolean) {
+      isSupporter = value;
+    },
     render,
     showOverlay,
     hideOverlay,

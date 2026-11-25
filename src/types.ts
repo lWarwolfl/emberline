@@ -8,7 +8,7 @@ export type Seed = string | number;
 export interface Rng {
   seed: number;
 }
-export type GearGroup = "character" | "cape" | "jetpack" | "weapon";
+export type GearGroup = "character" | "cape" | "jetpack" | "weapon" | "shield";
 export type LoadoutGroup = GearGroup | "difficulty";
 export type ShopTab = LoadoutGroup | "upgrades" | "settings";
 export interface CustomRules {
@@ -18,7 +18,7 @@ export interface CustomRules {
   health: number;
 }
 export type Loadout = Record<LoadoutGroup, string> & { custom: CustomRules };
-export type UpgradeId = "dash" | "jump" | "damage" | "triple" | "power";
+export type UpgradeId = "dash" | "jump" | "damage" | "triple" | "power" | "shield";
 export type UpgradeLevels = Record<UpgradeId, number>;
 export type Rules = ReturnType<typeof Loadouts.rules>;
 export type RunStats = ReturnType<typeof Upgrades.stats>;
@@ -44,6 +44,9 @@ export interface ShipFlight {
   wave: number;
 }
 export interface WorldObject {
+  bossId?: "warden" | "leviathan" | "herald" | "matron";
+  maxHp?: number;
+  bossPhase?: number;
   kind: "hazard" | "enemy" | "ember" | "heart" | "powerup" | "platform" | "ship";
   variant: string;
   x: number;
@@ -119,6 +122,8 @@ export interface Encounter {
 }
 export type Mode = "menu" | "countdown" | "playing" | "paused" | "dead";
 export interface GameState {
+  lastBossId?: "warden" | "leviathan" | "herald" | "matron";
+  shield: { held: boolean; charge: number; delay: number; broken: boolean; hitGrace: number };
   grounding: boolean;
   crouching: boolean;
   strafe: -1 | 0 | 1;

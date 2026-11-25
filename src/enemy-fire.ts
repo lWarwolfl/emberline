@@ -1,14 +1,17 @@
 import type { GameState, HostileProjectile, Player } from "./types";
 import Config from "./config";
+import Bosses from "./bosses";
+import EnemyBehaviors from "./enemy-behaviors";
 
 const shooters: Partial<Record<string, { interval: number; speed: number; color: string }>> = {
   sentry: { interval: 2.6, speed: 100, color: "#ff7b73" },
   wasp: { interval: 3.1, speed: 115, color: "#ff98ca" },
-  boss: { interval: 1.7, speed: 90, color: "#ffb15a" },
 };
 
 function update(state: GameState, dt: number) {
   if (state.mode !== "playing") return;
+  Bosses.update(state, dt);
+  EnemyBehaviors.update(state, dt);
   for (const object of state.objects) {
     const gun = shooters[object.variant];
     if (object.kind !== "enemy" || !gun) continue;

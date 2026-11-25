@@ -97,21 +97,32 @@ function create(doc: Document) {
   let sentStrafe = 99;
   let sentCrouch = false;
   let sentClimb = false;
+  let sentShield = false;
   function syncPose(playing: boolean) {
     if (doc.querySelector("dialog[open]")) Input.release();
+    if (!playing) {
+      Input.release();
+      state.shield.held = false;
+    }
     const pose = Input.pose();
     if (!session.active) {
       sentStrafe = 99;
       sentCrouch = false;
       sentClimb = false;
+      sentShield = false;
       if (playing) {
         state.strafe = pose.strafe;
         state.crouching = pose.crouch;
         state.climb = pose.climb;
+        state.shield.held = pose.shield;
       }
       return;
     }
     if (!playing) return;
+    if (pose.shield !== sentShield) {
+      sentShield = pose.shield;
+      session.action(pose.shield ? "shield-on" : "shield-off");
+    }
     if (pose.strafe !== sentStrafe) {
       sentStrafe = pose.strafe;
       session.action(
@@ -151,6 +162,7 @@ function create(doc: Document) {
       else pauseIfPlaying();
     },
     onStatus(message, user) {
+      ui.supporter(user?.supporter === true);
       if (economy.setSupporter(user?.supporter === true)) {
         loadout = economy.enforce(saves.loadout());
         state.loadout = loadout;
@@ -187,6 +199,7 @@ function create(doc: Document) {
     },
   });
   doc.getElementById("donate")?.addEventListener("click", () => donations.open());
+  doc.getElementById("death-donate")?.addEventListener("click", () => donations.open());
 
   particles.setEnabled(saves.effects());
   ui.el.effects.checked = particles.enabled;
@@ -385,9 +398,9 @@ function create(doc: Document) {
       },
       escape: pauseIfPlaying,
       jump() {
+        if (state.mode !== "playing") return;
         audio.unlock();
-        if (state.mode === "menu" || state.mode === "dead") start();
-        else if (session.active) session.action("jump");
+        if (session.active) session.action("jump");
         else Engine.jump(state);
       },
       dash() {
@@ -470,18 +483,20 @@ function create(doc: Document) {
         }
       }
       syncPose(state.mode === "playing");
-    } else if (state.mode === "playing") {
-      syncPose(true);
-      Engine.update(state, dt);
-      handleEvents();
-      if (!state.ship && Math.random() < dt * 24)
-        particles.burst(
-          state.player.x - 3,
-          state.player.y + 12,
-          1,
-          state.dash > 0 ? "#b6dbc3" : "#e5a161",
-          10,
-        );
+    } else {
+      syncPose(state.mode === "playing");
+      if (state.mode === "playing") {
+        Engine.update(state, dt);
+        handleEvents();
+        if (!state.ship && Math.random() < dt * 24)
+          particles.burst(
+            state.player.x - 3,
+            state.player.y + 12,
+            1,
+            state.dash > 0 ? "#b6dbc3" : "#e5a161",
+            10,
+          );
+      }
     }
     if (session.active !== recordParty || state.time < recordTime) {
       records.reset(best);

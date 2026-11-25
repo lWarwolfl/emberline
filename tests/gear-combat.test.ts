@@ -31,7 +31,7 @@ test("A and D move at the same speed, A stays, and D eases home", () => {
   advance(state, 0.2);
   const right = state.player.x - Config.playerX;
   assert(Math.abs(left - right) < 1);
-  advance(state, 2);
+  advance(state, (Config.playerRight - state.player.x) / Config.strafeSpeed + 0.1);
   assert.equal(state.player.x, Config.playerRight);
   state.strafe = 0;
   advance(state, 0.15);

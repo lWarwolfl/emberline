@@ -20,6 +20,7 @@ const groups = {
   cape: Loadout.capes,
   jetpack: Loadout.jetpacks,
   weapon: Loadout.weapons,
+  shield: Loadout.shields,
   difficulty: Loadout.difficulties,
   settings: [],
 };
@@ -28,6 +29,7 @@ const labels = {
   cape: "Cape",
   jetpack: "Jetpack",
   weapon: "Weapon",
+  shield: "Shield",
   upgrades: "Upgrades",
   difficulty: "Difficulty",
   settings: "Settings",
@@ -390,7 +392,10 @@ function create(
     ctx.save();
     ctx.translate(84, 56);
     ctx.scale(2, 2);
+    previewState.mode = "playing";
+    previewState.shield.held = active === "shield";
     sprites.courier(0, 0, time, dashing, previewState);
+    sprites.guard(0, 0, previewState);
     ctx.restore();
   }
   return {

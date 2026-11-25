@@ -1,6 +1,7 @@
 import type { Seed } from "./types";
 import type { GameEvent, GameState, Player, WorldObject } from "./types";
 import Powerups from "./powerups";
+import Shield from "./shield";
 import Ships from "./ships";
 import Config from "./config";
 import Random from "./random";
@@ -20,6 +21,7 @@ function create(
   const loadout = Loadout.sanitize(equipment);
   const rules = Loadout.rules(loadout);
   return {
+    shield: { ...Shield.create(), charge: Upgrades.stats(upgradeLevels).shieldCapacity },
     grounding: false,
     crouching: false,
     strafe: 0,
@@ -200,6 +202,7 @@ function collect(state: GameState, object: WorldObject) {
 }
 function hit(state: GameState, object: WorldObject) {
   if (state.ship && state.ship.phase !== "flight") return;
+  if (state.invincible <= 0 && !state.activePowerups.shield && Shield.block(state)) return;
   if (state.activePowerups.titan && object.kind === "enemy") {
     Combat.damage(state, object, 10, "titan");
     return;
@@ -217,11 +220,13 @@ function hit(state: GameState, object: WorldObject) {
     emit(state, "hit", state.player.x, state.player.y);
     if (state.hits >= state.health) {
       state.mode = "dead";
+      state.shield.held = false;
       emit(state, "death", state.player.x, state.player.y);
     }
   }
 }
 function step(state: GameState, dt: number) {
+  Shield.update(state, dt);
   state.time += dt;
   const previousSector = state.sector;
   Difficulty.update(state, dt);

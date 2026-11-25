@@ -17,6 +17,7 @@ const prices: Record<GearGroup, Record<string, number>> = {
   },
   cape: { ember: 0, signal: 250, storm: 600, aurora: 1500, cinder: 1100, relay: 1800, none: 0 },
   jetpack: { ember: 0, twin: 400, coil: 800, comet: 1600, halo: 2200, forge: 2800, none: 0 },
+  shield: { aegis: 0, prism: 1800, furnace: 3200 },
   weapon: {
     punch: 0,
     pulse: 1200,

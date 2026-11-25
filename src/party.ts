@@ -1,6 +1,7 @@
 import type { GameState, Loadout, Seed, UpgradeLevels } from "./types";
 import Engine from "./engine";
 import Powerups from "./powerups";
+import Shield from "./shield";
 import Ships from "./ships";
 import Config from "./config";
 import Difficulty from "./difficulty";
@@ -40,6 +41,8 @@ export interface PartyRun {
   countdown: number;
 }
 export type Action =
+  | "shield-on"
+  | "shield-off"
   | "jump"
   | "dash"
   | "attack"
@@ -207,6 +210,10 @@ export function action(run: PartyRun, id: string, action: Action) {
   s.projectiles = run.world.projectiles;
   s.runSpeed = run.world.runSpeed;
   s.ship = run.world.ship;
+  if (action === "shield-on" || action === "shield-off") {
+    s.shield.held = action === "shield-on";
+    return true;
+  }
   if (action === "climb" || action === "level") {
     s.climb = action === "climb";
     return true;
@@ -236,6 +243,7 @@ function revive(run: PartyRun) {
   for (const m of run.members) {
     if (!m.connected || alive(m)) continue;
     Object.assign(m.state, { hits: 0, invincible: 2, mode: "playing", dash: 0, grounding: false });
+    m.state.shield.held = false;
     Object.assign(m.state.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
   }
   formation(run, true);
@@ -283,6 +291,7 @@ function step(run: PartyRun, dt: number) {
       Engine.groundStep(s);
     }
     Powerups.update(s, dt);
+    Shield.update(s, dt);
   }
   if (!w.ship && w.distance >= w.next && !w.objects.some((o) => o.kind === "ship" && !o.dead)) {
     const before = w.objects.length;
@@ -514,6 +523,7 @@ function coast(run: PartyRun, dt: number) {
         Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
     }
     Powerups.update(s, dt);
+    Shield.update(s, dt);
   }
   for (const object of w.objects) Generator.move(object, w.runSpeed, dt);
   for (const bolt of w.projectiles) {
@@ -592,6 +602,7 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
   to.groupIndex = from.groupIndex;
   to.biomeIndex = from.biomeIndex;
   to.bossActive = from.bossActive;
+  to.lastBossId = from.lastBossId;
   to.ship = from.ship ? { ...from.ship } : null;
   to.score = from.score;
   to.scoreRemainder = from.scoreRemainder;
@@ -632,6 +643,9 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
       w: target.w,
       h: target.h,
       hp: target.hp,
+      bossId: target.bossId,
+      maxHp: target.maxHp,
+      bossPhase: target.bossPhase,
       dead: target.dead,
       passed: target.passed,
       evolution: target.evolution,
@@ -730,6 +744,7 @@ export function ease(shown: PartyRun, authority: PartyRun, seconds: number) {
       stats: remote.stats,
       rules: remote.rules,
       activePowerups: { ...remote.activePowerups },
+      shield: { ...remote.shield },
       ship: to.ship,
       climb: remote.climb,
     });
@@ -798,6 +813,7 @@ export function steer(run: PartyRun, id: string, seconds: number) {
         Object.assign(s.player, { y: Config.floor - Config.playerHeight, vy: 0, jumps: 0 });
     }
     Powerups.update(s, dt);
+    Shield.update(s, dt);
     remaining -= dt;
   }
 }
@@ -867,6 +883,7 @@ export function view(run: PartyRun, id: string): GameState {
     ? {
         ...run.world,
         activePowerups: local.activePowerups,
+        shield: { ...local.shield },
         grounding: local.grounding,
         player: local.player,
         health: local.health,

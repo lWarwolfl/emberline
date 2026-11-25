@@ -226,6 +226,29 @@ const jetpacks = [
     kind: "forge",
   },
 ];
+const shields = [
+  {
+    id: "aegis",
+    name: "Aegis ring",
+    description: "A clean mint field. Hold K to raise; release to recharge.",
+    color: "#b6dbc3",
+    shape: "ring",
+  },
+  {
+    id: "prism",
+    name: "Prism guard",
+    description: "An angular blue barrier. Cosmetic shield style.",
+    color: "#91d9ed",
+    shape: "hex",
+  },
+  {
+    id: "furnace",
+    name: "Furnace guard",
+    description: "An ember plate with hot seams. Cosmetic shield style.",
+    color: "#ffae62",
+    shape: "plate",
+  },
+];
 const weapons = [
   {
     id: "punch",
@@ -351,6 +374,7 @@ const defaults = {
   jetpack: "ember",
   weapon: "punch",
   difficulty: "standard",
+  shield: "aegis",
   custom: { speed: 1, growth: 1, density: 1, health: 3 },
 };
 function clamp(value: unknown, min: number, max: number, fallback: number) {
@@ -368,6 +392,7 @@ function sanitize(value: unknown = {}): Loadout {
     cape: capes,
     jetpack: jetpacks,
     weapon: weapons,
+    shield: shields,
     difficulty: difficulties,
   }) as [LoadoutGroup, { id: string }[]][]) {
     result[key] = group.some((item) => item.id === source[key])
@@ -397,4 +422,15 @@ function rules(loadout: unknown) {
     coinReward: difficulty.coinReward || 0,
   };
 }
-export = { characters, capes, jetpacks, weapons, difficulties, defaults, find, sanitize, rules };
+export = {
+  characters,
+  capes,
+  jetpacks,
+  weapons,
+  shields,
+  difficulties,
+  defaults,
+  find,
+  sanitize,
+  rules,
+};

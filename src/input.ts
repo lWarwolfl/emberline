@@ -6,15 +6,17 @@ let left = false;
 let right = false;
 let crouch = false;
 let climb = false;
+let shield = false;
 
 function pose() {
-  return { strafe, crouch, climb };
+  return { strafe, crouch, climb, shield };
 }
 function release() {
   left = false;
   right = false;
   crouch = false;
   climb = false;
+  shield = false;
   strafe = 0;
 }
 function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
@@ -96,6 +98,11 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     },
   );
 
+  for (const id of ["touch-shield", "ship-shield"])
+    if (doc.getElementById(id))
+      flightButton(id, (held) => {
+        shield = held;
+      });
   function flightButton(id: string, set: (held: boolean) => void) {
     hold(
       id,
@@ -148,6 +155,15 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
     true,
   );
   doc.addEventListener("keyup", (event) => {
+    if (
+      event.code === "Space" &&
+      event.target instanceof Element &&
+      event.target.matches("#start")
+    ) {
+      event.preventDefault();
+      return;
+    }
+    if (event.code === "KeyK") shield = false;
     if (event.code === "KeyA") {
       left = false;
       strafe = right ? 1 : 0;
@@ -160,6 +176,20 @@ function bind(doc: Document, actions: Actions, canvas: HTMLCanvasElement) {
   doc.addEventListener("keydown", (event) => {
     if (doc.querySelector("dialog[open]")) {
       release();
+      return;
+    }
+    // A jump held through death must never activate the focused retry button.
+    if (
+      event.code === "Space" &&
+      event.target instanceof Element &&
+      event.target.matches("#start")
+    ) {
+      event.preventDefault();
+      return;
+    }
+    if (event.code === "KeyK") {
+      event.preventDefault();
+      shield = true;
       return;
     }
     if (event.code === "KeyA" || event.code === "KeyD") {

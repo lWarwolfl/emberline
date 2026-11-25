@@ -167,6 +167,7 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
           if (world.ship) sprites.ship(x, y, world.ship, s.attackTime > 0, time);
           else sprites.courier(x, y, time, s.dash > 0, s);
           if (s.activePowerups.shield) shield(x, y, Boolean(world.ship));
+          sprites.guard(x, y, s);
           ctx.font = "bold 5px monospace";
           ctx.fillStyle = member.id === localId ? "#d5ffe9" : "#ffd19e";
           ctx.textAlign = "center";
@@ -191,6 +192,7 @@ function create(canvas: HTMLCanvasElement, reducedMotion: boolean) {
         if (world.ship) sprites.ship(x, y, world.ship, state.attackTime > 0, time);
         else sprites.courier(x, y, time, state.dash > 0, state);
         if (state.activePowerups.shield) shield(x, y, Boolean(world.ship));
+        sprites.guard(x, y, state);
         ctx.restore();
       }
     }

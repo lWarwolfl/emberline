@@ -333,6 +333,7 @@ test("new gear validates and old level-five saves extend to ten without changing
     damage: 5,
     triple: 1,
     power: 0,
+    shield: 0,
   });
   assert.equal(Upgrades.stats({ damage: 5 }).damageMultiplier, 2);
   const levels = { dash: 10, jump: 10, damage: 10 };

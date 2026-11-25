@@ -62,6 +62,8 @@ function replay(state: GameState, action: Party.Action) {
   else if (action === "dash") Engine.dash(state);
   else if (action === "attack") Engine.attack(state);
   else if (action === "ground") Engine.ground(state);
+  else if (action === "shield-on" || action === "shield-off")
+    state.shield.held = action === "shield-on";
   else if (action === "climb" || action === "level") state.climb = action === "climb";
   else if (action === "strafe-left") state.strafe = -1;
   else if (action === "strafe-right") state.strafe = 1;
@@ -95,6 +97,7 @@ function predict(
   local.state.activePowerups = { ...source.state.activePowerups };
   local.state.ship = latest.world.ship;
   local.state.climb = source.state.climb;
+  local.state.shield = { ...source.state.shield };
   for (const input of pending) if (input.sequence > ack) replay(local.state, input.action);
   Party.steer(shown, localId, Math.min(0.2, Math.max(0, hostNow - latest.world.time)));
   const front = Party.sorted(shown).find(Party.alive);

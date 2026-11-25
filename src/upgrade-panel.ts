@@ -4,6 +4,7 @@ import Upgrades from "./upgrades";
 import Config from "./config";
 
 const names = {
+  shield: "Shield",
   dash: "Dash",
   jump: "Jump height",
   damage: "Attack damage",
@@ -13,6 +14,8 @@ const names = {
 function benefit(id: UpgradeId, levels: UpgradeLevels) {
   const stats = Upgrades.stats(levels);
   switch (id) {
+    case "shield":
+      return stats.shieldCapacity + " capacity";
     case "dash":
       return Math.round((stats.dashWorldMultiplier - 1) * 100) + "% boost";
     case "jump":

@@ -245,6 +245,8 @@ export function create(doc: Document, getProfile: () => Party.Profile, ended: ()
               "climb",
               "level",
               "ground",
+              "shield-on",
+              "shield-off",
               "strafe-left",
               "strafe-right",
               "strafe-stop",

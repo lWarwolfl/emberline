@@ -3651,3 +3651,224 @@ body {
     padding-inline: 4px;
   }
 }
+
+/* Results retain Run Again as the primary action; support is an optional invitation. */
+#shell #death-donate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--ember);
+  background: #19201e;
+  color: var(--ember);
+  text-align: left;
+  cursor: pointer;
+}
+#death-donate strong {
+  font:
+    17px/1 Impact,
+    sans-serif;
+  letter-spacing: 0.5px;
+}
+#death-donate span {
+  font:
+    10px/1.4 Consolas,
+    monospace;
+  max-width: 210px;
+}
+#shell #death-donate[hidden],
+#boss-health[hidden] {
+  display: none;
+}
+.boss-health {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  right: 12px;
+  width: min(68%, 340px);
+  padding: 5px 8px;
+  background: #101514e8;
+  pointer-events: none;
+  color: #ffae62;
+}
+.boss-health > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font:
+    10px/1.3 Consolas,
+    monospace;
+  margin-bottom: 4px;
+}
+.boss-track {
+  display: flex;
+  gap: 2px;
+  height: 9px;
+}
+.boss-track i {
+  display: block;
+  flex: 1;
+  background: #44372e;
+  overflow: hidden;
+}
+.boss-track b {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  transform-origin: left;
+}
+.boss-warden {
+  border: 2px solid #a68a66;
+  border-bottom-width: 4px;
+}
+.boss-warden .boss-track i:nth-child(3n) {
+  border-right: 2px solid #101514;
+}
+.boss-leviathan {
+  color: #9bd7e5;
+}
+.boss-leviathan .boss-track {
+  height: 13px;
+}
+.boss-leviathan .boss-track i {
+  clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
+}
+.boss-herald {
+  color: #eac5fb;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+}
+.boss-herald .boss-track {
+  height: 5px;
+  border-block: 1px solid #eac5fb;
+  gap: 4px;
+}
+.boss-matron {
+  color: #b6dbc3;
+}
+.boss-matron .boss-track {
+  height: 12px;
+  gap: 3px;
+}
+.boss-matron .boss-track i {
+  clip-path: polygon(20% 0, 80% 0, 100% 35%, 100% 65%, 80% 100%, 20% 100%, 0 65%, 0 35%);
+}
+#shield-status {
+  color: var(--mint);
+  font-size: 9px;
+  white-space: nowrap;
+}
+#shield-charge {
+  display: inline-block;
+  width: 32px;
+  height: 4px;
+  background: #3d4841;
+  vertical-align: middle;
+}
+#shield-charge i {
+  display: block;
+  height: 100%;
+  background: var(--mint);
+  transform-origin: left;
+}
+#shell .touch-controls {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  #shell #death-donate {
+    margin-top: 6px;
+    padding: 6px 8px;
+    gap: 8px;
+  }
+  #death-donate strong {
+    font-size: 14px;
+  }
+  #death-donate span {
+    font-size: 9px;
+    max-width: 160px;
+  }
+  .boss-health {
+    top: 5px;
+    right: 6px;
+    padding: 3px 5px;
+  }
+  .boss-health > div:first-child {
+    font-size: 8px;
+  }
+  #shield-status {
+    font-size: 7px;
+  }
+  #shell .touch-controls button {
+    font-size: 8px;
+    padding-inline: 2px;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  #shell #death-donate {
+    display: inline-flex;
+    margin: 4px 0 0;
+    min-height: 44px;
+  }
+  #death-donate span {
+    max-width: 180px;
+  }
+}
+
+#round-results {
+  display: flex;
+  gap: 24px;
+  margin: 6px 0 12px;
+  max-width: 100%;
+}
+#round-results[hidden] {
+  display: none;
+}
+.round-results > div {
+  min-width: 0;
+  max-width: 65%;
+}
+.round-results dt {
+  color: var(--muted);
+  font:
+    10px/1.4 Consolas,
+    monospace;
+  letter-spacing: 1px;
+}
+.round-results dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font:
+    clamp(26px, 5cqw, 44px)/1 Impact,
+    Haettenschweiler,
+    sans-serif;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+.round-results > div:last-child dd {
+  color: var(--ember);
+}
+#shell .overlay.has-results h1 {
+  font-size: clamp(27px, 7cqw, 58px);
+  margin-bottom: 8px;
+}
+#shell .overlay.has-results p {
+  margin-bottom: 6px;
+}
+@media (max-width: 700px), (max-height: 540px) {
+  #round-results {
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .round-results dt {
+    font-size: 8px;
+  }
+  .round-results dd {
+    font-size: clamp(24px, 5cqw, 34px);
+  }
+  #shell .overlay.has-results h1 {
+    font-size: clamp(24px, 6cqw, 40px);
+    margin-bottom: 5px;
+  }
+}

@@ -63,7 +63,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     );
   assert.equal(grounds, 2);
   assert.equal(controls, 1);
-  assert.deepEqual(Input.pose(), { strafe: 0, crouch: true, climb: false });
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: true, climb: false, shield: false });
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
       code: "KeyA",
@@ -71,7 +71,7 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
       repeat: false,
     }),
   );
-  assert.deepEqual(Input.pose(), { strafe: -1, crouch: true, climb: false });
+  assert.deepEqual(Input.pose(), { strafe: -1, crouch: true, climb: false, shield: false });
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyA" }));
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
@@ -80,10 +80,10 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
       repeat: false,
     }),
   );
-  assert.deepEqual(Input.pose(), { strafe: 1, crouch: true, climb: false });
+  assert.deepEqual(Input.pose(), { strafe: 1, crouch: true, climb: false, shield: false });
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyD" }));
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyS" }));
-  assert.deepEqual(Input.pose(), { strafe: 0, crouch: false, climb: false });
+  assert.deepEqual(Input.pose(), { strafe: 0, crouch: false, climb: false, shield: false });
   doc.dispatchEvent(
     Object.assign(new Event("keydown", { cancelable: true }), {
       code: "ArrowUp",
@@ -104,6 +104,25 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
   assert(Input.pose().climb);
   doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyW" }));
   assert(!Input.pose().climb);
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyK",
+      key: "k",
+      repeat: false,
+    }),
+  );
+  assert(Input.pose().shield);
+  doc.dispatchEvent(Object.assign(new Event("keyup"), { code: "KeyK" }));
+  assert(!Input.pose().shield);
+  doc.dispatchEvent(
+    Object.assign(new Event("keydown", { cancelable: true }), {
+      code: "KeyK",
+      key: "k",
+      repeat: false,
+    }),
+  );
+  window.dispatchEvent(new Event("blur"));
+  assert(!Input.pose().shield);
   summaryFocused = true;
   const summarySpace = Object.assign(new Event("keydown", { cancelable: true }), {
     code: "Space",
@@ -134,4 +153,57 @@ test("closing any menu returns focus to gameplay without stealing open-menu focu
     }),
   );
   assert.equal(grounds, 2);
+});
+
+test("flight shield uses the shared hold behavior and releases on cancel, blur and dialog keys", (t) => {
+  class Node extends EventTarget {
+    matches() {
+      return false;
+    }
+  }
+  class Pointer extends Event {
+    pointerId = 1;
+  }
+  for (const [key, value] of Object.entries({
+    window: new EventTarget(),
+    Element: Node,
+    PointerEvent: Pointer,
+  })) {
+    const old = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { configurable: true, value });
+    t.after(() => {
+      if (old) Object.defineProperty(globalThis, key, old);
+      else Reflect.deleteProperty(globalThis, key);
+    });
+  }
+  const nodes = new Map<string, Node>();
+  const node = (id: string) => {
+    if (!nodes.has(id)) nodes.set(id, new Node());
+    return nodes.get(id)!;
+  };
+  let open = false;
+  const doc = Object.assign(new Node(), {
+    getElementById: node,
+    querySelector: () => (open ? new Node() : null),
+  });
+  const actions = new Proxy({}, { get: () => () => {} }) as Actions;
+  const canvas = Object.assign(new Node(), { focus() {} });
+  Input.release();
+  Input.bind(doc as unknown as Document, actions, canvas as unknown as HTMLCanvasElement);
+  const flight = node("ship-shield");
+  flight.dispatchEvent(new Pointer("pointerdown", { cancelable: true }));
+  assert(Input.pose().shield);
+  flight.dispatchEvent(new Event("pointercancel"));
+  assert(!Input.pose().shield);
+  flight.dispatchEvent(Object.assign(new Event("keydown", { cancelable: true }), { key: " " }));
+  assert(Input.pose().shield);
+  flight.dispatchEvent(Object.assign(new Event("keyup"), { key: " " }));
+  assert(!Input.pose().shield);
+  flight.dispatchEvent(new Pointer("pointerdown", { cancelable: true }));
+  flight.dispatchEvent(new Event("blur"));
+  assert(!Input.pose().shield);
+  flight.dispatchEvent(new Pointer("pointerdown", { cancelable: true }));
+  open = true;
+  doc.dispatchEvent(Object.assign(new Event("keydown"), { code: "KeyK", key: "k", repeat: false }));
+  assert(!Input.pose().shield);
 });

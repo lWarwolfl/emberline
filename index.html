@@ -126,6 +126,20 @@
             tabindex="-1"
             aria-label="Pixel courier runner. Jump over ground hazards and dash through enemies."
           ></canvas>
+          <section id="boss-health" class="boss-health" aria-label="Boss health" hidden>
+            <div><strong id="boss-name"></strong><span id="boss-hp"></span></div>
+            <div
+              id="boss-meter"
+              class="boss-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="100"
+            >
+              <i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i
+              ><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i>
+            </div>
+          </section>
           <div class="scanlines" aria-hidden="true"></div>
           <div id="overlay" class="overlay">
             <div class="eyebrow" id="eyebrow"><span></span> ONE COURIER. NO FINISH LINE.</div>
@@ -133,10 +147,24 @@
             <p id="description">
               The city went dark. You kept running.<br />Carry the last ember as far as you can.
             </p>
+            <dl id="round-results" class="round-results" aria-label="This round's rewards" hidden>
+              <div>
+                <dt>ROUND POINTS</dt>
+                <dd id="round-score">0</dd>
+              </div>
+              <div>
+                <dt>COINS EARNED</dt>
+                <dd id="round-coins">0</dd>
+              </div>
+            </dl>
             <div class="menu-actions">
               <button id="start" class="primary">START RUN <span>↗</span></button
               ><button id="menu-setup" class="secondary">SHOP &amp; UPGRADES</button>
             </div>
+            <button id="death-donate" type="button" aria-haspopup="dialog" hidden>
+              <strong>FUEL THE EMBER</strong
+              ><span>Donate any amount / unlock both fiery skins</span>
+            </button>
             <div id="prompt">or press <kbd>ENTER</kbd></div>
           </div>
           <div id="countdown" class="countdown" hidden role="status" aria-live="polite">
@@ -159,10 +187,23 @@
             </div>
             <button id="ship-up" type="button" aria-label="Climb">↑ UP</button>
             <button id="ship-down" type="button" aria-label="Descend">↓ DOWN</button>
+            <button id="ship-shield" type="button" aria-label="Hold to raise shield">
+              K / SHIELD
+            </button>
             <button id="ship-fire" type="button" aria-label="Fire ship weapon">X / FIRE</button>
           </section>
           <div class="stage-bottom">
-            <span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
+            <span id="shield-status"
+              >K / SHIELD READY
+              <span
+                id="shield-charge"
+                role="progressbar"
+                aria-label="Shield charge"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="100"
+                ><i></i></span></span
+            ><span id="status">AWAITING COURIER</span><span id="combat-state">PUNCH READY</span
             ><span id="dash-state">DASH READY <i></i></span>
           </div>
         </section>
@@ -201,6 +242,7 @@
         ><button id="touch-jump">JUMP ×2</button
         ><button id="touch-ground" title="Hold to crouch. In the air, pulls to the ground (S / ↓)">
           CROUCH</button
+        ><button id="touch-shield" title="Hold K to raise rechargeable shield">HOLD SHIELD</button
         ><button id="touch-dash">DASH</button><button id="touch-attack">PUNCH</button>
       </div>
 

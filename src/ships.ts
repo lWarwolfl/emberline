@@ -91,7 +91,7 @@ function wave(state: GameState, flight: ShipFlight) {
 function opportunity(seed: GameState["seed"], sector: number) {
   const rng = Random.create(`${seed}:ship:${sector}`);
   return {
-    available: Random.next(rng) < 0.75,
+    available: Random.next(rng) < 0.2,
     delay: Random.range(rng, 2, 6),
     id: Random.pick(rng, ids),
     height: Random.pick(rng, [0, 32, 52]),

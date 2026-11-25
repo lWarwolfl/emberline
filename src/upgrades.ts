@@ -9,6 +9,12 @@ const tracks: {
   fixedCost?: number;
 }[] = [
   {
+    id: "shield",
+    name: "Shield capacitor",
+    maxLevel: 10,
+    description: "Hold K to block. Increase capacity and recharge; release to recover.",
+  },
+  {
     id: "dash",
     name: "Dash drive",
     maxLevel: 10,
@@ -81,6 +87,8 @@ function stats(value: unknown = {}) {
   };
   return {
     levels,
+    shieldCapacity: 100 + levels.shield * 8,
+    shieldRecharge: 18 + levels.shield * 1.2,
     maxJumps: Config.maxJumps + levels.triple,
     jumpVelocity: Config.jumpVelocity - (basic.jump * 7 + advanced.jump * 4),
     doubleJumpVelocity: Config.doubleJumpVelocity - (basic.jump * 6 + advanced.jump * 3),
@@ -101,6 +109,13 @@ function stats(value: unknown = {}) {
 function describe(id: string, value: unknown) {
   const result = stats(value);
   switch (id) {
+    case "shield":
+      return (
+        result.shieldCapacity +
+        " capacity · " +
+        result.shieldRecharge.toFixed(1) +
+        " charge/s · hold K"
+      );
     case "dash":
       return (
         result.dashWorldMultiplier.toFixed(2) +
