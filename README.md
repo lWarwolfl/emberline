@@ -425,3 +425,20 @@ positive direct donation unlocks both fiery Flamebound skins for your account.
 Claims require the transaction ID and a free signature from the sending wallet;
 check wallet message-signing support before sending. Tokens and exchange
 withdrawals do not qualify. See [donation setup and free-service limits](docs/DONATIONS.md).
+
+## Expanded combat
+
+Hold K (or the touch SHIELD button) to raise a rechargeable shield. Release to
+recharge after its delay. Blocking drains charge; an empty shield must recover
+before reuse. Earned-coin shield styles and the Shield Capacitor upgrade live in
+the shop. Prism Shield pickups remain a separate timed effect.
+
+Four seeded boss identities have distinct silhouettes, attacks and health bars:
+Iron Warden, Storm Leviathan, Solar Herald and Hive Matron. Read their warnings,
+then move, jump, crouch or shield through the attack windows. New Scuttlers fire
+alternating lanes, Prisms fire aimed fans, and Bombers explode after a visible
+fuse; shooting a Bomber during that warning cancels its detonation.
+
+Ship offers are now rare (20% of eligible sectors). Hearts use red icon-only
+artwork. Both keyed lateral directions move at 95 logical pixels per second.
+Final death screens offer an optional donation/collection action beside replay.

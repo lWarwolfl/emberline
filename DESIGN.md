@@ -283,3 +283,16 @@ Source design audit: 0/10 generic-design tells. Existing Impact/Consolas and
 charcoal/parchment/ember vocabulary; no gradient, blur, generic feature tiles or
 new fonts. The native Configure dialog is the procedure, not a marketing hero.
 Rendered fit and wallet popup testing remain unrun under the standing restriction.
+
+## Combat expansion and result invitation
+
+Primary surface: Command / Inspect. Keep replay primary on the death screen;
+use an ember secondary invitation to open the existing Configure donation flow.
+The invitation appears only on final death and adapts to verified supporters.
+Boss bars use four distinct silhouettes (plates, fangs, twin rails, hive cells)
+with names and current/max HP, rather than relying on color alone. Shield charge
+is a compact instrument with active/broken cues; three shop styles change only
+its pixel silhouette. Telegraphs and bomber radius markers remain visible with
+particles off. Reduced motion keeps static danger and defense cues. Hearts now
+share the icon-only pickup language. No new fonts, generic cards or gradients.
+Runtime browser/GUI checks remain unrun under the standing restriction.
